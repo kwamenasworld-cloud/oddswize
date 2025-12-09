@@ -1,10 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BOOKMAKER_AFFILIATES, getBookmakerConfig } from '../config/affiliates';
+import { getBookmakerLogo, getCachedBookmakerLogo } from '../services/bookmakerLogos';
 
-// Bookmaker Logo Component with actual logos and fallback
+// Bookmaker Logo Component with automatic logo fetching
 export function BookmakerLogo({ bookmaker, size = 40, showName = false }) {
   const config = BOOKMAKER_AFFILIATES[bookmaker] || getBookmakerConfig(bookmaker);
+  const [logoUrl, setLogoUrl] = useState(getCachedBookmakerLogo(bookmaker));
   const [imgError, setImgError] = useState(false);
+  const [loading, setLoading] = useState(!logoUrl);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadLogo = async () => {
+      // Check cache first
+      const cached = getCachedBookmakerLogo(bookmaker);
+      if (cached) {
+        setLogoUrl(cached);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch from API
+      try {
+        const url = await getBookmakerLogo(bookmaker);
+        if (mounted && url) {
+          setLogoUrl(url);
+          setLoading(false);
+        }
+      } catch (e) {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadLogo();
+
+    return () => {
+      mounted = false;
+    };
+  }, [bookmaker]);
 
   // Fallback gradient badge when image fails or not available
   const FallbackBadge = () => (
@@ -29,19 +65,43 @@ export function BookmakerLogo({ bookmaker, size = 40, showName = false }) {
     </div>
   );
 
+  // Loading placeholder
+  if (loading) {
+    return (
+      <div className="bookmaker-logo-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+        <div
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            borderRadius: '10px',
+            background: '#e0e0e0',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }}
+        />
+        {showName && (
+          <span style={{ fontSize: '0.7rem', fontWeight: '600', color: config.color }}>
+            {config.name}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="bookmaker-logo-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-      {config.logo && !imgError ? (
+      {logoUrl && !imgError ? (
         <img
-          src={config.logo}
+          src={logoUrl}
           alt={`${config.name} logo`}
           style={{
             width: `${size}px`,
             height: `${size}px`,
             objectFit: 'contain',
             borderRadius: '8px',
+            background: 'white',
           }}
           onError={() => setImgError(true)}
+          loading="lazy"
         />
       ) : (
         <FallbackBadge />
