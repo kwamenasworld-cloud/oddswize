@@ -1,100 +1,305 @@
-import axios from 'axios';
+/**
+ * OddsWize API Service
+ * Connects to Cloudflare Workers backend
+ */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// API Configuration
+const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://oddswize-api.kwamenasworld.workers.dev';
 const STATIC_DATA_URL = '/data/odds_data.json';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 60000,
-});
+// Fetch helper with error handling
+const fetchApi = async (endpoint, options = {}) => {
+  const url = `${CLOUDFLARE_API_URL}${endpoint}`;
 
-// Try to fetch from static JSON file (updated by auto_scanner.py)
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`API request failed: ${endpoint}`, error);
+    throw error;
+  }
+};
+
+// Try to fetch from static JSON file (fallback)
 const fetchStaticData = async () => {
   try {
-    const response = await axios.get(STATIC_DATA_URL, { timeout: 5000 });
-    return response.data;
+    const response = await fetch(STATIC_DATA_URL);
+    if (!response.ok) throw new Error('Static data not available');
+    return await response.json();
   } catch (error) {
     console.log('Static data not available');
     return null;
   }
 };
 
-// Get all matches with odds comparison
+/**
+ * Get all matches with odds comparison
+ */
 export const getMatches = async (limit = 100, offset = 0, minBookmakers = 2) => {
   try {
-    // Try API first
-    const response = await api.get('/api/matches', {
-      params: { limit, offset, min_bookmakers: minBookmakers },
-    });
-    return response.data;
+    // Try Cloudflare API first
+    const data = await fetchApi('/api/odds');
+
+    if (data.success && data.data) {
+      // Flatten matches from all leagues
+      const allMatches = data.data.flatMap(league =>
+        league.matches.map(match => ({
+          ...match,
+          league: league.league,
+        }))
+      );
+
+      // Filter by minimum bookmakers
+      const filtered = allMatches.filter(
+        match => match.odds && match.odds.length >= minBookmakers
+      );
+
+      return {
+        matches: filtered.slice(offset, offset + limit),
+        total: filtered.length,
+        meta: data.meta,
+      };
+    }
+
+    throw new Error('Invalid API response');
   } catch (error) {
     // Fallback to static data
-    console.log('API unavailable, trying static data...');
+    console.log('Cloudflare API unavailable, trying static data...');
     const staticData = await fetchStaticData();
+
     if (staticData && staticData.matches) {
-      return staticData.matches.slice(offset, offset + limit);
+      const filtered = staticData.matches.filter(
+        match => match.odds && match.odds.length >= minBookmakers
+      );
+      return {
+        matches: filtered.slice(offset, offset + limit),
+        total: filtered.length,
+        meta: {
+          last_updated: staticData.last_updated,
+          total_matches: filtered.length,
+        },
+      };
     }
+
     throw error;
   }
 };
 
-// Get arbitrage opportunities
-export const getArbitrage = async (bankroll = 100) => {
+/**
+ * Get matches grouped by league
+ */
+export const getMatchesByLeague = async () => {
   try {
-    const response = await api.get('/api/arbitrage', {
-      params: { bankroll },
-    });
-    return response.data;
+    const data = await fetchApi('/api/odds');
+
+    if (data.success && data.data) {
+      return {
+        leagues: data.data,
+        meta: data.meta,
+      };
+    }
+
+    throw new Error('Invalid API response');
   } catch (error) {
     // Fallback to static data
     const staticData = await fetchStaticData();
+
+    if (staticData && staticData.matches) {
+      // Group by league
+      const leagueMap = {};
+      for (const match of staticData.matches) {
+        const league = match.league || 'Unknown';
+        if (!leagueMap[league]) {
+          leagueMap[league] = [];
+        }
+        leagueMap[league].push(match);
+      }
+
+      const leagues = Object.entries(leagueMap).map(([league, matches]) => ({
+        league,
+        matches,
+      }));
+
+      return {
+        leagues,
+        meta: {
+          last_updated: staticData.last_updated,
+          total_matches: staticData.matches.length,
+        },
+      };
+    }
+
+    throw error;
+  }
+};
+
+/**
+ * Get arbitrage opportunities
+ */
+export const getArbitrage = async (bankroll = 100) => {
+  try {
+    const data = await fetchApi('/api/arbitrage');
+
+    if (data.success) {
+      // Calculate stakes based on bankroll
+      return data.data.map(opp => ({
+        ...opp,
+        selections: opp.selections.map(sel => ({
+          ...sel,
+          stake: (sel.stake_percentage / 100) * bankroll,
+        })),
+        total_stake: bankroll,
+        guaranteed_return: opp.guaranteed_return * (bankroll / 100),
+      }));
+    }
+
+    throw new Error('Invalid API response');
+  } catch (error) {
+    // Fallback to static data
+    const staticData = await fetchStaticData();
+
     if (staticData && staticData.arbitrage) {
       return staticData.arbitrage;
     }
+
     throw error;
   }
 };
 
-// Get scanner status
+/**
+ * Get scanner/API status
+ */
 export const getStatus = async () => {
   try {
-    const response = await api.get('/api/status');
-    return response.data;
+    const data = await fetchApi('/health');
+
+    return {
+      status: data.status,
+      last_scan: data.timestamp,
+      service: data.service,
+      version: data.version,
+    };
   } catch (error) {
     // Fallback to static data
     const staticData = await fetchStaticData();
+
     if (staticData && staticData.stats) {
       return {
+        status: 'ok',
         last_scan: staticData.last_updated,
-        ...staticData.stats
+        ...staticData.stats,
       };
     }
+
+    return {
+      status: 'offline',
+      last_scan: null,
+    };
+  }
+};
+
+/**
+ * Get bookmaker list
+ */
+export const getBookmakers = async () => {
+  try {
+    const data = await fetchApi('/api/bookmakers');
+
+    if (data.success) {
+      return data.data;
+    }
+
+    throw new Error('Invalid API response');
+  } catch (error) {
+    // Return default Ghana bookmakers
+    return [
+      { name: 'Betway Ghana', country: 'Ghana' },
+      { name: 'SportyBet Ghana', country: 'Ghana' },
+      { name: '1xBet Ghana', country: 'Ghana' },
+      { name: '22Bet Ghana', country: 'Ghana' },
+      { name: 'SoccaBet Ghana', country: 'Ghana' },
+    ];
+  }
+};
+
+/**
+ * Get single match by ID
+ */
+export const getMatch = async (matchId) => {
+  try {
+    const data = await fetchApi(`/api/match/${matchId}`);
+
+    if (data.success) {
+      return data.data;
+    }
+
+    throw new Error('Match not found');
+  } catch (error) {
+    console.error(`Failed to fetch match ${matchId}:`, error);
     throw error;
   }
 };
 
-// Trigger a new scan
-export const triggerScan = async () => {
-  const response = await api.post('/api/scan');
-  return response.data;
-};
-
-// Get bookmaker list
-export const getBookmakers = async () => {
-  const response = await api.get('/api/bookmakers');
-  return response.data;
-};
-
-// Get last update time from static data
+/**
+ * Get last update time
+ */
 export const getLastUpdate = async () => {
-  const staticData = await fetchStaticData();
-  if (staticData) {
-    return {
-      lastUpdated: staticData.last_updated,
-      nextUpdate: staticData.next_update
-    };
+  try {
+    const data = await fetchApi('/api/odds');
+
+    if (data.success && data.meta) {
+      return {
+        lastUpdated: data.meta.last_updated,
+        cacheTtl: data.meta.cache_ttl,
+        totalMatches: data.meta.total_matches,
+      };
+    }
+
+    throw new Error('Invalid API response');
+  } catch (error) {
+    const staticData = await fetchStaticData();
+
+    if (staticData) {
+      return {
+        lastUpdated: staticData.last_updated,
+        nextUpdate: staticData.next_update,
+      };
+    }
+
+    return null;
   }
-  return null;
 };
 
-export default api;
+/**
+ * Trigger data refresh (not available in Cloudflare - data is pushed from scraper)
+ */
+export const triggerScan = async () => {
+  console.log('Manual scan not available - data is refreshed automatically');
+  return {
+    message: 'Data is refreshed automatically every 15 minutes',
+    status: 'scheduled',
+  };
+};
+
+// Default export for backward compatibility
+export default {
+  getMatches,
+  getMatchesByLeague,
+  getArbitrage,
+  getStatus,
+  getBookmakers,
+  getMatch,
+  getLastUpdate,
+  triggerScan,
+};

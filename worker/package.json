@@ -1,0 +1,19 @@
+{
+  "name": "oddswize-api",
+  "version": "1.0.0",
+  "description": "OddsWize API - Cloudflare Workers backend for betting odds comparison",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:dev": "wrangler deploy --env dev",
+    "tail": "wrangler tail",
+    "kv:create": "wrangler kv:namespace create ODDS_CACHE && wrangler kv:namespace create MATCHES_DATA",
+    "types": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.91.0"
+  }
+}
