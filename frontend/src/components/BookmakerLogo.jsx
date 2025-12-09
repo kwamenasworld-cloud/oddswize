@@ -1,30 +1,51 @@
+import { useState } from 'react';
 import { BOOKMAKER_AFFILIATES, getBookmakerConfig } from '../config/affiliates';
 
-// Bookmaker Logo Component with gradient badges
+// Bookmaker Logo Component with actual logos and fallback
 export function BookmakerLogo({ bookmaker, size = 40, showName = false }) {
   const config = BOOKMAKER_AFFILIATES[bookmaker] || getBookmakerConfig(bookmaker);
+  const [imgError, setImgError] = useState(false);
+
+  // Fallback gradient badge when image fails or not available
+  const FallbackBadge = () => (
+    <div
+      className="bookmaker-logo-icon"
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        background: `linear-gradient(135deg, ${config.color} 0%, ${config.colorDark || config.color} 100%)`,
+        borderRadius: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontWeight: '700',
+        fontSize: `${size * 0.4}px`,
+        boxShadow: `0 4px 12px ${config.color}40`,
+        letterSpacing: '-0.5px',
+      }}
+    >
+      {config.shortName}
+    </div>
+  );
 
   return (
     <div className="bookmaker-logo-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-      <div
-        className="bookmaker-logo-icon"
-        style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          background: `linear-gradient(135deg, ${config.color} 0%, ${config.colorDark || config.color} 100%)`,
-          borderRadius: '10px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontWeight: '700',
-          fontSize: `${size * 0.4}px`,
-          boxShadow: `0 4px 12px ${config.color}40`,
-          letterSpacing: '-0.5px',
-        }}
-      >
-        {config.shortName}
-      </div>
+      {config.logo && !imgError ? (
+        <img
+          src={config.logo}
+          alt={`${config.name} logo`}
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            objectFit: 'contain',
+            borderRadius: '8px',
+          }}
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <FallbackBadge />
+      )}
       {showName && (
         <span style={{ fontSize: '0.7rem', fontWeight: '600', color: config.color }}>
           {config.name}
