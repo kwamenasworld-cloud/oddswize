@@ -417,25 +417,40 @@ function OddsPage() {
               const oddsHistory = generateOddsHistory(match.odds?.[0]?.home_odds, 72, match.movement || 'random');
               const movement = analyzeOddsMovement(oddsHistory);
 
+              // Shorten team names for display
+              const shortenName = (name) => {
+                if (name.length <= 12) return name;
+                // Common abbreviations
+                const abbrevs = {
+                  'Manchester United': 'Man United',
+                  'Manchester City': 'Man City',
+                  'Tottenham Hotspur': 'Tottenham',
+                  'Wolverhampton': 'Wolves',
+                  'Brighton & Hove': 'Brighton',
+                  'Nottingham Forest': "Nott'm Forest",
+                };
+                return abbrevs[name] || name.slice(0, 11) + '...';
+              };
+
               return (
                 <div key={idx} className="hero-card">
                   <div className="hero-card-header">
                     <span className="hero-league">{match.league}</span>
                     {movement.trend !== 'stable' && (
                       <span className={`movement-badge ${movement.trend}`}>
-                        {movement.trend === 'steam' ? '🔥' : '📈'}
+                        {movement.trend === 'steam' ? '🔥 HOT' : '📈 DRIFT'}
                       </span>
                     )}
                   </div>
                   <div className="hero-teams">
                     <div className="hero-team">
-                      <TeamLogo teamName={match.home_team} size={32} />
-                      <span>{match.home_team}</span>
+                      <TeamLogo teamName={match.home_team} size={36} />
+                      <span title={match.home_team}>{shortenName(match.home_team)}</span>
                     </div>
                     <span className="hero-vs">vs</span>
                     <div className="hero-team">
-                      <TeamLogo teamName={match.away_team} size={32} />
-                      <span>{match.away_team}</span>
+                      <TeamLogo teamName={match.away_team} size={36} />
+                      <span title={match.away_team}>{shortenName(match.away_team)}</span>
                     </div>
                   </div>
                   <div className="hero-odds">
