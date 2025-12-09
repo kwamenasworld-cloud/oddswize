@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getMatches, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
-import { BookmakerLogo, StarRating, FeatureBadge, LiveIndicator } from '../components/BookmakerLogo';
+import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
-import { preloadTeamLogos } from '../services/teamLogos';
-import NewsSection from '../components/NewsSection';
-import CommentsSection from '../components/CommentsSection';
+import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
 
 // Demo data for when API is not available
 const DEMO_MATCHES = [
@@ -40,7 +38,6 @@ const DEMO_MATCHES = [
     away_team: 'Liverpool',
     league: 'England. Premier League',
     start_time: Date.now() / 1000 + 259200,
-    isLive: false,
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 3.20, draw_odds: 3.40, away_odds: 2.25 },
       { bookmaker: 'SportyBet Ghana', home_odds: 3.10, draw_odds: 3.35, away_odds: 2.30 },
@@ -92,27 +89,12 @@ const DEMO_MATCHES = [
 
 // Popular leagues for quick filters
 const POPULAR_LEAGUES = [
-  { id: 'all', name: 'All Matches', icon: '⚽' },
+  { id: 'all', name: 'All', icon: '⚽' },
   { id: 'premier', name: 'Premier League', icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', keywords: ['Premier League', 'England'] },
   { id: 'laliga', name: 'La Liga', icon: '🇪🇸', keywords: ['La Liga', 'Spain'] },
   { id: 'ghana', name: 'Ghana', icon: '🇬🇭', keywords: ['Ghana'] },
   { id: 'afcon', name: 'AFCON', icon: '🌍', keywords: ['Africa Cup', 'AFCON'] },
 ];
-
-// Skeleton loader component
-function SkeletonRow() {
-  return (
-    <tr className="skeleton-row">
-      <td className="match-info">
-        <div className="skeleton skeleton-text" style={{ width: '70%' }}></div>
-        <div className="skeleton skeleton-text" style={{ width: '50%', marginTop: '0.5rem' }}></div>
-      </td>
-      {BOOKMAKER_ORDER.map((name, idx) => (
-        <td key={idx} colSpan="3"><div className="skeleton skeleton-odds"></div></td>
-      ))}
-    </tr>
-  );
-}
 
 function OddsPage() {
   const [matches, setMatches] = useState([]);
@@ -131,7 +113,6 @@ function OddsPage() {
   useEffect(() => {
     if (matches.length > 0) {
       const teamNames = matches.flatMap(m => [m.home_team, m.away_team]);
-      // Preload in background (first 50 teams to avoid rate limiting)
       preloadTeamLogos(teamNames.slice(0, 100));
     }
   }, [matches]);
@@ -169,6 +150,18 @@ function OddsPage() {
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+
+    if (isToday) {
+      return `Today ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    if (isTomorrow) {
+      return `Tomorrow ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+    }
     return date.toLocaleDateString('en-GB', {
       weekday: 'short',
       day: 'numeric',
@@ -181,7 +174,6 @@ function OddsPage() {
   const getBestOdds = (match, type) => {
     const odds = match.odds || [];
     if (odds.length === 0) return { value: 0, bookmaker: '' };
-
     const key = `${type}_odds`;
     const best = odds.reduce((max, o) => (o[key] > max[key] ? o : max), odds[0]);
     return { value: best[key], bookmaker: best.bookmaker };
@@ -206,113 +198,28 @@ function OddsPage() {
           );
         }
       }
-
       return matchesSearch && matchesLeague;
     });
   }, [matches, searchQuery, selectedLeague]);
 
-  const uniqueLeagues = useMemo(() => {
-    return [...new Set(matches.map((m) => m.league))];
-  }, [matches]);
+  // Group matches by league
+  const groupedMatches = useMemo(() => {
+    const groups = {};
+    filteredMatches.forEach(match => {
+      if (!groups[match.league]) {
+        groups[match.league] = [];
+      }
+      groups[match.league].push(match);
+    });
+    return groups;
+  }, [filteredMatches]);
 
   return (
-    <div className="container">
-      {/* Bookmaker Promo */}
-      <div className="promo-banner">
-        <div className="promo-content">
-          <BookmakerLogo bookmaker="Betway Ghana" size={48} />
-          <div className="promo-text">
-            <strong>Betway Ghana</strong>
-            <span>Get 50% Welcome Bonus up to GHS 200!</span>
-          </div>
-        </div>
-        <a
-          href={getAffiliateUrl('Betway Ghana')}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="promo-btn"
-        >
-          Claim Bonus
-        </a>
-      </div>
-
-      {/* Stats */}
-      <div className="stats-banner">
-        <div className="stat-item">
-          <div className="stat-icon">⚽</div>
-          <div className="stat-content">
-            <div className="stat-value">{status?.total_matches || matches.length * 5}</div>
-            <div className="stat-label">Total Matches</div>
-          </div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <div className="stat-value">{status?.matched_events || matches.length}</div>
-            <div className="stat-label">Compared Events</div>
-          </div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-icon">🏆</div>
-          <div className="stat-content">
-            <div className="stat-value">{uniqueLeagues.length || 5}</div>
-            <div className="stat-label">Leagues</div>
-          </div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-icon">💰</div>
-          <div className="stat-content">
-            <div className="stat-value">{status?.arbitrage_count || 0}</div>
-            <div className="stat-label">Arb Opportunities</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bookmaker Logos with Ratings */}
-      <div className="bookmaker-logos">
-        {BOOKMAKER_ORDER.map((name) => {
-          const config = BOOKMAKER_AFFILIATES[name];
-          return (
-            <a
-              key={name}
-              href={config.affiliateUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bookmaker-logo-card"
-            >
-              <BookmakerLogo bookmaker={name} size={50} />
-              <div className="bookmaker-info">
-                <div className="bookmaker-name">{config.name}</div>
-                <StarRating rating={config.rating} size={12} />
-                <div className="bookmaker-bonus">{config.signupBonus}</div>
-              </div>
-            </a>
-          );
-        })}
-      </div>
-
-      {/* Odds Table */}
-      <div className="odds-section">
-        <div className="section-header">
-          <h2 className="section-title">
-            <span className="title-icon">📈</span>
-            Football Odds Comparison {useDemo && <span className="demo-badge">Demo</span>}
-          </h2>
-          <button
-            className="refresh-btn"
-            onClick={handleRefresh}
-            disabled={refreshing || useDemo}
-          >
-            <svg className="refresh-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-            </svg>
-            {refreshing ? 'Refreshing...' : 'Refresh Odds'}
-          </button>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="search-filter-bar">
-          <div className="search-box">
+    <div className="odds-page">
+      {/* Header Bar */}
+      <div className="odds-toolbar">
+        <div className="toolbar-left">
+          <div className="search-wrapper">
             <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
@@ -322,44 +229,60 @@ function OddsPage() {
               placeholder="Search teams or leagues..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
+              className="search-field"
             />
             {searchQuery && (
-              <button className="clear-search" onClick={() => setSearchQuery('')}>
-                ×
-              </button>
+              <button className="clear-btn" onClick={() => setSearchQuery('')}>×</button>
             )}
           </div>
         </div>
 
-        {/* League Filter Tabs */}
-        <div className="filter-tabs">
-          {POPULAR_LEAGUES.map((league) => (
-            <button
-              key={league.id}
-              className={`filter-tab ${selectedLeague === league.id ? 'active' : ''}`}
-              onClick={() => setSelectedLeague(league.id)}
-            >
-              <span className="filter-icon">{league.icon}</span>
-              {league.name}
-            </button>
-          ))}
+        <div className="toolbar-center">
+          <div className="league-filters">
+            {POPULAR_LEAGUES.map((league) => (
+              <button
+                key={league.id}
+                className={`league-btn ${selectedLeague === league.id ? 'active' : ''}`}
+                onClick={() => setSelectedLeague(league.id)}
+              >
+                <span className="league-icon">{league.icon}</span>
+                <span className="league-name">{league.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Results count */}
-        <div className="results-info">
-          <span>Showing <strong>{filteredMatches.length}</strong> of {matches.length} matches</span>
-          {!useDemo && (
-            <span className="live-badge">
-              <span className="live-dot"></span>
-              Live Odds
-            </span>
-          )}
+        <div className="toolbar-right">
+          <button
+            className="clear-cache-btn"
+            onClick={() => {
+              clearLogoCache();
+              window.location.reload();
+            }}
+            title="Clear cached logos and reload"
+          >
+            Reload Logos
+          </button>
+          <button
+            className="refresh-btn"
+            onClick={handleRefresh}
+            disabled={refreshing || useDemo}
+          >
+            <svg className={`refresh-icon ${refreshing ? 'spinning' : ''}`} viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+            </svg>
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+          {useDemo && <span className="demo-tag">Demo Mode</span>}
         </div>
+      </div>
 
-        {/* Table Header with Bookmaker Logos */}
-        <div className="bookmaker-header">
-          <div className="match-header-cell">Match</div>
+      {/* Main Odds Grid */}
+      <div className="odds-container">
+        {/* Table Header - Bookmakers */}
+        <div className="odds-header">
+          <div className="header-match">Match</div>
+          <div className="header-time">Kick-off</div>
           {BOOKMAKER_ORDER.map((name) => {
             const config = BOOKMAKER_AFFILIATES[name];
             return (
@@ -368,160 +291,156 @@ function OddsPage() {
                 href={config.affiliateUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bookmaker-header-cell"
+                className="header-bookmaker"
               >
-                <BookmakerLogo bookmaker={name} size={32} />
-                <span className="bookmaker-header-name">{config.name}</span>
+                <BookmakerLogo bookmaker={name} size={28} />
+                <span className="bookie-name">{config.name}</span>
               </a>
             );
           })}
         </div>
 
-        <div className="table-wrapper">
-          <table className="odds-table">
-            <thead>
-              <tr>
-                <th className="match-col sticky-col"></th>
-                {BOOKMAKER_ORDER.map((name) => (
-                  <th key={name} colSpan="3" className="bookmaker-th">
-                    <span className="outcome-labels">
-                      <span>1</span>
-                      <span>X</span>
-                      <span>2</span>
-                    </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <>
-                  <SkeletonRow />
-                  <SkeletonRow />
-                  <SkeletonRow />
-                  <SkeletonRow />
-                  <SkeletonRow />
-                </>
-              ) : filteredMatches.length === 0 ? (
-                <tr>
-                  <td colSpan={1 + BOOKMAKER_ORDER.length * 3} className="no-results">
-                    <div className="no-results-content">
-                      <span className="no-results-icon">🔍</span>
-                      <p>No matches found</p>
-                      <span>Try adjusting your search or filters</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredMatches.map((match, idx) => {
-                  const bestHome = getBestOdds(match, 'home');
-                  const bestDraw = getBestOdds(match, 'draw');
-                  const bestAway = getBestOdds(match, 'away');
-
-                  return (
-                    <tr key={idx} className={match.isLive ? 'live-match' : ''}>
-                      <td className="match-info sticky-col">
-                        <div className="match-teams">
-                          {match.isLive && <LiveIndicator />}
-                          <div className="team-with-logo">
-                            <TeamLogo teamName={match.home_team} size={22} />
-                            <span>{match.home_team}</span>
-                          </div>
-                          <span className="vs">vs</span>
-                          <div className="team-with-logo">
-                            <TeamLogo teamName={match.away_team} size={22} />
-                            <span>{match.away_team}</span>
-                          </div>
-                        </div>
-                        <div className="match-meta">
-                          <span className="match-league">
-                            <span className="league-dot"></span>
-                            {match.league}
-                          </span>
-                          <span className="match-time">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <circle cx="12" cy="12" r="10" />
-                              <path d="M12 6v6l4 2" />
-                            </svg>
-                            {formatTime(match.start_time)}
-                          </span>
-                        </div>
-                      </td>
-                      {BOOKMAKER_ORDER.map((bookmaker) => {
-                        const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
-                        const config = BOOKMAKER_AFFILIATES[bookmaker];
-
-                        return (
-                          <td key={bookmaker} colSpan="3" className="odds-cell-group">
-                            <div className="odds-trio">
-                              {bookieOdds?.home_odds ? (
-                                <a
-                                  href={config.affiliateUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`odds-btn ${bookieOdds.home_odds === bestHome.value ? 'best' : ''}`}
-                                  style={bookieOdds.home_odds === bestHome.value ? { borderColor: config.color } : {}}
-                                >
-                                  {bookieOdds.home_odds.toFixed(2)}
-                                </a>
-                              ) : (
-                                <span className="odds-empty">-</span>
-                              )}
-                              {bookieOdds?.draw_odds ? (
-                                <a
-                                  href={config.affiliateUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`odds-btn ${bookieOdds.draw_odds === bestDraw.value ? 'best' : ''}`}
-                                  style={bookieOdds.draw_odds === bestDraw.value ? { borderColor: config.color } : {}}
-                                >
-                                  {bookieOdds.draw_odds.toFixed(2)}
-                                </a>
-                              ) : (
-                                <span className="odds-empty">-</span>
-                              )}
-                              {bookieOdds?.away_odds ? (
-                                <a
-                                  href={config.affiliateUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`odds-btn ${bookieOdds.away_odds === bestAway.value ? 'best' : ''}`}
-                                  style={bookieOdds.away_odds === bestAway.value ? { borderColor: config.color } : {}}
-                                >
-                                  {bookieOdds.away_odds.toFixed(2)}
-                                </a>
-                              ) : (
-                                <span className="odds-empty">-</span>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+        {/* Outcome Labels Row */}
+        <div className="outcome-row">
+          <div className="outcome-match"></div>
+          <div className="outcome-time"></div>
+          {BOOKMAKER_ORDER.map((name) => (
+            <div key={name} className="outcome-labels">
+              <span>1</span>
+              <span>X</span>
+              <span>2</span>
+            </div>
+          ))}
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <span>Loading odds...</span>
+          </div>
+        )}
+
+        {/* No Results */}
+        {!loading && filteredMatches.length === 0 && (
+          <div className="empty-state">
+            <span className="empty-icon">🔍</span>
+            <p>No matches found</p>
+            <span>Try adjusting your search or filters</span>
+          </div>
+        )}
+
+        {/* Matches grouped by league */}
+        {!loading && Object.entries(groupedMatches).map(([league, leagueMatches]) => (
+          <div key={league} className="league-group">
+            <div className="league-header">
+              <span className="league-dot"></span>
+              <span className="league-title">{league}</span>
+              <span className="match-count">{leagueMatches.length} matches</span>
+            </div>
+
+            {leagueMatches.map((match, idx) => {
+              const bestHome = getBestOdds(match, 'home');
+              const bestDraw = getBestOdds(match, 'draw');
+              const bestAway = getBestOdds(match, 'away');
+
+              return (
+                <div key={idx} className="match-row">
+                  {/* Teams */}
+                  <div className="match-teams-cell">
+                    <div className="team-row">
+                      <TeamLogo teamName={match.home_team} size={20} />
+                      <span className="team-name">{match.home_team}</span>
+                    </div>
+                    <div className="team-row">
+                      <TeamLogo teamName={match.away_team} size={20} />
+                      <span className="team-name">{match.away_team}</span>
+                    </div>
+                  </div>
+
+                  {/* Kick-off Time */}
+                  <div className="match-time-cell">
+                    <span className="kickoff-time">{formatTime(match.start_time)}</span>
+                  </div>
+
+                  {/* Odds for each bookmaker */}
+                  {BOOKMAKER_ORDER.map((bookmaker) => {
+                    const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
+                    const config = BOOKMAKER_AFFILIATES[bookmaker];
+
+                    return (
+                      <div key={bookmaker} className="odds-cell">
+                        {bookieOdds ? (
+                          <>
+                            <a
+                              href={config.affiliateUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`odd ${bookieOdds.home_odds === bestHome.value ? 'best' : ''}`}
+                            >
+                              {bookieOdds.home_odds.toFixed(2)}
+                            </a>
+                            <a
+                              href={config.affiliateUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`odd ${bookieOdds.draw_odds === bestDraw.value ? 'best' : ''}`}
+                            >
+                              {bookieOdds.draw_odds.toFixed(2)}
+                            </a>
+                            <a
+                              href={config.affiliateUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`odd ${bookieOdds.away_odds === bestAway.value ? 'best' : ''}`}
+                            >
+                              {bookieOdds.away_odds.toFixed(2)}
+                            </a>
+                          </>
+                        ) : (
+                          <>
+                            <span className="odd empty">-</span>
+                            <span className="odd empty">-</span>
+                            <span className="odd empty">-</span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+
         {/* Mobile scroll hint */}
-        <div className="scroll-hint">
-          <span>Swipe to see more bookmakers</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+        <div className="scroll-hint-mobile">
+          <span>Swipe for more bookmakers</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </div>
       </div>
 
-      {/* News Section - SEO optimized content */}
-      <NewsSection />
-
-      {/* Community Comments - drives engagement */}
-      <CommentsSection
-        matchId="featured-match"
-        matchName="Featured Match Discussion"
-      />
+      {/* Quick Stats Footer */}
+      <div className="quick-stats">
+        <div className="stat">
+          <span className="stat-num">{status?.total_matches || matches.length * 5}</span>
+          <span className="stat-lbl">Total Matches</span>
+        </div>
+        <div className="stat">
+          <span className="stat-num">{filteredMatches.length}</span>
+          <span className="stat-lbl">Displayed</span>
+        </div>
+        <div className="stat">
+          <span className="stat-num">{Object.keys(groupedMatches).length}</span>
+          <span className="stat-lbl">Leagues</span>
+        </div>
+        <div className="stat highlight">
+          <span className="stat-num">{status?.arbitrage_count || 0}</span>
+          <span className="stat-lbl">Arb Opps</span>
+        </div>
+      </div>
     </div>
   );
 }

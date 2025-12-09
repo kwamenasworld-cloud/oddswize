@@ -44,59 +44,175 @@ let logoCache = loadCache();
 
 // Common team name mappings for better matching
 const TEAM_NAME_MAPPINGS = {
+  // English Premier League
   'man utd': 'Manchester United',
   'man united': 'Manchester United',
+  'manchester united': 'Manchester United',
   'man city': 'Manchester City',
-  'spurs': 'Tottenham',
-  'tottenham hotspur': 'Tottenham',
-  'wolves': 'Wolverhampton',
-  'wolverhampton wanderers': 'Wolverhampton',
+  'manchester city': 'Manchester City',
+  'spurs': 'Tottenham Hotspur',
+  'tottenham': 'Tottenham Hotspur',
+  'tottenham hotspur': 'Tottenham Hotspur',
+  'wolves': 'Wolverhampton Wanderers',
+  'wolverhampton': 'Wolverhampton Wanderers',
+  'wolverhampton wanderers': 'Wolverhampton Wanderers',
+  'brighton': 'Brighton',
   'brighton hove albion': 'Brighton',
   'brighton & hove albion': 'Brighton',
-  'west ham united': 'West Ham',
-  'newcastle united': 'Newcastle',
+  'west ham': 'West Ham United',
+  'west ham united': 'West Ham United',
+  'newcastle': 'Newcastle United',
+  'newcastle united': 'Newcastle United',
   'nottm forest': 'Nottingham Forest',
   'nott forest': 'Nottingham Forest',
   'nottingham': 'Nottingham Forest',
+  'nottingham forest': 'Nottingham Forest',
   'sheff utd': 'Sheffield United',
   'sheff united': 'Sheffield United',
-  'leicester city': 'Leicester',
+  'sheffield united': 'Sheffield United',
+  'leicester': 'Leicester City',
+  'leicester city': 'Leicester City',
   'crystal palace': 'Crystal Palace',
   'aston villa': 'Aston Villa',
-  'bayern munchen': 'Bayern Munich',
-  'bayern münchen': 'Bayern Munich',
-  'borussia dortmund': 'Dortmund',
-  'borussia m\'gladbach': 'Borussia Monchengladbach',
-  'rb leipzig': 'RB Leipzig',
-  'bayer leverkusen': 'Leverkusen',
-  'eintracht frankfurt': 'Frankfurt',
+  'arsenal': 'Arsenal',
+  'chelsea': 'Chelsea',
+  'liverpool': 'Liverpool',
+  'everton': 'Everton',
+  'fulham': 'Fulham',
+  'bournemouth': 'AFC Bournemouth',
+  'afc bournemouth': 'AFC Bournemouth',
+  'brentford': 'Brentford',
+  'ipswich': 'Ipswich Town',
+  'ipswich town': 'Ipswich Town',
+  'southampton': 'Southampton',
+
+  // Spanish La Liga
+  'real madrid': 'Real Madrid',
+  'barcelona': 'Barcelona',
+  'sevilla': 'Sevilla',
+  'osasuna': 'Osasuna',
   'atletico madrid': 'Atletico Madrid',
   'atlético madrid': 'Atletico Madrid',
   'athletic bilbao': 'Athletic Bilbao',
   'athletic club': 'Athletic Bilbao',
   'real sociedad': 'Real Sociedad',
   'real betis': 'Real Betis',
+  'villarreal': 'Villarreal',
+  'valencia': 'Valencia',
   'celta vigo': 'Celta Vigo',
+  'getafe': 'Getafe',
+  'espanyol': 'Espanyol',
   'deportivo alaves': 'Alaves',
+  'alaves': 'Alaves',
+  'mallorca': 'Mallorca',
+  'rayo vallecano': 'Rayo Vallecano',
+  'girona': 'Girona',
+  'las palmas': 'Las Palmas',
+  'leganes': 'Leganes',
+  'valladolid': 'Real Valladolid',
+
+  // German Bundesliga
+  'bayern': 'Bayern Munich',
+  'bayern munich': 'Bayern Munich',
+  'bayern munchen': 'Bayern Munich',
+  'bayern münchen': 'Bayern Munich',
+  'dortmund': 'Borussia Dortmund',
+  'borussia dortmund': 'Borussia Dortmund',
+  'gladbach': 'Borussia Monchengladbach',
+  'borussia m\'gladbach': 'Borussia Monchengladbach',
+  'monchengladbach': 'Borussia Monchengladbach',
+  'rb leipzig': 'RB Leipzig',
+  'leipzig': 'RB Leipzig',
+  'leverkusen': 'Bayer Leverkusen',
+  'bayer leverkusen': 'Bayer Leverkusen',
+  'frankfurt': 'Eintracht Frankfurt',
+  'eintracht frankfurt': 'Eintracht Frankfurt',
+  'wolfsburg': 'VfL Wolfsburg',
+  'hoffenheim': 'TSG Hoffenheim',
+  'freiburg': 'SC Freiburg',
+  'mainz': 'Mainz 05',
+  'augsburg': 'FC Augsburg',
+  'stuttgart': 'VfB Stuttgart',
+  'union berlin': 'Union Berlin',
+  'werder bremen': 'Werder Bremen',
+  'cologne': 'FC Koln',
+  'koln': 'FC Koln',
+
+  // French Ligue 1
+  'psg': 'Paris Saint-Germain',
+  'paris': 'Paris Saint-Germain',
   'paris saint germain': 'Paris Saint-Germain',
   'paris sg': 'Paris Saint-Germain',
-  'psg': 'Paris Saint-Germain',
+  'lyon': 'Lyon',
   'olympique lyon': 'Lyon',
   'olympique lyonnais': 'Lyon',
+  'marseille': 'Marseille',
   'olympique marseille': 'Marseille',
+  'monaco': 'Monaco',
   'as monaco': 'Monaco',
-  'as roma': 'Roma',
+  'lille': 'Lille',
+  'nice': 'Nice',
+  'lens': 'RC Lens',
+  'rennes': 'Rennes',
+  'strasbourg': 'Strasbourg',
+  'nantes': 'Nantes',
+  'reims': 'Reims',
+  'montpellier': 'Montpellier',
+  'toulouse': 'Toulouse',
+  'brest': 'Brest',
+
+  // Italian Serie A
+  'inter': 'Inter Milan',
+  'inter milan': 'Inter Milan',
+  'internazionale': 'Inter Milan',
+  'milan': 'AC Milan',
   'ac milan': 'AC Milan',
-  'inter milan': 'Inter',
-  'internazionale': 'Inter',
+  'juventus': 'Juventus',
   'juventus fc': 'Juventus',
-  'atalanta bc': 'Atalanta',
+  'napoli': 'Napoli',
   'ssc napoli': 'Napoli',
+  'roma': 'AS Roma',
+  'as roma': 'AS Roma',
+  'lazio': 'Lazio',
   'ss lazio': 'Lazio',
+  'atalanta': 'Atalanta',
+  'atalanta bc': 'Atalanta',
+  'fiorentina': 'Fiorentina',
+  'torino': 'Torino',
+  'bologna': 'Bologna',
+  'udinese': 'Udinese',
+  'sassuolo': 'Sassuolo',
+  'verona': 'Verona',
+  'hellas verona': 'Verona',
+  'genoa': 'Genoa',
+  'cagliari': 'Cagliari',
+  'empoli': 'Empoli',
+  'lecce': 'Lecce',
+  'monza': 'Monza',
+  'como': 'Como',
+  'parma': 'Parma',
+  'venezia': 'Venezia',
+
+  // African Teams
   'accra hearts': 'Hearts of Oak',
+  'hearts': 'Hearts of Oak',
   'hearts of oak': 'Hearts of Oak',
   'asante kotoko': 'Asante Kotoko',
   'kotoko': 'Asante Kotoko',
+  'dr congo': 'DR Congo',
+  'benin': 'Benin',
+
+  // International
+  'england': 'England',
+  'germany': 'Germany',
+  'spain': 'Spain',
+  'france': 'France',
+  'italy': 'Italy',
+  'brazil': 'Brazil',
+  'argentina': 'Argentina',
+  'portugal': 'Portugal',
+  'netherlands': 'Netherlands',
+  'belgium': 'Belgium',
 };
 
 /**
@@ -226,9 +342,29 @@ export const clearLogoCache = () => {
   localStorage.removeItem(CACHE_KEY);
 };
 
+/**
+ * Force refresh a specific team's logo
+ */
+export const refreshTeamLogo = async (teamName) => {
+  const cacheKey = normalizeTeamName(teamName).toLowerCase();
+  delete logoCache[cacheKey];
+  return await fetchTeamLogo(teamName);
+};
+
+/**
+ * Debug: Log cache status
+ */
+export const getLogoStats = () => {
+  const total = Object.keys(logoCache).length;
+  const withLogos = Object.values(logoCache).filter(v => v !== null).length;
+  return { total, withLogos, cached: logoCache };
+};
+
 export default {
   getTeamLogo,
   preloadTeamLogos,
   getCachedLogo,
-  clearLogoCache
+  clearLogoCache,
+  refreshTeamLogo,
+  getLogoStats
 };
