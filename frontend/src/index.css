@@ -154,6 +154,362 @@ a {
   padding: 0;
 }
 
+/* ========================= */
+/* Hero Strip                */
+/* ========================= */
+
+.hero-strip {
+  background: linear-gradient(135deg, var(--dark) 0%, var(--dark-light) 100%);
+  padding: 1.25rem 1.5rem;
+  color: white;
+}
+
+.hero-header {
+  margin-bottom: 1rem;
+}
+
+.hero-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.15rem;
+}
+
+.hero-subtitle {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.hero-matches {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.hero-card {
+  flex: 0 0 280px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s;
+}
+
+.hero-card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.hero-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.hero-league {
+  font-size: 0.7rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.movement-badge {
+  font-size: 0.85rem;
+}
+
+.hero-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.hero-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.hero-team span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-vs {
+  font-size: 0.7rem;
+  color: #888;
+  padding: 0 0.5rem;
+}
+
+.hero-odds {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.hero-odd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  min-width: 50px;
+}
+
+.hero-odd .odd-label {
+  font-size: 0.6rem;
+  color: #aaa;
+  margin-bottom: 0.15rem;
+}
+
+.hero-odd .odd-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.hero-kickoff {
+  text-align: center;
+  font-size: 0.7rem;
+  color: #888;
+}
+
+/* ========================= */
+/* Date Tabs                 */
+/* ========================= */
+
+.date-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid var(--border);
+}
+
+.date-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  background: #f5f5f5;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.date-tab:hover {
+  background: #eee;
+}
+
+.date-tab.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.date-icon {
+  font-size: 0.9rem;
+}
+
+.date-name {
+  font-weight: 600;
+}
+
+/* ========================= */
+/* Bookie Filter Bar         */
+/* ========================= */
+
+.bookie-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  white-space: nowrap;
+}
+
+.bookie-toggles {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.bookie-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.4;
+}
+
+.bookie-toggle:hover {
+  border-color: #bbb;
+}
+
+.bookie-toggle.active {
+  opacity: 1;
+  border-color: var(--primary);
+  background: #e3f2fd;
+}
+
+.toggle-all-btn {
+  margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggle-all-btn:hover {
+  background: #f0f0f0;
+  border-color: #bbb;
+}
+
+/* ========================= */
+/* CTA Section               */
+/* ========================= */
+
+.cta-section {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid var(--border);
+}
+
+.cta-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cta-leagues {
+  background: var(--primary);
+  color: white;
+}
+
+.cta-leagues:hover {
+  background: var(--primary-dark);
+}
+
+.cta-watchlist {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffcc80;
+}
+
+.cta-watchlist:hover {
+  background: #ffe0b2;
+}
+
+.cta-icon {
+  font-size: 1rem;
+}
+
+.cta-text {
+  font-weight: 600;
+}
+
+/* Mobile responsiveness for new sections */
+@media (max-width: 768px) {
+  .hero-strip {
+    padding: 1rem;
+  }
+
+  .hero-card {
+    flex: 0 0 240px;
+  }
+
+  .hero-team span {
+    font-size: 0.75rem;
+    max-width: 70px;
+  }
+
+  .date-tabs {
+    overflow-x: auto;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .date-tab {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .bookie-filter-bar {
+    flex-wrap: wrap;
+  }
+
+  .cta-section {
+    flex-wrap: wrap;
+  }
+
+  .cta-btn {
+    flex: 1;
+    min-width: 140px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-matches {
+    gap: 0.75rem;
+  }
+
+  .hero-card {
+    flex: 0 0 220px;
+    padding: 0.75rem;
+  }
+
+  .date-tab .date-icon {
+    display: none;
+  }
+
+  .bookie-toggle {
+    width: 32px;
+    height: 32px;
+  }
+}
+
 /* Toolbar */
 .odds-toolbar {
   display: flex;

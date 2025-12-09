@@ -121,6 +121,45 @@ const POPULAR_LEAGUES = [
   { id: 'afcon', name: 'AFCON', icon: '🌍', keywords: ['Africa Cup', 'AFCON'] },
 ];
 
+// Date filter options
+const DATE_FILTERS = [
+  { id: 'today', name: 'Today', icon: '📅' },
+  { id: 'tomorrow', name: 'Tomorrow', icon: '📆' },
+  { id: 'weekend', name: 'Weekend', icon: '🗓️' },
+  { id: 'all', name: 'All', icon: '📋' },
+];
+
+// Check if date falls within filter
+const matchesDateFilter = (timestamp, filter) => {
+  if (filter === 'all') return true;
+
+  const matchDate = new Date(timestamp * 1000);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayAfterTomorrow = new Date(today);
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+  // Get next weekend
+  const daysUntilSaturday = (6 - today.getDay() + 7) % 7;
+  const saturday = new Date(today);
+  saturday.setDate(saturday.getDate() + daysUntilSaturday);
+  const monday = new Date(saturday);
+  monday.setDate(monday.getDate() + 2);
+
+  switch (filter) {
+    case 'today':
+      return matchDate >= today && matchDate < tomorrow;
+    case 'tomorrow':
+      return matchDate >= tomorrow && matchDate < dayAfterTomorrow;
+    case 'weekend':
+      return matchDate >= saturday && matchDate < monday;
+    default:
+      return true;
+  }
+};
+
 // Odds field mapping for each market
 const MARKET_FIELDS = {
   '1x2': ['home_odds', 'draw_odds', 'away_odds'],
@@ -138,6 +177,11 @@ function OddsPage() {
   const [selectedLeague, setSelectedLeague] = useState('all');
   const [selectedMarket, setSelectedMarket] = useState('1x2');
   const [selectedOdd, setSelectedOdd] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('all');
+  const [enabledBookies, setEnabledBookies] = useState(() =>
+    BOOKMAKER_ORDER.reduce((acc, b) => ({ ...acc, [b]: true }), {})
+  );
+  const [showAllMatches, setShowAllMatches] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -295,7 +339,7 @@ function OddsPage() {
     setTimeout(() => setSelectedOdd(null), 3000);
   };
 
-  // Filter matches based on search and league
+  // Filter matches based on search, league, and date
   const filteredMatches = useMemo(() => {
     return matches.filter((match) => {
       const searchLower = searchQuery.toLowerCase();
@@ -314,9 +358,31 @@ function OddsPage() {
           );
         }
       }
-      return matchesSearch && matchesLeague;
+
+      const matchesDate = matchesDateFilter(match.start_time, selectedDate);
+
+      return matchesSearch && matchesLeague && matchesDate;
     });
-  }, [matches, searchQuery, selectedLeague]);
+  }, [matches, searchQuery, selectedLeague, selectedDate]);
+
+  // Get featured/top matches (Premier League, big games with movement)
+  const featuredMatches = useMemo(() => {
+    const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions'];
+    return matches
+      .filter(m =>
+        topLeagues.some(kw => m.league.toLowerCase().includes(kw.toLowerCase())) ||
+        m.movement === 'steam'
+      )
+      .slice(0, 3);
+  }, [matches]);
+
+  // Toggle bookmaker visibility
+  const toggleBookie = (bookie) => {
+    setEnabledBookies(prev => ({ ...prev, [bookie]: !prev[bookie] }));
+  };
+
+  // Get active bookmakers
+  const activeBookmakers = BOOKMAKER_ORDER.filter(b => enabledBookies[b]);
 
   // Group matches by league
   const groupedMatches = useMemo(() => {
@@ -336,6 +402,130 @@ function OddsPage() {
 
   return (
     <div className="odds-page">
+      {/* Hero Strip - Top Matches */}
+      {!loading && featuredMatches.length > 0 && (
+        <div className="hero-strip">
+          <div className="hero-header">
+            <h2>Today's Top Matches</h2>
+            <span className="hero-subtitle">Big games with best odds</span>
+          </div>
+          <div className="hero-matches">
+            {featuredMatches.map((match, idx) => {
+              const bestHome = getBestOdds(match, 'home_odds');
+              const bestDraw = getBestOdds(match, 'draw_odds');
+              const bestAway = getBestOdds(match, 'away_odds');
+              const oddsHistory = generateOddsHistory(match.odds?.[0]?.home_odds, 72, match.movement || 'random');
+              const movement = analyzeOddsMovement(oddsHistory);
+
+              return (
+                <div key={idx} className="hero-card">
+                  <div className="hero-card-header">
+                    <span className="hero-league">{match.league}</span>
+                    {movement.trend !== 'stable' && (
+                      <span className={`movement-badge ${movement.trend}`}>
+                        {movement.trend === 'steam' ? '🔥' : '📈'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="hero-teams">
+                    <div className="hero-team">
+                      <TeamLogo teamName={match.home_team} size={32} />
+                      <span>{match.home_team}</span>
+                    </div>
+                    <span className="hero-vs">vs</span>
+                    <div className="hero-team">
+                      <TeamLogo teamName={match.away_team} size={32} />
+                      <span>{match.away_team}</span>
+                    </div>
+                  </div>
+                  <div className="hero-odds">
+                    <div className="hero-odd">
+                      <span className="odd-label">1</span>
+                      <span className="odd-value">{bestHome.value?.toFixed(2) || '-'}</span>
+                    </div>
+                    <div className="hero-odd">
+                      <span className="odd-label">X</span>
+                      <span className="odd-value">{bestDraw.value?.toFixed(2) || '-'}</span>
+                    </div>
+                    <div className="hero-odd">
+                      <span className="odd-label">2</span>
+                      <span className="odd-value">{bestAway.value?.toFixed(2) || '-'}</span>
+                    </div>
+                  </div>
+                  <div className="hero-kickoff">
+                    {formatTime(match.start_time)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Date Tabs */}
+      <div className="date-tabs">
+        {DATE_FILTERS.map((df) => (
+          <button
+            key={df.id}
+            className={`date-tab ${selectedDate === df.id ? 'active' : ''}`}
+            onClick={() => setSelectedDate(df.id)}
+          >
+            <span className="date-icon">{df.icon}</span>
+            <span className="date-name">{df.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Bookie Filter Bar */}
+      <div className="bookie-filter-bar">
+        <span className="filter-label">Bookmakers:</span>
+        <div className="bookie-toggles">
+          {BOOKMAKER_ORDER.map((bookie) => {
+            const config = BOOKMAKER_AFFILIATES[bookie];
+            return (
+              <button
+                key={bookie}
+                className={`bookie-toggle ${enabledBookies[bookie] ? 'active' : ''}`}
+                onClick={() => toggleBookie(bookie)}
+                title={enabledBookies[bookie] ? `Hide ${config.name}` : `Show ${config.name}`}
+              >
+                <BookmakerLogo bookmaker={bookie} size={20} />
+              </button>
+            );
+          })}
+        </div>
+        <button
+          className="toggle-all-btn"
+          onClick={() => {
+            const allEnabled = Object.values(enabledBookies).every(v => v);
+            setEnabledBookies(
+              BOOKMAKER_ORDER.reduce((acc, b) => ({ ...acc, [b]: !allEnabled }), {})
+            );
+          }}
+        >
+          {Object.values(enabledBookies).every(v => v) ? 'Hide All' : 'Show All'}
+        </button>
+      </div>
+
+      {/* CTA Section */}
+      <div className="cta-section">
+        <button
+          className="cta-btn cta-leagues"
+          onClick={() => {
+            setSelectedLeague('all');
+            setSelectedDate('all');
+            setShowAllMatches(true);
+          }}
+        >
+          <span className="cta-icon">🏆</span>
+          <span className="cta-text">View All Leagues</span>
+        </button>
+        <button className="cta-btn cta-watchlist">
+          <span className="cta-icon">⭐</span>
+          <span className="cta-text">My Watchlist</span>
+        </button>
+      </div>
+
       {/* Header Bar */}
       <div className="odds-toolbar">
         <div className="toolbar-left">
@@ -374,16 +564,6 @@ function OddsPage() {
 
         <div className="toolbar-right">
           <button
-            className="clear-cache-btn"
-            onClick={() => {
-              clearLogoCache();
-              window.location.reload();
-            }}
-            title="Clear cached logos and reload"
-          >
-            Reload Logos
-          </button>
-          <button
             className="refresh-btn"
             onClick={handleRefresh}
             disabled={refreshing || useDemo}
@@ -414,10 +594,10 @@ function OddsPage() {
       {/* Main Odds Grid */}
       <div className="odds-container">
         {/* Table Header - Bookmakers */}
-        <div className="odds-header">
+        <div className="odds-header" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
           <div className="header-match">Match</div>
           <div className="header-time">Kick-off</div>
-          {BOOKMAKER_ORDER.map((name) => {
+          {activeBookmakers.map((name) => {
             const config = BOOKMAKER_AFFILIATES[name];
             return (
               <a
@@ -435,10 +615,10 @@ function OddsPage() {
         </div>
 
         {/* Outcome Labels Row */}
-        <div className="outcome-row">
+        <div className="outcome-row" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
           <div className="outcome-match"></div>
           <div className="outcome-time"></div>
-          {BOOKMAKER_ORDER.map((name) => (
+          {activeBookmakers.map((name) => (
             <div key={name} className={`outcome-labels ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
               {currentMarket.labels.map((label, i) => (
                 <span key={i}>{label}</span>
@@ -485,7 +665,7 @@ function OddsPage() {
               const movement = analyzeOddsMovement(oddsHistory);
 
               return (
-                <div key={idx} className="match-row">
+                <div key={idx} className="match-row" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
                   {/* Teams */}
                   <div className="match-teams-cell">
                     <div className="team-row">
@@ -517,7 +697,7 @@ function OddsPage() {
                   </div>
 
                   {/* Odds for each bookmaker */}
-                  {BOOKMAKER_ORDER.map((bookmaker) => {
+                  {activeBookmakers.map((bookmaker) => {
                     const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
                     const config = BOOKMAKER_AFFILIATES[bookmaker];
 
