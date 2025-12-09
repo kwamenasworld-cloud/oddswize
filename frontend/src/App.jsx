@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import HomePage from './pages/HomePage';
 import OddsPage from './pages/OddsPage';
 import ArbitragePage from './pages/ArbitragePage';
 import BookmakersPage from './pages/BookmakersPage';
@@ -40,7 +41,8 @@ function App() {
         />
         <main>
           <Routes>
-            <Route path="/" element={<OddsPage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/odds" element={<OddsPage />} />
             <Route path="/arbitrage" element={<ArbitragePage />} />
             <Route path="/bookmakers" element={<BookmakersPage />} />
           </Routes>
@@ -87,8 +89,16 @@ function Header({ user, onLoginClick, onLogout, onOpenSettings }) {
             to="/"
             className={({ isActive }) => isActive ? 'active' : ''}
             onClick={() => setMenuOpen(false)}
+            end
           >
-            Odds Comparison
+            Home
+          </NavLink>
+          <NavLink
+            to="/odds"
+            className={({ isActive }) => isActive ? 'active' : ''}
+            onClick={() => setMenuOpen(false)}
+          >
+            Odds
           </NavLink>
           <NavLink
             to="/arbitrage"
