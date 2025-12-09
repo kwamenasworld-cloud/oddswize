@@ -62,7 +62,7 @@ function Footer() {
         This does not affect the odds displayed. Always check the bookmaker's website for the most up-to-date odds.
       </p>
       <p style={{ marginTop: '1rem', fontSize: '0.75rem' }}>
-        © 2024 OddsWize. All rights reserved.
+        © 2025 OddsWize. All rights reserved.
       </p>
     </footer>
   );
