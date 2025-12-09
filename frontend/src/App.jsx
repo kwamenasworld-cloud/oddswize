@@ -1,15 +1,43 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import OddsPage from './pages/OddsPage';
 import ArbitragePage from './pages/ArbitragePage';
 import BookmakersPage from './pages/BookmakersPage';
+import SettingsPage from './pages/SettingsPage';
+import { AccountModal, UserMenu, LoginButton } from './components/AccountModal';
+import { getUser } from './services/userPreferences';
 import './index.css';
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in on mount
+    const savedUser = getUser();
+    if (savedUser) {
+      setUser(savedUser);
+    }
+  }, []);
+
+  const handleAuthChange = (newUser) => {
+    setUser(newUser);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+  };
+
   return (
     <BrowserRouter>
       <div className="app">
-        <Header />
+        <Header
+          user={user}
+          onLoginClick={() => setShowAccountModal(true)}
+          onLogout={handleLogout}
+          onOpenSettings={() => setShowSettings(true)}
+        />
         <main>
           <Routes>
             <Route path="/" element={<OddsPage />} />
@@ -18,12 +46,25 @@ function App() {
           </Routes>
         </main>
         <Footer />
+
+        <AccountModal
+          isOpen={showAccountModal}
+          onClose={() => setShowAccountModal(false)}
+          onAuthChange={handleAuthChange}
+        />
+
+        {showSettings && (
+          <SettingsPage
+            onClose={() => setShowSettings(false)}
+            onLogout={handleLogout}
+          />
+        )}
       </div>
     </BrowserRouter>
   );
 }
 
-function Header() {
+function Header({ user, onLoginClick, onLogout, onOpenSettings }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -65,9 +106,20 @@ function Header() {
           </NavLink>
         </nav>
 
-        <div className="header-badge">
-          <span className="age-badge">18+</span>
-          <span className="responsible-text">Gamble Responsibly</span>
+        <div className="header-right">
+          {user ? (
+            <UserMenu
+              user={user}
+              onLogout={onLogout}
+              onOpenSettings={onOpenSettings}
+            />
+          ) : (
+            <LoginButton onClick={onLoginClick} />
+          )}
+          <div className="header-badge">
+            <span className="age-badge">18+</span>
+            <span className="responsible-text">Gamble Responsibly</span>
+          </div>
         </div>
       </div>
     </header>
