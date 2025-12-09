@@ -1,6 +1,9 @@
 {
   "name": "oddswize",
   "compatibility_date": "2025-12-09",
+  "build": {
+    "command": "cd frontend && npm install && npm run build"
+  },
   "assets": {
     "directory": "./frontend/dist"
   }
