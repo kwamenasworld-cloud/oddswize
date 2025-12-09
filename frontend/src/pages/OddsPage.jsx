@@ -4,6 +4,7 @@ import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../confi
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
+import Sparkline, { generateOddsHistory, analyzeOddsMovement } from '../components/Sparkline';
 
 // Market types
 const MARKETS = {
@@ -20,6 +21,9 @@ const getDemoTime = (daysFromNow, hour, minute = 0) => {
   return Math.floor(date.getTime() / 1000);
 };
 
+// Movement patterns for demo data
+const MOVEMENT_PATTERNS = ['steam', 'drift', 'random', 'random', 'steam', 'drift'];
+
 // Demo data with all markets
 const DEMO_MATCHES = [
   {
@@ -27,6 +31,7 @@ const DEMO_MATCHES = [
     away_team: 'Sevilla',
     league: 'Spain. La Liga',
     start_time: getDemoTime(1, 21, 0),
+    movement: 'steam', // Home odds shortening - money on Real Madrid
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 1.28, draw_odds: 6.50, away_odds: 11.00, home_draw: 1.10, draw_away: 3.80, home_away: 1.18, over_25: 1.65, under_25: 2.20 },
       { bookmaker: 'SportyBet Ghana', home_odds: 1.27, draw_odds: 6.40, away_odds: 10.50, home_draw: 1.09, draw_away: 3.70, home_away: 1.17, over_25: 1.62, under_25: 2.25 },
@@ -40,6 +45,7 @@ const DEMO_MATCHES = [
     away_team: 'Osasuna',
     league: 'Spain. La Liga',
     start_time: getDemoTime(2, 16, 0),
+    movement: 'drift', // Away odds lengthening
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 1.25, draw_odds: 7.60, away_odds: 12.00, home_draw: 1.08, draw_away: 4.20, home_away: 1.15, over_25: 1.55, under_25: 2.40 },
       { bookmaker: 'SportyBet Ghana', home_odds: 1.24, draw_odds: 7.40, away_odds: 11.50, home_draw: 1.07, draw_away: 4.10, home_away: 1.14, over_25: 1.52, under_25: 2.45 },
@@ -53,6 +59,7 @@ const DEMO_MATCHES = [
     away_team: 'Liverpool',
     league: 'England. Premier League',
     start_time: getDemoTime(3, 17, 30),
+    movement: 'steam', // Liverpool odds shortening - big match steam
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 3.20, draw_odds: 3.40, away_odds: 2.25, home_draw: 1.65, draw_away: 1.35, home_away: 1.32, over_25: 1.72, under_25: 2.10 },
       { bookmaker: 'SportyBet Ghana', home_odds: 3.10, draw_odds: 3.35, away_odds: 2.30, home_draw: 1.62, draw_away: 1.37, home_away: 1.30, over_25: 1.70, under_25: 2.12 },
@@ -66,6 +73,7 @@ const DEMO_MATCHES = [
     away_team: 'Benin',
     league: 'Africa Cup of Nations',
     start_time: getDemoTime(4, 14, 0),
+    movement: 'random',
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 1.75, draw_odds: 3.60, away_odds: 5.80, home_draw: 1.22, draw_away: 2.15, home_away: 1.38, over_25: 2.10, under_25: 1.72 },
       { bookmaker: 'SportyBet Ghana', home_odds: 1.72, draw_odds: 3.55, away_odds: 5.60, home_draw: 1.20, draw_away: 2.10, home_away: 1.35, over_25: 2.05, under_25: 1.75 },
@@ -79,6 +87,7 @@ const DEMO_MATCHES = [
     away_team: 'Chelsea',
     league: 'England. Premier League',
     start_time: getDemoTime(5, 15, 0),
+    movement: 'steam', // Over 2.5 steaming
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 1.85, draw_odds: 3.80, away_odds: 4.20, home_draw: 1.28, draw_away: 1.95, home_away: 1.30, over_25: 1.65, under_25: 2.22 },
       { bookmaker: 'SportyBet Ghana', home_odds: 1.82, draw_odds: 3.75, away_odds: 4.10, home_draw: 1.26, draw_away: 1.92, home_away: 1.28, over_25: 1.62, under_25: 2.25 },
@@ -92,6 +101,7 @@ const DEMO_MATCHES = [
     away_team: 'Asante Kotoko',
     league: 'Ghana Premier League',
     start_time: getDemoTime(6, 16, 0),
+    movement: 'drift', // Draw drifting - less likely
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 2.10, draw_odds: 3.20, away_odds: 3.50, home_draw: 1.28, draw_away: 1.65, home_away: 1.35, over_25: 2.20, under_25: 1.65 },
       { bookmaker: 'SportyBet Ghana', home_odds: 2.05, draw_odds: 3.15, away_odds: 3.45, home_draw: 1.26, draw_away: 1.62, home_away: 1.33, over_25: 2.15, under_25: 1.68 },
@@ -468,6 +478,12 @@ function OddsPage() {
               const bestOdds = marketFields.map(field => getBestOdds(match, field));
               const avgOdds = marketFields.map(field => getMarketAverage(match, field));
 
+              // Generate odds history for display (computed each render for demo simplicity)
+              const primaryField = marketFields[0];
+              const primaryOdds = match.odds?.[0]?.[primaryField];
+              const oddsHistory = generateOddsHistory(primaryOdds, 72, match.movement || 'random');
+              const movement = analyzeOddsMovement(oddsHistory);
+
               return (
                 <div key={idx} className="match-row">
                   {/* Teams */}
@@ -480,6 +496,19 @@ function OddsPage() {
                       <TeamLogo teamName={match.away_team} size={20} />
                       <span className="team-name">{match.away_team}</span>
                     </div>
+                    {/* Movement indicator */}
+                    {movement.trend !== 'stable' && (
+                      <div className="odds-movement">
+                        <Sparkline
+                          data={oddsHistory}
+                          width={36}
+                          height={14}
+                        />
+                        <span className={`movement-tag ${movement.trend}`}>
+                          {movement.trend === 'steam' ? '🔥 STEAM' : '📈 DRIFT'}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Kick-off Time */}
