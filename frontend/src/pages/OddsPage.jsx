@@ -187,6 +187,53 @@ function OddsPage() {
     return { value: best[key], bookmaker: best.bookmaker };
   };
 
+  // Calculate market average for an outcome
+  const getMarketAverage = (match, type) => {
+    const odds = match.odds || [];
+    if (odds.length === 0) return 0;
+    const key = `${type}_odds`;
+    const sum = odds.reduce((acc, o) => acc + (o[key] || 0), 0);
+    return sum / odds.length;
+  };
+
+  // Check if odds are significantly above market average (edge detection)
+  const isAboveAverage = (oddsValue, average) => {
+    if (!average || !oddsValue) return false;
+    const diff = ((oddsValue - average) / average) * 100;
+    return diff > 5; // More than 5% above average
+  };
+
+  const isBigEdge = (oddsValue, average) => {
+    if (!average || !oddsValue) return false;
+    const diff = ((oddsValue - average) / average) * 100;
+    return diff > 10; // More than 10% above average
+  };
+
+  // Convert odds to implied probability
+  const oddsToProb = (odds) => {
+    if (!odds || odds <= 1) return 0;
+    return (1 / odds) * 100;
+  };
+
+  // State for showing probability tooltip
+  const [selectedOdd, setSelectedOdd] = useState(null);
+
+  // Handle odds click to show probability
+  const handleOddsClick = (e, odds, outcome, bookmaker) => {
+    e.preventDefault();
+    const prob = oddsToProb(odds);
+    setSelectedOdd({
+      odds,
+      prob: prob.toFixed(1),
+      outcome,
+      bookmaker,
+      x: e.clientX,
+      y: e.clientY,
+    });
+    // Auto-hide after 3 seconds
+    setTimeout(() => setSelectedOdd(null), 3000);
+  };
+
   // Filter matches based on search and league
   const filteredMatches = useMemo(() => {
     return matches.filter((match) => {
@@ -351,6 +398,9 @@ function OddsPage() {
               const bestHome = getBestOdds(match, 'home');
               const bestDraw = getBestOdds(match, 'draw');
               const bestAway = getBestOdds(match, 'away');
+              const avgHome = getMarketAverage(match, 'home');
+              const avgDraw = getMarketAverage(match, 'draw');
+              const avgAway = getMarketAverage(match, 'away');
 
               return (
                 <div key={idx} className="match-row">
@@ -384,25 +434,37 @@ function OddsPage() {
                               href={config.affiliateUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`odd ${bookieOdds.home_odds === bestHome.value ? 'best' : ''}`}
+                              className={`odd ${bookieOdds.home_odds === bestHome.value ? 'best' : ''} ${isBigEdge(bookieOdds.home_odds, avgHome) ? 'big-edge' : isAboveAverage(bookieOdds.home_odds, avgHome) ? 'edge' : ''}`}
+                              onClick={(e) => handleOddsClick(e, bookieOdds.home_odds, 'Home', config.name)}
+                              title={`Click for probability • ${oddsToProb(bookieOdds.home_odds).toFixed(1)}%`}
                             >
                               {bookieOdds.home_odds.toFixed(2)}
+                              {bookieOdds.home_odds === bestHome.value && <span className="best-tag">BEST</span>}
+                              {isBigEdge(bookieOdds.home_odds, avgHome) && <span className="edge-tag">+{(((bookieOdds.home_odds - avgHome) / avgHome) * 100).toFixed(0)}%</span>}
                             </a>
                             <a
                               href={config.affiliateUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`odd ${bookieOdds.draw_odds === bestDraw.value ? 'best' : ''}`}
+                              className={`odd ${bookieOdds.draw_odds === bestDraw.value ? 'best' : ''} ${isBigEdge(bookieOdds.draw_odds, avgDraw) ? 'big-edge' : isAboveAverage(bookieOdds.draw_odds, avgDraw) ? 'edge' : ''}`}
+                              onClick={(e) => handleOddsClick(e, bookieOdds.draw_odds, 'Draw', config.name)}
+                              title={`Click for probability • ${oddsToProb(bookieOdds.draw_odds).toFixed(1)}%`}
                             >
                               {bookieOdds.draw_odds.toFixed(2)}
+                              {bookieOdds.draw_odds === bestDraw.value && <span className="best-tag">BEST</span>}
+                              {isBigEdge(bookieOdds.draw_odds, avgDraw) && <span className="edge-tag">+{(((bookieOdds.draw_odds - avgDraw) / avgDraw) * 100).toFixed(0)}%</span>}
                             </a>
                             <a
                               href={config.affiliateUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`odd ${bookieOdds.away_odds === bestAway.value ? 'best' : ''}`}
+                              className={`odd ${bookieOdds.away_odds === bestAway.value ? 'best' : ''} ${isBigEdge(bookieOdds.away_odds, avgAway) ? 'big-edge' : isAboveAverage(bookieOdds.away_odds, avgAway) ? 'edge' : ''}`}
+                              onClick={(e) => handleOddsClick(e, bookieOdds.away_odds, 'Away', config.name)}
+                              title={`Click for probability • ${oddsToProb(bookieOdds.away_odds).toFixed(1)}%`}
                             >
                               {bookieOdds.away_odds.toFixed(2)}
+                              {bookieOdds.away_odds === bestAway.value && <span className="best-tag">BEST</span>}
+                              {isBigEdge(bookieOdds.away_odds, avgAway) && <span className="edge-tag">+{(((bookieOdds.away_odds - avgAway) / avgAway) * 100).toFixed(0)}%</span>}
                             </a>
                           </>
                         ) : (
@@ -449,6 +511,31 @@ function OddsPage() {
           <span className="stat-lbl">Arb Opps</span>
         </div>
       </div>
+
+      {/* Probability Tooltip */}
+      {selectedOdd && (
+        <div
+          className="probability-tooltip"
+          style={{
+            position: 'fixed',
+            left: Math.min(selectedOdd.x, window.innerWidth - 180),
+            top: selectedOdd.y - 80,
+            zIndex: 1000,
+          }}
+          onClick={() => setSelectedOdd(null)}
+        >
+          <div className="prob-header">
+            <span className="prob-outcome">{selectedOdd.outcome}</span>
+            <span className="prob-bookie">{selectedOdd.bookmaker}</span>
+          </div>
+          <div className="prob-main">
+            <span className="prob-odds">{selectedOdd.odds.toFixed(2)}</span>
+            <span className="prob-arrow">=</span>
+            <span className="prob-percent">{selectedOdd.prob}%</span>
+          </div>
+          <div className="prob-label">Implied Probability</div>
+        </div>
+      )}
     </div>
   );
 }
