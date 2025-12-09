@@ -2,6 +2,7 @@
 """
 Automated Odds Scanner
 Runs the Ghana betting odds scanner every 5 minutes automatically.
+Pushes data to Cloudflare Workers for serving the frontend.
 """
 
 import json
@@ -9,8 +10,13 @@ import os
 import sys
 import time
 import logging
+import requests
 from datetime import datetime
 from threading import Thread
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Setup logging
 logging.basicConfig(
@@ -22,6 +28,10 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Cloudflare Worker configuration
+CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
+CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -41,6 +51,64 @@ def ensure_output_dir():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
         logger.info(f"Created output directory: {OUTPUT_DIR}")
+
+
+def push_to_cloudflare(matches_data):
+    """Push odds data to Cloudflare Worker API."""
+    if not CLOUDFLARE_WORKER_URL:
+        logger.warning("CLOUDFLARE_WORKER_URL not configured - skipping cloud push")
+        return False
+
+    # Group matches by league for API format
+    leagues = {}
+    for match in matches_data:
+        league = match.get('league', 'Unknown')
+        if league not in leagues:
+            leagues[league] = []
+
+        leagues[league].append({
+            'id': f"match_{hash(match.get('home_team', '') + match.get('away_team', ''))}",
+            'home_team': match.get('home_team', ''),
+            'away_team': match.get('away_team', ''),
+            'league': league,
+            'kickoff': match.get('start_time', datetime.now().isoformat()),
+            'odds': [
+                {
+                    'bookmaker': odds.get('bookmaker', ''),
+                    'home_odds': odds.get('home_odds'),
+                    'draw_odds': odds.get('draw_odds'),
+                    'away_odds': odds.get('away_odds'),
+                    'last_updated': datetime.now().isoformat()
+                }
+                for odds in match.get('odds', [])
+            ]
+        })
+
+    # Convert to list format
+    api_data = [{'league': league, 'matches': matches} for league, matches in leagues.items()]
+
+    # Push to Cloudflare Worker
+    url = f"{CLOUDFLARE_WORKER_URL}/api/odds/update"
+    headers = {
+        'Content-Type': 'application/json',
+        'X-API-Key': CLOUDFLARE_API_KEY
+    }
+
+    try:
+        logger.info(f"Pushing {len(matches_data)} matches to Cloudflare...")
+        response = requests.post(url, json=api_data, headers=headers, timeout=30)
+
+        if response.status_code == 200:
+            result = response.json()
+            logger.info(f"Cloudflare push successful: {result.get('message', 'OK')}")
+            return True
+        else:
+            logger.error(f"Cloudflare push failed: {response.status_code} - {response.text}")
+            return False
+
+    except requests.RequestException as e:
+        logger.error(f"Cloudflare push error: {e}")
+        return False
 
 
 def run_scan():
@@ -125,6 +193,9 @@ def run_scan():
         # Also save to root for API
         root_file = os.path.join(os.path.dirname(__file__), 'ghana_arb_results.json')
         scanner.save_results(opportunities, root_file)
+
+        # Push to Cloudflare Worker
+        push_to_cloudflare(matches_data)
 
         scan_duration = (datetime.now() - scan_start).total_seconds()
         logger.info(f"Scan completed in {scan_duration:.1f} seconds")
