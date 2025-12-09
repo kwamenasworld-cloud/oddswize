@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { getMatches, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
 import { BookmakerLogo, StarRating, FeatureBadge, LiveIndicator } from '../components/BookmakerLogo';
+import { TeamLogo } from '../components/TeamLogo';
+import { preloadTeamLogos } from '../services/teamLogos';
 import NewsSection from '../components/NewsSection';
 import CommentsSection from '../components/CommentsSection';
 
@@ -124,6 +126,15 @@ function OddsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Preload team logos when matches change
+  useEffect(() => {
+    if (matches.length > 0) {
+      const teamNames = matches.flatMap(m => [m.home_team, m.away_team]);
+      // Preload in background (first 50 teams to avoid rate limiting)
+      preloadTeamLogos(teamNames.slice(0, 100));
+    }
+  }, [matches]);
 
   const loadData = async () => {
     try {
@@ -412,7 +423,15 @@ function OddsPage() {
                       <td className="match-info sticky-col">
                         <div className="match-teams">
                           {match.isLive && <LiveIndicator />}
-                          {match.home_team} <span className="vs">vs</span> {match.away_team}
+                          <div className="team-with-logo">
+                            <TeamLogo teamName={match.home_team} size={22} />
+                            <span>{match.home_team}</span>
+                          </div>
+                          <span className="vs">vs</span>
+                          <div className="team-with-logo">
+                            <TeamLogo teamName={match.away_team} size={22} />
+                            <span>{match.away_team}</span>
+                          </div>
                         </div>
                         <div className="match-meta">
                           <span className="match-league">
