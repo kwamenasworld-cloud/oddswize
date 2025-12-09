@@ -7,8 +7,11 @@
 const SPORTSDB_API = 'https://www.thesportsdb.com/api/v1/json/3';
 
 // Local cache for team logos (persisted to localStorage)
-const CACHE_KEY = 'oddswize_team_logos';
+const CACHE_KEY = 'oddswize_team_logos_v2'; // v2 to clear old cache
 const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Static logos removed - API returns correct URLs from r2.thesportsdb.com
+const STATIC_LOGOS = {};
 
 // Load cache from localStorage
 const loadCache = () => {
@@ -242,35 +245,77 @@ const normalizeTeamName = (name) => {
 };
 
 /**
+ * Get static logo if available
+ */
+const getStaticLogo = (teamName) => {
+  const searchName = normalizeTeamName(teamName).toLowerCase();
+
+  // Direct match
+  if (STATIC_LOGOS[searchName]) {
+    return STATIC_LOGOS[searchName];
+  }
+
+  // Try partial match
+  for (const [key, url] of Object.entries(STATIC_LOGOS)) {
+    if (searchName.includes(key) || key.includes(searchName)) {
+      return url;
+    }
+  }
+
+  return null;
+};
+
+/**
  * Fetch team logo from TheSportsDB
  */
 const fetchTeamLogo = async (teamName) => {
   const searchName = normalizeTeamName(teamName);
-
-  // Check cache first
   const cacheKey = searchName.toLowerCase();
+
+  // Check memory cache first
   if (logoCache[cacheKey]) {
+    console.log(`[TeamLogos] Cache hit for ${teamName}:`, logoCache[cacheKey]);
     return logoCache[cacheKey];
   }
 
+  // Check static logos - these are reliable and don't need API calls
+  const staticLogo = getStaticLogo(teamName);
+  if (staticLogo) {
+    console.log(`[TeamLogos] Static logo found for ${teamName}:`, staticLogo);
+    logoCache[cacheKey] = staticLogo;
+    saveCache(logoCache);
+    return staticLogo;
+  }
+
+  // Fetch from API with proper timeout using AbortController
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
   try {
+    console.log(`[TeamLogos] Fetching from API for ${teamName} (search: ${searchName})`);
+
     const response = await fetch(
       `${SPORTSDB_API}/searchteams.php?t=${encodeURIComponent(searchName)}`,
-      { timeout: 5000 }
+      { signal: controller.signal }
     );
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error('API request failed');
+      throw new Error(`API request failed with status ${response.status}`);
     }
 
     const data = await response.json();
+    console.log(`[TeamLogos] API response for ${teamName}:`, data.teams ? `${data.teams.length} teams found` : 'no teams');
 
     if (data.teams && data.teams.length > 0) {
       // Get the first matching team
       const team = data.teams[0];
-      const logoUrl = team.strTeamBadge || team.strTeamLogo || null;
+      // API uses strBadge (not strTeamBadge)
+      const logoUrl = team.strBadge || team.strLogo || team.strTeamBadge || null;
 
       if (logoUrl) {
+        console.log(`[TeamLogos] Found logo for ${teamName}:`, logoUrl);
         // Cache the result
         logoCache[cacheKey] = logoUrl;
         saveCache(logoCache);
@@ -278,13 +323,17 @@ const fetchTeamLogo = async (teamName) => {
       }
     }
 
-    // Cache null result to avoid repeated failed requests
-    logoCache[cacheKey] = null;
-    saveCache(logoCache);
+    // Don't cache null for API failures - allow retry
+    console.log(`[TeamLogos] No logo found for ${teamName}`);
     return null;
 
   } catch (error) {
-    console.log(`Failed to fetch logo for ${teamName}:`, error.message);
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.log(`[TeamLogos] Request timeout for ${teamName}`);
+    } else {
+      console.log(`[TeamLogos] Failed to fetch logo for ${teamName}:`, error.message);
+    }
     return null;
   }
 };
@@ -293,11 +342,21 @@ const fetchTeamLogo = async (teamName) => {
  * Get team logo (from cache or fetch)
  */
 export const getTeamLogo = async (teamName) => {
+  if (!teamName) return null;
+
   const cacheKey = normalizeTeamName(teamName).toLowerCase();
 
-  // Return cached value if exists (including null for failed lookups)
-  if (cacheKey in logoCache) {
+  // Return cached value if it's a valid URL (not null)
+  if (logoCache[cacheKey]) {
     return logoCache[cacheKey];
+  }
+
+  // Check static logos immediately
+  const staticLogo = getStaticLogo(teamName);
+  if (staticLogo) {
+    logoCache[cacheKey] = staticLogo;
+    saveCache(logoCache);
+    return staticLogo;
   }
 
   // Fetch from API
@@ -330,8 +389,23 @@ export const preloadTeamLogos = async (teamNames) => {
  * Get cached logo (sync, returns null if not cached)
  */
 export const getCachedLogo = (teamName) => {
+  if (!teamName) return null;
+
   const cacheKey = normalizeTeamName(teamName).toLowerCase();
-  return logoCache[cacheKey] || null;
+
+  // Check memory cache first
+  if (logoCache[cacheKey]) {
+    return logoCache[cacheKey];
+  }
+
+  // Check static logos (sync, no API call)
+  const staticLogo = getStaticLogo(teamName);
+  if (staticLogo) {
+    logoCache[cacheKey] = staticLogo;
+    return staticLogo;
+  }
+
+  return null;
 };
 
 /**

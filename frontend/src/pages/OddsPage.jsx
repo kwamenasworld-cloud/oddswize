@@ -5,13 +5,21 @@ import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
 
+// Helper to create demo match times at realistic kick-off hours
+const getDemoTime = (daysFromNow, hour, minute = 0) => {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  date.setHours(hour, minute, 0, 0);
+  return Math.floor(date.getTime() / 1000);
+};
+
 // Demo data for when API is not available
 const DEMO_MATCHES = [
   {
     home_team: 'Real Madrid',
     away_team: 'Sevilla',
     league: 'Spain. La Liga',
-    start_time: Date.now() / 1000 + 86400,
+    start_time: getDemoTime(1, 21, 0), // Tomorrow 9:00 PM
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 1.28, draw_odds: 6.50, away_odds: 11.00 },
       { bookmaker: 'SportyBet Ghana', home_odds: 1.27, draw_odds: 6.40, away_odds: 10.50 },
@@ -24,7 +32,7 @@ const DEMO_MATCHES = [
     home_team: 'Barcelona',
     away_team: 'Osasuna',
     league: 'Spain. La Liga',
-    start_time: Date.now() / 1000 + 172800,
+    start_time: getDemoTime(2, 16, 0), // In 2 days 4:00 PM
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 1.25, draw_odds: 7.60, away_odds: 12.00 },
       { bookmaker: 'SportyBet Ghana', home_odds: 1.24, draw_odds: 7.40, away_odds: 11.50 },
@@ -37,7 +45,7 @@ const DEMO_MATCHES = [
     home_team: 'Manchester United',
     away_team: 'Liverpool',
     league: 'England. Premier League',
-    start_time: Date.now() / 1000 + 259200,
+    start_time: getDemoTime(3, 17, 30), // In 3 days 5:30 PM
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 3.20, draw_odds: 3.40, away_odds: 2.25 },
       { bookmaker: 'SportyBet Ghana', home_odds: 3.10, draw_odds: 3.35, away_odds: 2.30 },
@@ -50,7 +58,7 @@ const DEMO_MATCHES = [
     home_team: 'DR Congo',
     away_team: 'Benin',
     league: 'Africa Cup of Nations',
-    start_time: Date.now() / 1000 + 345600,
+    start_time: getDemoTime(4, 14, 0), // In 4 days 2:00 PM
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 1.75, draw_odds: 3.60, away_odds: 5.80 },
       { bookmaker: 'SportyBet Ghana', home_odds: 1.72, draw_odds: 3.55, away_odds: 5.60 },
@@ -63,7 +71,7 @@ const DEMO_MATCHES = [
     home_team: 'Arsenal',
     away_team: 'Chelsea',
     league: 'England. Premier League',
-    start_time: Date.now() / 1000 + 432000,
+    start_time: getDemoTime(5, 15, 0), // In 5 days 3:00 PM
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 1.85, draw_odds: 3.80, away_odds: 4.20 },
       { bookmaker: 'SportyBet Ghana', home_odds: 1.82, draw_odds: 3.75, away_odds: 4.10 },
@@ -76,7 +84,7 @@ const DEMO_MATCHES = [
     home_team: 'Accra Hearts',
     away_team: 'Asante Kotoko',
     league: 'Ghana Premier League',
-    start_time: Date.now() / 1000 + 518400,
+    start_time: getDemoTime(6, 16, 0), // In 6 days 4:00 PM
     odds: [
       { bookmaker: 'Betway Ghana', home_odds: 2.10, draw_odds: 3.20, away_odds: 3.50 },
       { bookmaker: 'SportyBet Ghana', home_odds: 2.05, draw_odds: 3.15, away_odds: 3.45 },
