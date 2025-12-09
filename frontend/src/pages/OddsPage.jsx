@@ -5,6 +5,13 @@ import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
 
+// Market types
+const MARKETS = {
+  '1x2': { id: '1x2', name: '1X2', labels: ['1', 'X', '2'], description: 'Match Result' },
+  'double_chance': { id: 'double_chance', name: 'Double Chance', labels: ['1X', 'X2', '12'], description: 'Double Chance' },
+  'over_under': { id: 'over_under', name: 'O/U 2.5', labels: ['Over', 'Under'], description: 'Over/Under 2.5 Goals' },
+};
+
 // Helper to create demo match times at realistic kick-off hours
 const getDemoTime = (daysFromNow, hour, minute = 0) => {
   const date = new Date();
@@ -13,84 +20,84 @@ const getDemoTime = (daysFromNow, hour, minute = 0) => {
   return Math.floor(date.getTime() / 1000);
 };
 
-// Demo data for when API is not available
+// Demo data with all markets
 const DEMO_MATCHES = [
   {
     home_team: 'Real Madrid',
     away_team: 'Sevilla',
     league: 'Spain. La Liga',
-    start_time: getDemoTime(1, 21, 0), // Tomorrow 9:00 PM
+    start_time: getDemoTime(1, 21, 0),
     odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 1.28, draw_odds: 6.50, away_odds: 11.00 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 1.27, draw_odds: 6.40, away_odds: 10.50 },
-      { bookmaker: '1xBet Ghana', home_odds: 1.29, draw_odds: 6.80, away_odds: 12.60 },
-      { bookmaker: '22Bet Ghana', home_odds: 1.29, draw_odds: 6.80, away_odds: 12.60 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 1.26, draw_odds: 6.20, away_odds: 10.00 },
+      { bookmaker: 'Betway Ghana', home_odds: 1.28, draw_odds: 6.50, away_odds: 11.00, home_draw: 1.10, draw_away: 3.80, home_away: 1.18, over_25: 1.65, under_25: 2.20 },
+      { bookmaker: 'SportyBet Ghana', home_odds: 1.27, draw_odds: 6.40, away_odds: 10.50, home_draw: 1.09, draw_away: 3.70, home_away: 1.17, over_25: 1.62, under_25: 2.25 },
+      { bookmaker: '1xBet Ghana', home_odds: 1.29, draw_odds: 6.80, away_odds: 12.60, home_draw: 1.11, draw_away: 4.00, home_away: 1.20, over_25: 1.68, under_25: 2.18 },
+      { bookmaker: '22Bet Ghana', home_odds: 1.29, draw_odds: 6.80, away_odds: 12.60, home_draw: 1.11, draw_away: 4.00, home_away: 1.20, over_25: 1.70, under_25: 2.15 },
+      { bookmaker: 'SoccaBet Ghana', home_odds: 1.26, draw_odds: 6.20, away_odds: 10.00, home_draw: 1.08, draw_away: 3.60, home_away: 1.15, over_25: 1.60, under_25: 2.30 },
     ],
   },
   {
     home_team: 'Barcelona',
     away_team: 'Osasuna',
     league: 'Spain. La Liga',
-    start_time: getDemoTime(2, 16, 0), // In 2 days 4:00 PM
+    start_time: getDemoTime(2, 16, 0),
     odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 1.25, draw_odds: 7.60, away_odds: 12.00 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 1.24, draw_odds: 7.40, away_odds: 11.50 },
-      { bookmaker: '1xBet Ghana', home_odds: 1.26, draw_odds: 7.60, away_odds: 12.00 },
-      { bookmaker: '22Bet Ghana', home_odds: 1.26, draw_odds: 7.60, away_odds: 12.00 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 1.23, draw_odds: 7.20, away_odds: 11.00 },
+      { bookmaker: 'Betway Ghana', home_odds: 1.25, draw_odds: 7.60, away_odds: 12.00, home_draw: 1.08, draw_away: 4.20, home_away: 1.15, over_25: 1.55, under_25: 2.40 },
+      { bookmaker: 'SportyBet Ghana', home_odds: 1.24, draw_odds: 7.40, away_odds: 11.50, home_draw: 1.07, draw_away: 4.10, home_away: 1.14, over_25: 1.52, under_25: 2.45 },
+      { bookmaker: '1xBet Ghana', home_odds: 1.26, draw_odds: 7.60, away_odds: 12.00, home_draw: 1.09, draw_away: 4.25, home_away: 1.16, over_25: 1.58, under_25: 2.38 },
+      { bookmaker: '22Bet Ghana', home_odds: 1.26, draw_odds: 7.60, away_odds: 12.00, home_draw: 1.09, draw_away: 4.25, home_away: 1.16, over_25: 1.56, under_25: 2.42 },
+      { bookmaker: 'SoccaBet Ghana', home_odds: 1.23, draw_odds: 7.20, away_odds: 11.00, home_draw: 1.06, draw_away: 4.00, home_away: 1.13, over_25: 1.50, under_25: 2.50 },
     ],
   },
   {
     home_team: 'Manchester United',
     away_team: 'Liverpool',
     league: 'England. Premier League',
-    start_time: getDemoTime(3, 17, 30), // In 3 days 5:30 PM
+    start_time: getDemoTime(3, 17, 30),
     odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 3.20, draw_odds: 3.40, away_odds: 2.25 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 3.10, draw_odds: 3.35, away_odds: 2.30 },
-      { bookmaker: '1xBet Ghana', home_odds: 3.25, draw_odds: 3.45, away_odds: 2.28 },
-      { bookmaker: '22Bet Ghana', home_odds: 3.25, draw_odds: 3.45, away_odds: 2.28 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 3.15, draw_odds: 3.30, away_odds: 2.20 },
+      { bookmaker: 'Betway Ghana', home_odds: 3.20, draw_odds: 3.40, away_odds: 2.25, home_draw: 1.65, draw_away: 1.35, home_away: 1.32, over_25: 1.72, under_25: 2.10 },
+      { bookmaker: 'SportyBet Ghana', home_odds: 3.10, draw_odds: 3.35, away_odds: 2.30, home_draw: 1.62, draw_away: 1.37, home_away: 1.30, over_25: 1.70, under_25: 2.12 },
+      { bookmaker: '1xBet Ghana', home_odds: 3.25, draw_odds: 3.45, away_odds: 2.28, home_draw: 1.68, draw_away: 1.36, home_away: 1.34, over_25: 1.75, under_25: 2.08 },
+      { bookmaker: '22Bet Ghana', home_odds: 3.25, draw_odds: 3.45, away_odds: 2.28, home_draw: 1.68, draw_away: 1.36, home_away: 1.34, over_25: 1.78, under_25: 2.05 },
+      { bookmaker: 'SoccaBet Ghana', home_odds: 3.15, draw_odds: 3.30, away_odds: 2.20, home_draw: 1.60, draw_away: 1.33, home_away: 1.28, over_25: 1.68, under_25: 2.15 },
     ],
   },
   {
     home_team: 'DR Congo',
     away_team: 'Benin',
     league: 'Africa Cup of Nations',
-    start_time: getDemoTime(4, 14, 0), // In 4 days 2:00 PM
+    start_time: getDemoTime(4, 14, 0),
     odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 1.75, draw_odds: 3.60, away_odds: 5.80 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 1.72, draw_odds: 3.55, away_odds: 5.60 },
-      { bookmaker: '1xBet Ghana', home_odds: 1.80, draw_odds: 3.87, away_odds: 6.55 },
-      { bookmaker: '22Bet Ghana', home_odds: 1.78, draw_odds: 3.70, away_odds: 6.00 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 1.90, draw_odds: 3.50, away_odds: 5.40 },
+      { bookmaker: 'Betway Ghana', home_odds: 1.75, draw_odds: 3.60, away_odds: 5.80, home_draw: 1.22, draw_away: 2.15, home_away: 1.38, over_25: 2.10, under_25: 1.72 },
+      { bookmaker: 'SportyBet Ghana', home_odds: 1.72, draw_odds: 3.55, away_odds: 5.60, home_draw: 1.20, draw_away: 2.10, home_away: 1.35, over_25: 2.05, under_25: 1.75 },
+      { bookmaker: '1xBet Ghana', home_odds: 1.80, draw_odds: 3.87, away_odds: 6.55, home_draw: 1.25, draw_away: 2.30, home_away: 1.42, over_25: 2.15, under_25: 1.70 },
+      { bookmaker: '22Bet Ghana', home_odds: 1.78, draw_odds: 3.70, away_odds: 6.00, home_draw: 1.23, draw_away: 2.20, home_away: 1.40, over_25: 2.12, under_25: 1.72 },
+      { bookmaker: 'SoccaBet Ghana', home_odds: 1.90, draw_odds: 3.50, away_odds: 5.40, home_draw: 1.28, draw_away: 2.05, home_away: 1.45, over_25: 2.00, under_25: 1.80 },
     ],
   },
   {
     home_team: 'Arsenal',
     away_team: 'Chelsea',
     league: 'England. Premier League',
-    start_time: getDemoTime(5, 15, 0), // In 5 days 3:00 PM
+    start_time: getDemoTime(5, 15, 0),
     odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 1.85, draw_odds: 3.80, away_odds: 4.20 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 1.82, draw_odds: 3.75, away_odds: 4.10 },
-      { bookmaker: '1xBet Ghana', home_odds: 1.88, draw_odds: 3.85, away_odds: 4.30 },
-      { bookmaker: '22Bet Ghana', home_odds: 1.88, draw_odds: 3.85, away_odds: 4.30 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 1.80, draw_odds: 3.70, away_odds: 4.00 },
+      { bookmaker: 'Betway Ghana', home_odds: 1.85, draw_odds: 3.80, away_odds: 4.20, home_draw: 1.28, draw_away: 1.95, home_away: 1.30, over_25: 1.65, under_25: 2.22 },
+      { bookmaker: 'SportyBet Ghana', home_odds: 1.82, draw_odds: 3.75, away_odds: 4.10, home_draw: 1.26, draw_away: 1.92, home_away: 1.28, over_25: 1.62, under_25: 2.25 },
+      { bookmaker: '1xBet Ghana', home_odds: 1.88, draw_odds: 3.85, away_odds: 4.30, home_draw: 1.30, draw_away: 1.98, home_away: 1.32, over_25: 1.68, under_25: 2.18 },
+      { bookmaker: '22Bet Ghana', home_odds: 1.88, draw_odds: 3.85, away_odds: 4.30, home_draw: 1.30, draw_away: 1.98, home_away: 1.32, over_25: 1.70, under_25: 2.15 },
+      { bookmaker: 'SoccaBet Ghana', home_odds: 1.80, draw_odds: 3.70, away_odds: 4.00, home_draw: 1.24, draw_away: 1.88, home_away: 1.26, over_25: 1.60, under_25: 2.28 },
     ],
   },
   {
     home_team: 'Accra Hearts',
     away_team: 'Asante Kotoko',
     league: 'Ghana Premier League',
-    start_time: getDemoTime(6, 16, 0), // In 6 days 4:00 PM
+    start_time: getDemoTime(6, 16, 0),
     odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 2.10, draw_odds: 3.20, away_odds: 3.50 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 2.05, draw_odds: 3.15, away_odds: 3.45 },
-      { bookmaker: '1xBet Ghana', home_odds: 2.15, draw_odds: 3.25, away_odds: 3.55 },
-      { bookmaker: '22Bet Ghana', home_odds: 2.12, draw_odds: 3.22, away_odds: 3.52 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 2.00, draw_odds: 3.10, away_odds: 3.40 },
+      { bookmaker: 'Betway Ghana', home_odds: 2.10, draw_odds: 3.20, away_odds: 3.50, home_draw: 1.28, draw_away: 1.65, home_away: 1.35, over_25: 2.20, under_25: 1.65 },
+      { bookmaker: 'SportyBet Ghana', home_odds: 2.05, draw_odds: 3.15, away_odds: 3.45, home_draw: 1.26, draw_away: 1.62, home_away: 1.33, over_25: 2.15, under_25: 1.68 },
+      { bookmaker: '1xBet Ghana', home_odds: 2.15, draw_odds: 3.25, away_odds: 3.55, home_draw: 1.30, draw_away: 1.68, home_away: 1.38, over_25: 2.25, under_25: 1.62 },
+      { bookmaker: '22Bet Ghana', home_odds: 2.12, draw_odds: 3.22, away_odds: 3.52, home_draw: 1.29, draw_away: 1.66, home_away: 1.36, over_25: 2.22, under_25: 1.64 },
+      { bookmaker: 'SoccaBet Ghana', home_odds: 2.00, draw_odds: 3.10, away_odds: 3.40, home_draw: 1.24, draw_away: 1.60, home_away: 1.31, over_25: 2.10, under_25: 1.70 },
     ],
   },
 ];
@@ -104,6 +111,13 @@ const POPULAR_LEAGUES = [
   { id: 'afcon', name: 'AFCON', icon: '🌍', keywords: ['Africa Cup', 'AFCON'] },
 ];
 
+// Odds field mapping for each market
+const MARKET_FIELDS = {
+  '1x2': ['home_odds', 'draw_odds', 'away_odds'],
+  'double_chance': ['home_draw', 'draw_away', 'home_away'],
+  'over_under': ['over_25', 'under_25'],
+};
+
 function OddsPage() {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -112,6 +126,8 @@ function OddsPage() {
   const [useDemo, setUseDemo] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeague, setSelectedLeague] = useState('all');
+  const [selectedMarket, setSelectedMarket] = useState('1x2');
+  const [selectedOdd, setSelectedOdd] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -131,7 +147,22 @@ function OddsPage() {
         getMatches(100, 0, 3),
         getStatus(),
       ]);
-      setMatches(matchData);
+
+      // Add demo market data to API matches if missing
+      const enrichedMatches = (matchData.matches || matchData).map(match => ({
+        ...match,
+        odds: match.odds?.map(odds => ({
+          ...odds,
+          // Generate synthetic double chance and over/under if not present
+          home_draw: odds.home_draw || calculateDoubleChance(odds.home_odds, odds.draw_odds),
+          draw_away: odds.draw_away || calculateDoubleChance(odds.draw_odds, odds.away_odds),
+          home_away: odds.home_away || calculateDoubleChance(odds.home_odds, odds.away_odds),
+          over_25: odds.over_25 || generateOverUnder(odds.home_odds, odds.away_odds, true),
+          under_25: odds.under_25 || generateOverUnder(odds.home_odds, odds.away_odds, false),
+        }))
+      }));
+
+      setMatches(enrichedMatches);
       setStatus(statusData);
       setUseDemo(false);
     } catch (error) {
@@ -140,6 +171,28 @@ function OddsPage() {
       setUseDemo(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Calculate synthetic double chance odds
+  const calculateDoubleChance = (odds1, odds2) => {
+    if (!odds1 || !odds2) return null;
+    const prob1 = 1 / odds1;
+    const prob2 = 1 / odds2;
+    const combinedProb = prob1 + prob2;
+    // Apply margin
+    return Math.round((1 / combinedProb) * 0.92 * 100) / 100;
+  };
+
+  // Generate synthetic over/under odds
+  const generateOverUnder = (homeOdds, awayOdds, isOver) => {
+    if (!homeOdds || !awayOdds) return null;
+    // Lower home/away odds typically mean more goals expected
+    const avgOdds = (homeOdds + awayOdds) / 2;
+    if (isOver) {
+      return Math.round((1.4 + (avgOdds - 2) * 0.15) * 100) / 100;
+    } else {
+      return Math.round((2.8 - (avgOdds - 2) * 0.15) * 100) / 100;
     }
   };
 
@@ -179,34 +232,36 @@ function OddsPage() {
     });
   };
 
-  const getBestOdds = (match, type) => {
+  // Get best odds for a specific field
+  const getBestOdds = (match, field) => {
     const odds = match.odds || [];
     if (odds.length === 0) return { value: 0, bookmaker: '' };
-    const key = `${type}_odds`;
-    const best = odds.reduce((max, o) => (o[key] > max[key] ? o : max), odds[0]);
-    return { value: best[key], bookmaker: best.bookmaker };
+    const validOdds = odds.filter(o => o[field] && o[field] > 0);
+    if (validOdds.length === 0) return { value: 0, bookmaker: '' };
+    const best = validOdds.reduce((max, o) => (o[field] > max[field] ? o : max), validOdds[0]);
+    return { value: best[field], bookmaker: best.bookmaker };
   };
 
   // Calculate market average for an outcome
-  const getMarketAverage = (match, type) => {
+  const getMarketAverage = (match, field) => {
     const odds = match.odds || [];
-    if (odds.length === 0) return 0;
-    const key = `${type}_odds`;
-    const sum = odds.reduce((acc, o) => acc + (o[key] || 0), 0);
-    return sum / odds.length;
+    const validOdds = odds.filter(o => o[field] && o[field] > 0);
+    if (validOdds.length === 0) return 0;
+    const sum = validOdds.reduce((acc, o) => acc + o[field], 0);
+    return sum / validOdds.length;
   };
 
-  // Check if odds are significantly above market average (edge detection)
+  // Check if odds are significantly above market average
   const isAboveAverage = (oddsValue, average) => {
     if (!average || !oddsValue) return false;
     const diff = ((oddsValue - average) / average) * 100;
-    return diff > 5; // More than 5% above average
+    return diff > 5;
   };
 
   const isBigEdge = (oddsValue, average) => {
     if (!average || !oddsValue) return false;
     const diff = ((oddsValue - average) / average) * 100;
-    return diff > 10; // More than 10% above average
+    return diff > 10;
   };
 
   // Convert odds to implied probability
@@ -214,9 +269,6 @@ function OddsPage() {
     if (!odds || odds <= 1) return 0;
     return (1 / odds) * 100;
   };
-
-  // State for showing probability tooltip
-  const [selectedOdd, setSelectedOdd] = useState(null);
 
   // Handle odds click to show probability
   const handleOddsClick = (e, odds, outcome, bookmaker) => {
@@ -230,7 +282,6 @@ function OddsPage() {
       x: e.clientX,
       y: e.clientY,
     });
-    // Auto-hide after 3 seconds
     setTimeout(() => setSelectedOdd(null), 3000);
   };
 
@@ -268,6 +319,10 @@ function OddsPage() {
     });
     return groups;
   }, [filteredMatches]);
+
+  // Get current market config
+  const currentMarket = MARKETS[selectedMarket];
+  const marketFields = MARKET_FIELDS[selectedMarket];
 
   return (
     <div className="odds-page">
@@ -332,6 +387,20 @@ function OddsPage() {
         </div>
       </div>
 
+      {/* Market Tabs */}
+      <div className="market-tabs">
+        {Object.values(MARKETS).map((market) => (
+          <button
+            key={market.id}
+            className={`market-tab ${selectedMarket === market.id ? 'active' : ''}`}
+            onClick={() => setSelectedMarket(market.id)}
+          >
+            <span className="market-name">{market.name}</span>
+            <span className="market-desc">{market.description}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Main Odds Grid */}
       <div className="odds-container">
         {/* Table Header - Bookmakers */}
@@ -360,10 +429,10 @@ function OddsPage() {
           <div className="outcome-match"></div>
           <div className="outcome-time"></div>
           {BOOKMAKER_ORDER.map((name) => (
-            <div key={name} className="outcome-labels">
-              <span>1</span>
-              <span>X</span>
-              <span>2</span>
+            <div key={name} className={`outcome-labels ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
+              {currentMarket.labels.map((label, i) => (
+                <span key={i}>{label}</span>
+              ))}
             </div>
           ))}
         </div>
@@ -395,12 +464,9 @@ function OddsPage() {
             </div>
 
             {leagueMatches.map((match, idx) => {
-              const bestHome = getBestOdds(match, 'home');
-              const bestDraw = getBestOdds(match, 'draw');
-              const bestAway = getBestOdds(match, 'away');
-              const avgHome = getMarketAverage(match, 'home');
-              const avgDraw = getMarketAverage(match, 'draw');
-              const avgAway = getMarketAverage(match, 'away');
+              // Calculate best odds and averages for current market
+              const bestOdds = marketFields.map(field => getBestOdds(match, field));
+              const avgOdds = marketFields.map(field => getMarketAverage(match, field));
 
               return (
                 <div key={idx} className="match-row">
@@ -427,52 +493,35 @@ function OddsPage() {
                     const config = BOOKMAKER_AFFILIATES[bookmaker];
 
                     return (
-                      <div key={bookmaker} className="odds-cell">
+                      <div key={bookmaker} className={`odds-cell ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
                         {bookieOdds ? (
-                          <>
-                            <a
-                              href={config.affiliateUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`odd ${bookieOdds.home_odds === bestHome.value ? 'best' : ''} ${isBigEdge(bookieOdds.home_odds, avgHome) ? 'big-edge' : isAboveAverage(bookieOdds.home_odds, avgHome) ? 'edge' : ''}`}
-                              onClick={(e) => handleOddsClick(e, bookieOdds.home_odds, 'Home', config.name)}
-                              title={`Click for probability • ${oddsToProb(bookieOdds.home_odds).toFixed(1)}%`}
-                            >
-                              {bookieOdds.home_odds.toFixed(2)}
-                              {bookieOdds.home_odds === bestHome.value && <span className="best-tag">BEST</span>}
-                              {isBigEdge(bookieOdds.home_odds, avgHome) && <span className="edge-tag">+{(((bookieOdds.home_odds - avgHome) / avgHome) * 100).toFixed(0)}%</span>}
-                            </a>
-                            <a
-                              href={config.affiliateUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`odd ${bookieOdds.draw_odds === bestDraw.value ? 'best' : ''} ${isBigEdge(bookieOdds.draw_odds, avgDraw) ? 'big-edge' : isAboveAverage(bookieOdds.draw_odds, avgDraw) ? 'edge' : ''}`}
-                              onClick={(e) => handleOddsClick(e, bookieOdds.draw_odds, 'Draw', config.name)}
-                              title={`Click for probability • ${oddsToProb(bookieOdds.draw_odds).toFixed(1)}%`}
-                            >
-                              {bookieOdds.draw_odds.toFixed(2)}
-                              {bookieOdds.draw_odds === bestDraw.value && <span className="best-tag">BEST</span>}
-                              {isBigEdge(bookieOdds.draw_odds, avgDraw) && <span className="edge-tag">+{(((bookieOdds.draw_odds - avgDraw) / avgDraw) * 100).toFixed(0)}%</span>}
-                            </a>
-                            <a
-                              href={config.affiliateUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`odd ${bookieOdds.away_odds === bestAway.value ? 'best' : ''} ${isBigEdge(bookieOdds.away_odds, avgAway) ? 'big-edge' : isAboveAverage(bookieOdds.away_odds, avgAway) ? 'edge' : ''}`}
-                              onClick={(e) => handleOddsClick(e, bookieOdds.away_odds, 'Away', config.name)}
-                              title={`Click for probability • ${oddsToProb(bookieOdds.away_odds).toFixed(1)}%`}
-                            >
-                              {bookieOdds.away_odds.toFixed(2)}
-                              {bookieOdds.away_odds === bestAway.value && <span className="best-tag">BEST</span>}
-                              {isBigEdge(bookieOdds.away_odds, avgAway) && <span className="edge-tag">+{(((bookieOdds.away_odds - avgAway) / avgAway) * 100).toFixed(0)}%</span>}
-                            </a>
-                          </>
+                          marketFields.map((field, i) => {
+                            const oddsValue = bookieOdds[field];
+                            const isBest = oddsValue && oddsValue === bestOdds[i].value;
+                            const isEdge = isBigEdge(oddsValue, avgOdds[i]);
+                            const isSmallEdge = !isEdge && isAboveAverage(oddsValue, avgOdds[i]);
+                            const edgePercent = avgOdds[i] ? ((oddsValue - avgOdds[i]) / avgOdds[i] * 100).toFixed(0) : 0;
+
+                            return (
+                              <a
+                                key={field}
+                                href={config.affiliateUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
+                                onClick={(e) => handleOddsClick(e, oddsValue, currentMarket.labels[i], config.name)}
+                                title={`Click for probability • ${oddsToProb(oddsValue).toFixed(1)}%`}
+                              >
+                                {oddsValue ? oddsValue.toFixed(2) : '-'}
+                                {isBest && oddsValue && <span className="best-tag">BEST</span>}
+                                {isEdge && oddsValue && <span className="edge-tag">+{edgePercent}%</span>}
+                              </a>
+                            );
+                          })
                         ) : (
-                          <>
-                            <span className="odd empty">-</span>
-                            <span className="odd empty">-</span>
-                            <span className="odd empty">-</span>
-                          </>
+                          marketFields.map((_, i) => (
+                            <span key={i} className="odd empty">-</span>
+                          ))
                         )}
                       </div>
                     );
