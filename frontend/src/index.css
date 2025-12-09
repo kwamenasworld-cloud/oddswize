@@ -178,19 +178,32 @@ a {
 }
 
 .stat-item {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stat-icon {
+  font-size: 2rem;
+  opacity: 0.8;
+}
+
+.stat-content {
+  text-align: left;
 }
 
 .stat-value {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--success);
+  line-height: 1;
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #aaa;
   text-transform: uppercase;
+  margin-top: 0.25rem;
 }
 
 /* Odds Section */
@@ -654,24 +667,38 @@ a {
 
 /* Bookmaker Promo Banner */
 .promo-banner {
-  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, var(--dark) 0%, var(--dark-light) 100%);
   color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
   gap: 1rem;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.promo-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .promo-text {
-  font-size: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .promo-text strong {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
+}
+
+.promo-text span {
+  font-size: 0.9rem;
+  color: #aaa;
 }
 
 .promo-btn {
@@ -693,7 +720,7 @@ a {
 .bookmaker-logos {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  gap: 1rem;
   padding: 1.5rem;
   background: white;
   border-radius: 12px;
@@ -701,40 +728,260 @@ a {
   flex-wrap: wrap;
 }
 
-.bookmaker-logo-item {
+.bookmaker-logo-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 12px;
+  transition: all 0.3s;
+  cursor: pointer;
+  text-align: left;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+}
+
+.bookmaker-logo-card:hover {
+  background: white;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  border-color: #e0e0e0;
+}
+
+.bookmaker-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bookmaker-info .bookmaker-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.bookmaker-bonus {
+  font-size: 0.7rem;
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* Bookmaker Header Row */
+.bookmaker-header {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e0e0e0;
+  overflow-x: auto;
+}
+
+.match-header-cell {
+  min-width: 200px;
+  padding: 1rem;
+  font-weight: 600;
+  color: #666;
+  display: flex;
+  align-items: center;
+}
+
+.bookmaker-header-cell {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: 1rem;
-  border-radius: 8px;
   transition: all 0.2s;
-  cursor: pointer;
-  text-align: center;
 }
 
-.bookmaker-logo-item:hover {
+.bookmaker-header-cell:hover {
   background: #f0f0f0;
-  transform: translateY(-2px);
 }
 
-.bookmaker-badge {
-  width: 80px;
-  height: 40px;
+.bookmaker-header-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+}
+
+/* Odds Trio */
+.odds-cell-group {
+  padding: 0.5rem !important;
+}
+
+.odds-trio {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.odds-trio .odds-btn {
+  min-width: 50px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Live Indicator */
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f44336;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-right: 0.5rem;
+  animation: pulse 2s infinite;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* Live Badge in Results */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.live-badge .live-dot {
+  width: 8px;
+  height: 8px;
+  background: #4caf50;
+}
+
+/* Results Info */
+.results-info {
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  font-size: 0.85rem;
+  color: #666;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Match Meta */
+.match-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.match-league {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  color: white;
-  font-weight: 700;
-  font-size: 0.9rem;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #888;
 }
 
-.bookmaker-bonus {
+.league-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+  border-radius: 50%;
+}
+
+.match-time {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.75rem;
-  color: var(--success);
+  color: #666;
+}
+
+.vs {
+  color: #999;
+  font-weight: 400;
+  margin: 0 2px;
+}
+
+/* Section Title */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
+}
+
+.title-icon {
+  font-size: 1.3rem;
+}
+
+.demo-badge {
+  background: #ff9800;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* Filter Tab Icons */
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-icon {
+  font-size: 1rem;
+}
+
+/* Refresh Button Icon */
+.refresh-icon {
+  transition: transform 0.3s;
+}
+
+.refresh-btn:hover .refresh-icon {
+  transform: rotate(180deg);
+}
+
+/* Outcome Labels */
+.outcome-labels {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.outcome-labels span {
+  width: 50px;
   text-align: center;
+}
+
+/* No Results Icon */
+.no-results-icon {
+  font-size: 3rem;
+  opacity: 0.5;
 }
 
 /* Loading */
