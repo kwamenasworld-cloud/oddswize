@@ -1,9 +1,8 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import OddsPage from './pages/OddsPage';
 import ArbitragePage from './pages/ArbitragePage';
 import BookmakersPage from './pages/BookmakersPage';
-import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from './config/affiliates';
 import './index.css';
 
 function App() {
@@ -25,23 +24,51 @@ function App() {
 }
 
 function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <header className="header">
       <div className="header-top">
         <NavLink to="/" className="logo">
           Odds<span>Wize</span>
         </NavLink>
-        <nav className="nav">
-          <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''}>
+
+        <button
+          className="mobile-menu-btn"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span className={`hamburger ${menuOpen ? 'open' : ''}`}></span>
+        </button>
+
+        <nav className={`nav ${menuOpen ? 'nav-open' : ''}`}>
+          <NavLink
+            to="/"
+            className={({ isActive }) => isActive ? 'active' : ''}
+            onClick={() => setMenuOpen(false)}
+          >
             Odds Comparison
           </NavLink>
-          <NavLink to="/arbitrage" className={({ isActive }) => isActive ? 'active' : ''}>
+          <NavLink
+            to="/arbitrage"
+            className={({ isActive }) => isActive ? 'active' : ''}
+            onClick={() => setMenuOpen(false)}
+          >
             Arbitrage
           </NavLink>
-          <NavLink to="/bookmakers" className={({ isActive }) => isActive ? 'active' : ''}>
+          <NavLink
+            to="/bookmakers"
+            className={({ isActive }) => isActive ? 'active' : ''}
+            onClick={() => setMenuOpen(false)}
+          >
             Bookmakers
           </NavLink>
         </nav>
+
+        <div className="header-badge">
+          <span className="age-badge">18+</span>
+          <span className="responsible-text">Gamble Responsibly</span>
+        </div>
       </div>
     </header>
   );

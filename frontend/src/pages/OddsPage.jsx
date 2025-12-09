@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getMatches, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
 
@@ -69,7 +69,48 @@ const DEMO_MATCHES = [
       { bookmaker: 'SoccaBet Ghana', home_odds: 1.80, draw_odds: 3.70, away_odds: 4.00 },
     ],
   },
+  {
+    home_team: 'Accra Hearts',
+    away_team: 'Asante Kotoko',
+    league: 'Ghana Premier League',
+    start_time: Date.now() / 1000 + 518400,
+    odds: [
+      { bookmaker: 'Betway Ghana', home_odds: 2.10, draw_odds: 3.20, away_odds: 3.50 },
+      { bookmaker: 'SportyBet Ghana', home_odds: 2.05, draw_odds: 3.15, away_odds: 3.45 },
+      { bookmaker: '1xBet Ghana', home_odds: 2.15, draw_odds: 3.25, away_odds: 3.55 },
+      { bookmaker: '22Bet Ghana', home_odds: 2.12, draw_odds: 3.22, away_odds: 3.52 },
+      { bookmaker: 'SoccaBet Ghana', home_odds: 2.00, draw_odds: 3.10, away_odds: 3.40 },
+    ],
+  },
 ];
+
+// Popular leagues for quick filters
+const POPULAR_LEAGUES = [
+  { id: 'all', name: 'All Matches' },
+  { id: 'premier', name: 'Premier League', keywords: ['Premier League', 'England'] },
+  { id: 'laliga', name: 'La Liga', keywords: ['La Liga', 'Spain'] },
+  { id: 'ghana', name: 'Ghana', keywords: ['Ghana'] },
+  { id: 'afcon', name: 'AFCON', keywords: ['Africa Cup', 'AFCON'] },
+];
+
+// Skeleton loader component
+function SkeletonRow() {
+  return (
+    <tr className="skeleton-row">
+      <td className="match-info">
+        <div className="skeleton skeleton-text" style={{ width: '70%' }}></div>
+        <div className="skeleton skeleton-text" style={{ width: '50%', marginTop: '0.5rem' }}></div>
+      </td>
+      {BOOKMAKER_ORDER.map((name) => (
+        <>
+          <td key={`${name}-1`}><div className="skeleton skeleton-odds"></div></td>
+          <td key={`${name}-2`}><div className="skeleton skeleton-odds"></div></td>
+          <td key={`${name}-3`}><div className="skeleton skeleton-odds"></div></td>
+        </>
+      ))}
+    </tr>
+  );
+}
 
 function OddsPage() {
   const [matches, setMatches] = useState([]);
@@ -77,6 +118,8 @@ function OddsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState(null);
   const [useDemo, setUseDemo] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLeague, setSelectedLeague] = useState('all');
 
   useEffect(() => {
     loadData();
@@ -133,16 +176,36 @@ function OddsPage() {
     return { value: best[key], bookmaker: best.bookmaker };
   };
 
-  if (loading) {
-    return (
-      <div className="container">
-        <div className="loading">
-          <div className="spinner"></div>
-          <span>Loading odds...</span>
-        </div>
-      </div>
-    );
-  }
+  // Filter matches based on search and league
+  const filteredMatches = useMemo(() => {
+    return matches.filter((match) => {
+      // Search filter
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch =
+        !searchQuery ||
+        match.home_team.toLowerCase().includes(searchLower) ||
+        match.away_team.toLowerCase().includes(searchLower) ||
+        match.league.toLowerCase().includes(searchLower);
+
+      // League filter
+      let matchesLeague = selectedLeague === 'all';
+      if (!matchesLeague) {
+        const league = POPULAR_LEAGUES.find((l) => l.id === selectedLeague);
+        if (league && league.keywords) {
+          matchesLeague = league.keywords.some((keyword) =>
+            match.league.toLowerCase().includes(keyword.toLowerCase())
+          );
+        }
+      }
+
+      return matchesSearch && matchesLeague;
+    });
+  }, [matches, searchQuery, selectedLeague]);
+
+  // Get unique leagues for stats
+  const uniqueLeagues = useMemo(() => {
+    return [...new Set(matches.map((m) => m.league))];
+  }, [matches]);
 
   return (
     <div className="container">
@@ -172,8 +235,8 @@ function OddsPage() {
           <div className="stat-label">Compared Events</div>
         </div>
         <div className="stat-item">
-          <div className="stat-value">{status?.bookmakers?.length || 5}</div>
-          <div className="stat-label">Bookmakers</div>
+          <div className="stat-value">{uniqueLeagues.length || 5}</div>
+          <div className="stat-label">Leagues</div>
         </div>
         <div className="stat-item">
           <div className="stat-value">{status?.arbitrage_count || 0}</div>
@@ -217,11 +280,51 @@ function OddsPage() {
           </button>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
+        {/* Search and Filters */}
+        <div className="search-filter-bar">
+          <div className="search-box">
+            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search teams or leagues..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            {searchQuery && (
+              <button className="clear-search" onClick={() => setSearchQuery('')}>
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* League Filter Tabs */}
+        <div className="filter-tabs">
+          {POPULAR_LEAGUES.map((league) => (
+            <button
+              key={league.id}
+              className={`filter-tab ${selectedLeague === league.id ? 'active' : ''}`}
+              onClick={() => setSelectedLeague(league.id)}
+            >
+              {league.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Results count */}
+        <div className="results-info">
+          Showing {filteredMatches.length} of {matches.length} matches
+        </div>
+
+        <div className="table-wrapper">
           <table className="odds-table">
             <thead>
               <tr>
-                <th className="match-col">Match</th>
+                <th className="match-col sticky-col">Match</th>
                 {BOOKMAKER_ORDER.map((name) => (
                   <th key={name} colSpan="3">
                     <a
@@ -236,7 +339,7 @@ function OddsPage() {
                 ))}
               </tr>
               <tr>
-                <th></th>
+                <th className="sticky-col"></th>
                 {BOOKMAKER_ORDER.map((name) => (
                   <>
                     <th key={`${name}-1`}>1</th>
@@ -247,82 +350,123 @@ function OddsPage() {
               </tr>
             </thead>
             <tbody>
-              {matches.map((match, idx) => {
-                const bestHome = getBestOdds(match, 'home');
-                const bestDraw = getBestOdds(match, 'draw');
-                const bestAway = getBestOdds(match, 'away');
+              {loading ? (
+                // Skeleton loading
+                <>
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                  <SkeletonRow />
+                </>
+              ) : filteredMatches.length === 0 ? (
+                <tr>
+                  <td colSpan={1 + BOOKMAKER_ORDER.length * 3} className="no-results">
+                    <div className="no-results-content">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="48" height="48">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="M21 21l-4.35-4.35" />
+                      </svg>
+                      <p>No matches found</p>
+                      <span>Try adjusting your search or filters</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredMatches.map((match, idx) => {
+                  const bestHome = getBestOdds(match, 'home');
+                  const bestDraw = getBestOdds(match, 'draw');
+                  const bestAway = getBestOdds(match, 'away');
 
-                return (
-                  <tr key={idx}>
-                    <td className="match-info">
-                      <div className="match-teams">
-                        {match.home_team} vs {match.away_team}
-                      </div>
-                      <div className="match-league">{match.league}</div>
-                      <div className="match-time">{formatTime(match.start_time)}</div>
-                    </td>
-                    {BOOKMAKER_ORDER.map((bookmaker) => {
-                      const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
-                      const config = BOOKMAKER_AFFILIATES[bookmaker];
+                  return (
+                    <tr key={idx}>
+                      <td className="match-info sticky-col">
+                        <div className="match-teams">
+                          {match.home_team} vs {match.away_team}
+                        </div>
+                        <div className="match-league">{match.league}</div>
+                        <div className="match-time">{formatTime(match.start_time)}</div>
+                      </td>
+                      {BOOKMAKER_ORDER.map((bookmaker) => {
+                        const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
+                        const config = BOOKMAKER_AFFILIATES[bookmaker];
 
-                      return (
-                        <>
-                          <td key={`${bookmaker}-home`} className="odds-cell">
-                            {bookieOdds?.home_odds ? (
-                              <a
-                                href={config.affiliateUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`odds-btn ${
-                                  bookieOdds.home_odds === bestHome.value ? 'best' : ''
-                                }`}
-                              >
-                                {bookieOdds.home_odds.toFixed(2)}
-                              </a>
-                            ) : (
-                              <span className="odds-empty">-</span>
-                            )}
-                          </td>
-                          <td key={`${bookmaker}-draw`} className="odds-cell">
-                            {bookieOdds?.draw_odds ? (
-                              <a
-                                href={config.affiliateUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`odds-btn ${
-                                  bookieOdds.draw_odds === bestDraw.value ? 'best' : ''
-                                }`}
-                              >
-                                {bookieOdds.draw_odds.toFixed(2)}
-                              </a>
-                            ) : (
-                              <span className="odds-empty">-</span>
-                            )}
-                          </td>
-                          <td key={`${bookmaker}-away`} className="odds-cell">
-                            {bookieOdds?.away_odds ? (
-                              <a
-                                href={config.affiliateUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`odds-btn ${
-                                  bookieOdds.away_odds === bestAway.value ? 'best' : ''
-                                }`}
-                              >
-                                {bookieOdds.away_odds.toFixed(2)}
-                              </a>
-                            ) : (
-                              <span className="odds-empty">-</span>
-                            )}
-                          </td>
-                        </>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+                        return (
+                          <>
+                            <td key={`${bookmaker}-home`} className="odds-cell">
+                              {bookieOdds?.home_odds ? (
+                                <a
+                                  href={config.affiliateUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`odds-btn ${
+                                    bookieOdds.home_odds === bestHome.value ? 'best' : ''
+                                  }`}
+                                >
+                                  {bookieOdds.home_odds.toFixed(2)}
+                                  {bookieOdds.home_odds === bestHome.value && (
+                                    <span className="best-indicator">Best</span>
+                                  )}
+                                </a>
+                              ) : (
+                                <span className="odds-empty">-</span>
+                              )}
+                            </td>
+                            <td key={`${bookmaker}-draw`} className="odds-cell">
+                              {bookieOdds?.draw_odds ? (
+                                <a
+                                  href={config.affiliateUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`odds-btn ${
+                                    bookieOdds.draw_odds === bestDraw.value ? 'best' : ''
+                                  }`}
+                                >
+                                  {bookieOdds.draw_odds.toFixed(2)}
+                                  {bookieOdds.draw_odds === bestDraw.value && (
+                                    <span className="best-indicator">Best</span>
+                                  )}
+                                </a>
+                              ) : (
+                                <span className="odds-empty">-</span>
+                              )}
+                            </td>
+                            <td key={`${bookmaker}-away`} className="odds-cell">
+                              {bookieOdds?.away_odds ? (
+                                <a
+                                  href={config.affiliateUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`odds-btn ${
+                                    bookieOdds.away_odds === bestAway.value ? 'best' : ''
+                                  }`}
+                                >
+                                  {bookieOdds.away_odds.toFixed(2)}
+                                  {bookieOdds.away_odds === bestAway.value && (
+                                    <span className="best-indicator">Best</span>
+                                  )}
+                                </a>
+                              ) : (
+                                <span className="odds-empty">-</span>
+                              )}
+                            </td>
+                          </>
+                        );
+                      })}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile scroll hint */}
+        <div className="scroll-hint">
+          <span>Swipe to see more bookmakers</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
         </div>
       </div>
     </div>

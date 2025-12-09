@@ -8,6 +8,7 @@
   --primary: #1a73e8;
   --primary-dark: #1557b0;
   --success: #00c853;
+  --success-dark: #00a152;
   --warning: #ff9800;
   --danger: #f44336;
   --dark: #1a1a2e;
@@ -49,6 +50,7 @@ a {
   padding: 1rem 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  gap: 1rem;
 }
 
 .logo {
@@ -61,6 +63,58 @@ a {
   color: white;
 }
 
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  z-index: 1001;
+}
+
+.hamburger {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: white;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.hamburger::before,
+.hamburger::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 2px;
+  background: white;
+  transition: all 0.3s;
+}
+
+.hamburger::before {
+  top: -8px;
+}
+
+.hamburger::after {
+  top: 8px;
+}
+
+.hamburger.open {
+  background: transparent;
+}
+
+.hamburger.open::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.hamburger.open::after {
+  top: 0;
+  transform: rotate(-45deg);
+}
+
+/* Navigation */
 .nav {
   display: flex;
   gap: 2rem;
@@ -78,6 +132,29 @@ a {
 .nav a.active {
   color: white;
   background: rgba(255,255,255,0.1);
+}
+
+/* 18+ Badge */
+.header-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.age-badge {
+  background: var(--danger);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.responsible-text {
+  font-size: 0.75rem;
+  color: #aaa;
+  max-width: 80px;
+  line-height: 1.2;
 }
 
 /* Container */
@@ -116,7 +193,7 @@ a {
   text-transform: uppercase;
 }
 
-/* Odds Table */
+/* Odds Section */
 .odds-section {
   background: white;
   border-radius: 12px;
@@ -132,6 +209,8 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .section-title {
@@ -139,9 +218,128 @@ a {
   font-weight: 600;
 }
 
+/* Search Box */
+.search-filter-bar {
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+}
+
+.search-box {
+  position: relative;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: #999;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 3rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 25px;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+.search-input::placeholder {
+  color: #999;
+}
+
+.clear-search {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ccc;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-search:hover {
+  background: #999;
+}
+
+/* Filter Tabs */
+.filter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-tab {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  border: 1px solid #ddd;
+}
+
+.filter-tab:hover {
+  background: #e9ecef;
+  border-color: #ccc;
+}
+
+.filter-tab.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Results Info */
+.results-info {
+  padding: 0.75rem 1.5rem;
+  background: #fff;
+  font-size: 0.85rem;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+/* Table Wrapper */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Odds Table */
 .odds-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 900px;
 }
 
 .odds-table th {
@@ -152,11 +350,14 @@ a {
   font-size: 0.85rem;
   color: #666;
   border-bottom: 2px solid #dee2e6;
+  position: relative;
 }
 
-.odds-table th.match-col {
+.odds-table th.match-col,
+.odds-table th.sticky-col {
   text-align: left;
-  width: 30%;
+  width: 25%;
+  min-width: 200px;
 }
 
 .odds-table td {
@@ -168,6 +369,23 @@ a {
 
 .odds-table tr:hover {
   background: #f8f9fa;
+}
+
+/* Sticky Column for Mobile */
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 10;
+}
+
+.odds-table tr:hover .sticky-col {
+  background: #f8f9fa;
+}
+
+.odds-table thead .sticky-col {
+  background: #f8f9fa;
+  z-index: 11;
 }
 
 .match-info {
@@ -201,7 +419,9 @@ a {
 }
 
 .odds-btn {
-  display: inline-block;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
   padding: 0.5rem 1rem;
   background: #f8f9fa;
   border: 1px solid #dee2e6;
@@ -212,6 +432,7 @@ a {
   cursor: pointer;
   transition: all 0.2s;
   min-width: 60px;
+  position: relative;
 }
 
 .odds-btn:hover {
@@ -233,15 +454,79 @@ a {
   color: white;
 }
 
+.best-indicator {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
 .odds-empty {
   color: #ccc;
   font-size: 0.85rem;
 }
 
-.bookmaker-name {
-  font-size: 0.7rem;
-  color: #888;
-  margin-top: 0.25rem;
+/* Scroll Hint */
+.scroll-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #e3f2fd;
+  color: var(--primary);
+  font-size: 0.85rem;
+}
+
+/* No Results */
+.no-results {
+  padding: 3rem !important;
+}
+
+.no-results-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: #999;
+}
+
+.no-results-content p {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.no-results-content span {
+  font-size: 0.9rem;
+}
+
+/* Skeleton Loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 16px;
+}
+
+.skeleton-odds {
+  height: 36px;
+  width: 60px;
+  margin: 0 auto;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-row td {
+  padding: 1rem;
 }
 
 /* Arbitrage Cards */
@@ -268,7 +553,7 @@ a {
 }
 
 .arb-header {
-  background: linear-gradient(135deg, var(--success) 0%, #00a152 100%);
+  background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
   color: white;
   padding: 1rem 1.25rem;
   display: flex;
@@ -313,6 +598,11 @@ a {
   padding: 0.75rem;
   background: #f8f9fa;
   border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.arb-selection:hover {
+  background: #e3f2fd;
 }
 
 .arb-outcome {
@@ -372,6 +662,8 @@ a {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .promo-text {
@@ -389,10 +681,11 @@ a {
   border-radius: 25px;
   font-weight: 600;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .promo-btn:hover {
-  background: #00a152;
+  background: var(--success-dark);
   transform: scale(1.05);
 }
 
@@ -492,36 +785,6 @@ a {
   cursor: not-allowed;
 }
 
-/* Filter Tabs */
-.filter-tabs {
-  display: flex;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  background: #f8f9fa;
-  border-bottom: 1px solid #eee;
-  overflow-x: auto;
-}
-
-.filter-tab {
-  padding: 0.5rem 1rem;
-  border: none;
-  background: white;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-
-.filter-tab:hover {
-  background: #e9ecef;
-}
-
-.filter-tab.active {
-  background: var(--primary);
-  color: white;
-}
-
 /* Footer */
 .footer {
   background: var(--dark);
@@ -536,6 +799,7 @@ a {
   justify-content: center;
   gap: 2rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .footer-links a:hover {
@@ -552,12 +816,57 @@ a {
 /* Responsive */
 @media (max-width: 768px) {
   .header-top {
-    flex-direction: column;
-    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+  }
+
+  .mobile-menu-btn {
+    display: block;
+    order: 2;
+  }
+
+  .logo {
+    order: 1;
+    font-size: 1.5rem;
+  }
+
+  .header-badge {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 0.5rem;
+    display: none;
   }
 
   .nav {
-    gap: 1rem;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: var(--dark);
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+
+  .nav.nav-open {
+    max-height: 300px;
+  }
+
+  .nav a {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0;
+  }
+
+  .container {
+    padding: 1rem;
   }
 
   .stats-banner {
@@ -566,6 +875,50 @@ a {
 
   .stat-value {
     font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
+
+  .promo-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .promo-text {
+    font-size: 1rem;
+  }
+
+  .promo-text strong {
+    font-size: 1.1rem;
+  }
+
+  .search-filter-bar {
+    padding: 1rem;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+
+  .filter-tabs {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .filter-tab {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .results-info {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .scroll-hint {
+    display: flex;
   }
 
   .odds-table {
@@ -583,13 +936,77 @@ a {
     font-size: 0.85rem;
   }
 
-  .arb-grid {
-    grid-template-columns: 1fr;
+  .best-indicator {
+    display: none;
   }
 
-  .promo-banner {
-    flex-direction: column;
+  .match-teams {
+    font-size: 0.85rem;
+  }
+
+  .match-league {
+    font-size: 0.7rem;
+  }
+
+  .match-time {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .arb-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
     gap: 1rem;
+  }
+
+  .bookmaker-logos {
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .bookmaker-logo-item {
+    padding: 0.5rem;
+  }
+
+  .bookmaker-badge {
+    width: 60px;
+    height: 32px;
+    font-size: 0.7rem;
+  }
+
+  .bookmaker-bonus {
+    font-size: 0.65rem;
+  }
+
+  .section-header {
+    flex-direction: column;
     text-align: center;
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
+  }
+
+  .footer-links {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-item {
+    flex: 1 1 40%;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .bookmaker-logos {
+    justify-content: space-around;
+  }
+
+  .bookmaker-logo-item:nth-child(n+4) {
+    display: none;
   }
 }
