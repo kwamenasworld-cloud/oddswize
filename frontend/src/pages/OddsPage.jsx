@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { getMatches, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
 import { BookmakerLogo, StarRating, FeatureBadge, LiveIndicator } from '../components/BookmakerLogo';
+import NewsSection from '../components/NewsSection';
+import CommentsSection from '../components/CommentsSection';
 
 // Demo data for when API is not available
 const DEMO_MATCHES = [
@@ -492,6 +494,15 @@ function OddsPage() {
           </svg>
         </div>
       </div>
+
+      {/* News Section - SEO optimized content */}
+      <NewsSection />
+
+      {/* Community Comments - drives engagement */}
+      <CommentsSection
+        matchId="featured-match"
+        matchName="Featured Match Discussion"
+      />
     </div>
   );
 }
