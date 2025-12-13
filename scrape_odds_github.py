@@ -363,6 +363,267 @@ def scrape_22bet() -> List[Dict]:
 
 
 # ============================================================================
+# Betway Ghana Scraper
+# ============================================================================
+
+BETWAY_API = "https://www.betway.com.gh/sportsapi/br/v1/BetBook/Upcoming/"
+
+def scrape_betway() -> List[Dict]:
+    """Scrape Betway Ghana via API."""
+    print("Scraping Betway Ghana...")
+    matches = []
+    seen_ids = set()
+
+    headers = {
+        **HEADERS,
+        'Referer': 'https://www.betway.com.gh/sport/soccer/upcoming',
+    }
+
+    skip = 0
+    page_size = 500
+
+    for _ in range(10):  # Max 10 pages
+        if len(matches) >= MAX_MATCHES:
+            break
+
+        try:
+            url = (
+                f"{BETWAY_API}?countryCode=GH"
+                f"&sportId=soccer"
+                f"&cultureCode=en-US"
+                f"&marketTypes=%5BWin%2FDraw%2FWin%5D"
+                f"&isEsport=false"
+                f"&Skip={skip}"
+                f"&Take={page_size}"
+            )
+            resp = requests.get(url, headers=headers, timeout=60)
+            data = resp.json()
+
+            events = data.get('events', [])
+            if not events:
+                break
+
+            markets = data.get('markets', [])
+            outcomes = data.get('outcomes', [])
+            prices = data.get('prices', [])
+
+            # Build lookup maps
+            market_by_event = {}
+            for m in markets:
+                if m.get('name') == '[Win/Draw/Win]' or m.get('displayName') == '1X2':
+                    market_by_event[m.get('eventId')] = m
+
+            outcomes_by_market = {}
+            for o in outcomes:
+                mid = o.get('marketId')
+                if mid not in outcomes_by_market:
+                    outcomes_by_market[mid] = []
+                outcomes_by_market[mid].append(o)
+
+            price_by_outcome = {p.get('outcomeId'): p.get('priceDecimal') for p in prices}
+
+            for event in events:
+                event_id = event.get('eventId')
+                if not event_id or event_id in seen_ids:
+                    continue
+
+                home = event.get('homeTeam')
+                away = event.get('awayTeam')
+                if not home or not away:
+                    continue
+
+                market = market_by_event.get(event_id)
+                if not market:
+                    continue
+
+                market_id = market.get('marketId')
+                market_outcomes = outcomes_by_market.get(market_id, [])
+
+                home_odds = draw_odds = away_odds = None
+
+                for outcome in market_outcomes:
+                    outcome_id = outcome.get('outcomeId')
+                    outcome_name = outcome.get('name', '').lower()
+                    price = price_by_outcome.get(outcome_id)
+
+                    if not price:
+                        continue
+
+                    if outcome_name == home.lower() or outcome.get('displayName', '').lower() == home.lower():
+                        home_odds = price
+                    elif outcome_name == away.lower() or outcome.get('displayName', '').lower() == away.lower():
+                        away_odds = price
+                    elif 'draw' in outcome_name or outcome_name == 'x':
+                        draw_odds = price
+
+                if not home_odds or not away_odds:
+                    continue
+
+                seen_ids.add(event_id)
+                matches.append({
+                    'bookmaker': 'Betway Ghana',
+                    'event_id': str(event_id),
+                    'home_team': home,
+                    'away_team': away,
+                    'home_odds': home_odds,
+                    'draw_odds': draw_odds or 0.0,
+                    'away_odds': away_odds,
+                    'league': event.get('league', ''),
+                    'start_time': event.get('expectedStartEpoch', 0),
+                })
+
+            print(f"  Skip {skip}: {len(matches)} matches")
+
+            if data.get('isFinalPage', False):
+                break
+
+            skip += page_size
+            time.sleep(0.1)
+
+        except Exception as e:
+            print(f"  Betway error: {e}")
+            break
+
+    print(f"  Total: {len(matches)} matches from Betway")
+    return matches[:MAX_MATCHES]
+
+
+# ============================================================================
+# SoccaBet Ghana Scraper
+# ============================================================================
+
+SOCCABET_API = "https://www.soccabet.com/bet/odds.js"
+
+def scrape_soccabet() -> List[Dict]:
+    """Scrape SoccaBet Ghana via API."""
+    print("Scraping SoccaBet Ghana...")
+    matches = []
+
+    headers = {
+        **HEADERS,
+        'Referer': 'https://www.soccabet.com/',
+    }
+
+    try:
+        session = requests.Session()
+        session.get('https://www.soccabet.com/', headers=headers, timeout=15)
+        time.sleep(0.1)
+
+        resp = session.get(SOCCABET_API, headers=headers, timeout=60)
+        if resp.status_code != 200:
+            print(f"  Error: HTTP {resp.status_code}")
+            return []
+
+        data = resp.json()
+
+        # Get soccer sport data (ID: 77)
+        sports = data.get('sports', {})
+        soccer = sports.get('77', {})
+
+        if not soccer:
+            print("  Error: No soccer data found")
+            return []
+
+        categories = soccer.get('categories', {})
+
+        skip_patterns = ['esoccer', 'ebasketball', 'esports', '(thomas)', '(nathan)',
+                         '(iron)', '(jason)', '(panther)', '(felix)', '(odin)', '(cleo)']
+
+        for cat_id, category in categories.items():
+            if len(matches) >= MAX_MATCHES:
+                break
+
+            cat_name = category.get('name', 'Unknown')
+            tournaments = category.get('tournaments', {})
+
+            for tourn_id, tournament in tournaments.items():
+                if len(matches) >= MAX_MATCHES:
+                    break
+
+                tourn_name = tournament.get('name', 'Unknown')
+                league = f"{cat_name}. {tourn_name}"
+                raw_matches = tournament.get('matches', {})
+
+                for match_id, match in raw_matches.items():
+                    if len(matches) >= MAX_MATCHES:
+                        break
+
+                    # Skip live matches
+                    if match.get('live'):
+                        continue
+
+                    name = match.get('name', '')
+                    if not name or ' v ' not in name:
+                        continue
+
+                    parts = name.split(' v ')
+                    if len(parts) != 2:
+                        continue
+
+                    home_team = parts[0].strip()
+                    away_team = parts[1].strip()
+
+                    # Skip eSports
+                    full_name = f"{home_team} {away_team}".lower()
+                    if any(p in full_name for p in skip_patterns):
+                        continue
+
+                    start_ts = match.get('ts', 0)
+
+                    # Find 1x2 market
+                    markets_data = match.get('markets', {})
+                    home_odds = draw_odds = away_odds = 0
+
+                    for mkt_id, mkt in markets_data.items():
+                        type_id = mkt.get('typeid', '')
+                        if type_id in ['4102', '4720']:
+                            selections = mkt.get('selections', {})
+
+                            for sel_id, sel in selections.items():
+                                outcome = sel.get('n', '')
+                                odds_str = sel.get('o', '0')
+
+                                try:
+                                    odds = float(odds_str)
+                                except:
+                                    continue
+
+                                if outcome == '1':
+                                    home_odds = odds
+                                elif outcome == 'X':
+                                    draw_odds = odds
+                                elif outcome == '2':
+                                    away_odds = odds
+
+                            break
+
+                    # Validate odds
+                    if home_odds <= 1 or away_odds <= 1:
+                        continue
+                    if draw_odds > 0 and draw_odds < 2.0:
+                        continue
+
+                    matches.append({
+                        'bookmaker': 'SoccaBet Ghana',
+                        'event_id': str(match_id),
+                        'home_team': home_team,
+                        'away_team': away_team,
+                        'home_odds': home_odds,
+                        'draw_odds': draw_odds,
+                        'away_odds': away_odds,
+                        'league': league,
+                        'start_time': start_ts,
+                    })
+
+        print(f"  Total: {len(matches)} matches from SoccaBet")
+
+    except Exception as e:
+        print(f"  SoccaBet error: {e}")
+
+    return matches[:MAX_MATCHES]
+
+
+# ============================================================================
 # Event Matching
 # ============================================================================
 
@@ -517,6 +778,14 @@ def main():
     twentytwobet = scrape_22bet()
     if twentytwobet:
         all_matches['22Bet'] = twentytwobet
+
+    betway = scrape_betway()
+    if betway:
+        all_matches['Betway Ghana'] = betway
+
+    soccabet = scrape_soccabet()
+    if soccabet:
+        all_matches['SoccaBet Ghana'] = soccabet
 
     total = sum(len(m) for m in all_matches.values())
     print(f"\nTotal scraped: {total} matches from {len(all_matches)} bookmakers")
