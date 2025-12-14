@@ -5,11 +5,11 @@ compatibility_date = "2024-01-01"
 # KV Namespaces for data storage
 [[kv_namespaces]]
 binding = "ODDS_CACHE"
-id = "82597e0ef01149c4833c16b81d20cdb9"  # Replace after running: wrangler kv:namespace create ODDS_CACHE
+id = "28eda8030f2440689f8837daffdc67e3"
 
 [[kv_namespaces]]
 binding = "MATCHES_DATA"
-id = "588e09922459414e954fafc77ba5f15d"  # Replace after running: wrangler kv:namespace create MATCHES_DATA
+id = "8df6916f071d4dab86818d650393e0c2"
 
 # Environment variables
 [vars]

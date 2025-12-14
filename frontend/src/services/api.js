@@ -4,7 +4,7 @@
  */
 
 // API Configuration
-const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://oddswize-api.kwamenasworld.workers.dev';
+const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://oddswize-api.kwamenahb.workers.dev';
 const STATIC_DATA_URL = '/data/odds_data.json';
 
 // Fetch helper with error handling
