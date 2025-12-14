@@ -671,122 +671,144 @@ def scrape_soccabet() -> List[Dict]:
 
 
 # ============================================================================
-# Betfox Ghana Scraper
+# Betfox Ghana Scraper (uses Playwright due to Cloudflare protection)
 # ============================================================================
 
-BETFOX_API = "https://www.betfoxgh.com/api/sport/upcoming"
-
 def scrape_betfox() -> List[Dict]:
-    """Scrape Betfox Ghana via API."""
+    """Scrape Betfox Ghana via API using Playwright to bypass Cloudflare."""
     print("Scraping Betfox Ghana...")
     matches = []
 
-    headers = {
-        **HEADERS,
-        'Referer': 'https://www.betfoxgh.com/',
-    }
-
     try:
-        session = requests.Session()
-        session.get('https://www.betfoxgh.com/', headers=headers, timeout=TIMEOUT)
+        import asyncio
+        from playwright.async_api import async_playwright
+        from dateutil import parser
 
-        # Try to get soccer matches
-        resp = session.get(f"{BETFOX_API}/1", headers=headers, timeout=TIMEOUT*2)  # Sport ID 1 for soccer
-        if resp.status_code != 200:
-            print(f"  Error: HTTP {resp.status_code}")
+        async def fetch_betfox_data():
+            """Async function to fetch Betfox data with Playwright"""
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context(
+                    viewport={'width': 375, 'height': 667},
+                    user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15'
+                )
+                page = await context.new_page()
+
+                # Navigate to the sportsbook page first to get past Cloudflare
+                await page.goto('https://www.betfox.com.gh/sportsbook', wait_until='networkidle', timeout=30000)
+                await asyncio.sleep(2)
+
+                # Fetch the API data
+                api_response = await page.request.get(
+                    'https://www.betfox.com.gh/api/offer/v3/sports?live=false',
+                    headers={
+                        'Accept': 'application/json',
+                        'Referer': 'https://www.betfox.com.gh/sportsbook',
+                        'x-betr-operator': 'bf-group',
+                        'x-betr-brand': 'betfox.com.gh',
+                        'x-locale': 'en',
+                    }
+                )
+
+                await browser.close()
+
+                if api_response.ok:
+                    return await api_response.json()
+                else:
+                    print(f"  API request failed: {api_response.status}")
+                    return None
+
+        # Run the async function
+        data = asyncio.run(fetch_betfox_data())
+        if not data:
+            print("  Failed to fetch Betfox data")
             return []
 
-        data = resp.json()
-
-        # Process matches from Betfox API structure
-        events = data.get('data', {}).get('events', [])
-        if not events:
-            # Try alternative structure
-            events = data.get('events', [])
-
+        # Process the response
+        sports = data.get('sports', [])
         skip_patterns = ['esoccer', 'ebasketball', 'esports', 'virtual']
 
-        for event in events:
-            if len(matches) >= MAX_MATCHES:
-                break
-
-            # Skip live matches
-            if event.get('is_live') or event.get('live'):
+        for sport in sports:
+            if sport.get('name') != 'Football':
                 continue
 
-            home_team = event.get('home_team', event.get('homeTeam', ''))
-            away_team = event.get('away_team', event.get('awayTeam', ''))
+            for category in sport.get('categories', []):
+                category_name = category.get('name', '')
 
-            if not home_team or not away_team:
-                continue
+                for competition in category.get('competitions', []):
+                    competition_name = competition.get('name', '')
+                    league = f"{category_name}. {competition_name}" if category_name else competition_name
 
-            # Skip eSports
-            full_name = f"{home_team} {away_team}".lower()
-            if any(p in full_name for p in skip_patterns):
-                continue
+                    for event in competition.get('events', []):
+                        if len(matches) >= MAX_MATCHES:
+                            break
 
-            # Extract league information
-            league = event.get('tournament', {}).get('name', 'Unknown')
-            category = event.get('category', {}).get('name', '')
-            if category:
-                league = f"{category}. {league}"
-
-            # Extract 1X2 odds
-            home_odds = draw_odds = away_odds = None
-            markets = event.get('markets', [])
-
-            for market in markets:
-                if market.get('name') in ['1X2', '1x2', 'Match Result', 'Full Time Result']:
-                    outcomes = market.get('outcomes', [])
-                    for outcome in outcomes:
-                        odds = outcome.get('odds', outcome.get('price'))
-                        if not odds:
+                        # Skip live events
+                        if event.get('isLive'):
                             continue
 
-                        odds_val = float(odds)
-                        outcome_name = outcome.get('name', '').lower()
+                        home_team = event.get('homeTeam', {}).get('name', '')
+                        away_team = event.get('awayTeam', {}).get('name', '')
 
-                        if outcome_name in ['1', 'home', 'w1']:
-                            home_odds = odds_val
-                        elif outcome_name in ['x', 'draw']:
-                            draw_odds = odds_val
-                        elif outcome_name in ['2', 'away', 'w2']:
-                            away_odds = odds_val
-                    break
+                        if not home_team or not away_team:
+                            continue
 
-            if not home_odds or not away_odds:
-                continue
+                        # Skip eSports
+                        full_name = f"{home_team} {away_team}".lower()
+                        if any(p in full_name for p in skip_patterns):
+                            continue
 
-            # Get match start time
-            start_time = event.get('start_time', event.get('scheduled', event.get('date')))
-            start_ts = None
-            if start_time:
-                try:
-                    if isinstance(start_time, (int, float)):
-                        start_ts = int(start_time)
-                    else:
-                        from dateutil import parser
-                        dt = parser.parse(start_time)
-                        start_ts = int(dt.timestamp())
-                except:
-                    pass
+                        # Extract 1X2 odds
+                        home_odds = draw_odds = away_odds = None
 
-            event_id = str(event.get('id', event.get('event_id', f"{home_team}_{away_team}")))
+                        for market in event.get('markets', []):
+                            if market.get('name') in ['Match Result', '1X2', '1x2', 'Full Time Result']:
+                                selections = market.get('selections', [])
+                                for selection in selections:
+                                    sel_name = selection.get('name', '').lower()
+                                    odds = selection.get('price')
 
-            matches.append({
-                'bookmaker': 'Betfox Ghana',
-                'event_id': event_id,
-                'home_team': home_team,
-                'away_team': away_team,
-                'home_odds': home_odds,
-                'draw_odds': draw_odds if draw_odds else 0,
-                'away_odds': away_odds,
-                'league': league,
-                'start_time': start_ts,
-            })
+                                    if odds:
+                                        if sel_name == home_team.lower() or sel_name in ['1', 'home', 'w1']:
+                                            home_odds = float(odds)
+                                        elif sel_name in ['draw', 'x']:
+                                            draw_odds = float(odds)
+                                        elif sel_name == away_team.lower() or sel_name in ['2', 'away', 'w2']:
+                                            away_odds = float(odds)
+                                break
+
+                        if not home_odds or not away_odds:
+                            continue
+
+                        # Get match start time
+                        start_ts = None
+                        start_time = event.get('startDate')
+                        if start_time:
+                            try:
+                                dt = parser.parse(start_time)
+                                start_ts = int(dt.timestamp())
+                            except:
+                                pass
+
+                        event_id = str(event.get('id', f"{home_team}_{away_team}"))
+
+                        matches.append({
+                            'bookmaker': 'Betfox Ghana',
+                            'event_id': event_id,
+                            'home_team': home_team,
+                            'away_team': away_team,
+                            'home_odds': home_odds,
+                            'draw_odds': draw_odds if draw_odds else 0,
+                            'away_odds': away_odds,
+                            'league': league,
+                            'start_time': start_ts,
+                        })
 
         print(f"  Total: {len(matches)} matches from Betfox")
 
+    except ImportError:
+        print("  Playwright not installed. Skipping Betfox.")
+        return []
     except Exception as e:
         print(f"  Betfox error: {e}")
         import traceback
