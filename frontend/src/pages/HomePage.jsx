@@ -167,8 +167,8 @@ function HomePage() {
             <Link to="/odds" className="cta-primary">
               Compare Odds Now
             </Link>
-            <Link to="/arbitrage" className="cta-secondary">
-              Find Arbitrage
+            <Link to="/bookmakers" className="cta-secondary">
+              View Bookmakers
             </Link>
           </div>
         </div>
@@ -263,7 +263,7 @@ function HomePage() {
         </div>
         <div className="news-grid">
           {NEWS_ARTICLES.map((article) => (
-            <article key={article.id} className="news-card">
+            <Link to="/odds" key={article.id} className="news-card">
               <div className={`news-image news-image-${article.image}`}>
                 <span className="news-category">{article.category}</span>
               </div>
@@ -275,7 +275,7 @@ function HomePage() {
                   <span className="news-readtime">{article.readTime}</span>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
@@ -354,11 +354,11 @@ function HomePage() {
             </p>
           </details>
           <details className="faq-item">
-            <summary>What is arbitrage betting?</summary>
+            <summary>How do I find value bets?</summary>
             <p>
-              Arbitrage betting involves placing bets on all possible outcomes of an event across
-              different bookmakers to guarantee a profit regardless of the result. This is possible
-              when odds discrepancies create a mathematical advantage.
+              Value bets occur when the odds offered are higher than the true probability of an outcome.
+              By comparing odds across multiple bookmakers, you can spot when one bookmaker is offering
+              better value than others and maximize your potential returns.
             </p>
           </details>
           <details className="faq-item">
