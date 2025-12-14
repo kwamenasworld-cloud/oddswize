@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { TeamLogo } from '../components/TeamLogo';
 import { BookmakerLogo } from '../components/BookmakerLogo';
-import { BOOKMAKER_AFFILIATES } from '../config/affiliates';
+import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 
 // Demo news articles for SEO
 const NEWS_ARTICLES = [
@@ -77,9 +77,6 @@ const POPULAR_LEAGUES = [
   { name: 'Serie A', icon: '🇮🇹', matches: 10, slug: 'seriea' },
   { name: 'Bundesliga', icon: '🇩🇪', matches: 9, slug: 'bundesliga' },
 ];
-
-// Bookmaker order
-const BOOKMAKER_ORDER = ['betway', 'sportybet', 'betika', 'bangbet', 'supabets'];
 
 function HomePage() {
   const [matches, setMatches] = useState([]);
