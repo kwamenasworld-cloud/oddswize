@@ -190,20 +190,10 @@ async function updateOddsData(
     };
 
     // Store in KV with 1 hour TTL (scraper runs every 15min, so plenty of buffer)
+    // Only store the main cache to avoid hitting KV write limits (1000/day on free tier)
     await env.ODDS_CACHE.put('all_odds', JSON.stringify(oddsResponse), {
       expirationTtl: 3600, // 1 hour
     });
-
-    // Also store individual matches for faster lookups
-    for (const league of data) {
-      for (const match of league.matches) {
-        await env.MATCHES_DATA.put(
-          `match:${match.id}`,
-          JSON.stringify(match),
-          { expirationTtl: 3600 } // 1 hour
-        );
-      }
-    }
 
     return {
       success: true,
@@ -294,13 +284,23 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     // GET /api/match/:id - Get single match
     if (path.startsWith('/api/match/') && request.method === 'GET') {
       const matchId = path.replace('/api/match/', '');
-      const match = await env.MATCHES_DATA.get(`match:${matchId}`, 'json');
+      const allData = await getOddsData(env);
 
-      if (!match) {
+      // Search for match in all leagues
+      let foundMatch: Match | null = null;
+      for (const league of allData.data) {
+        const match = league.matches.find(m => m.id === matchId);
+        if (match) {
+          foundMatch = match;
+          break;
+        }
+      }
+
+      if (!foundMatch) {
         return errorResponse('Match not found', 404, env);
       }
 
-      return jsonResponse({ success: true, data: match }, 200, env);
+      return jsonResponse({ success: true, data: foundMatch }, 200, env);
     }
 
     // GET /api/bookmakers - Get list of bookmakers
@@ -320,16 +320,30 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
     // POST /api/odds/update - Update odds data (protected endpoint)
     if (path === '/api/odds/update' && request.method === 'POST') {
-      // Check for API key
-      const apiKey = request.headers.get('X-API-Key');
-      if (!apiKey || apiKey !== env.API_SECRET) {
-        return errorResponse('Unauthorized', 401, env);
+      try {
+        // Check for API key
+        const apiKey = request.headers.get('X-API-Key');
+        console.log('API Key received:', apiKey ? 'Yes' : 'No');
+        console.log('Expected API Secret exists:', env.API_SECRET ? 'Yes' : 'No');
+
+        if (!apiKey || apiKey !== env.API_SECRET) {
+          console.log('Auth failed');
+          return errorResponse('Unauthorized', 401, env);
+        }
+
+        console.log('Parsing request body...');
+        const body = (await request.json()) as LeagueGroup[];
+        console.log('Body parsed, leagues:', body.length);
+
+        console.log('Updating odds data...');
+        const result = await updateOddsData(env, body);
+        console.log('Update result:', result);
+
+        return jsonResponse(result, 200, env);
+      } catch (error) {
+        console.error('Error in /api/odds/update:', error);
+        return errorResponse(`Update failed: ${error}`, 500, env);
       }
-
-      const body = (await request.json()) as LeagueGroup[];
-      const result = await updateOddsData(env, body);
-
-      return jsonResponse(result, 200, env);
     }
 
     // 404 for unknown routes
