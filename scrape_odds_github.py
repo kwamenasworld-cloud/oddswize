@@ -494,6 +494,14 @@ def scrape_betway() -> List[Dict]:
 
 SOCCABET_API = "https://www.soccabet.com/bet/odds.js"
 
+def iter_dict_or_list(data):
+    """Helper to iterate over dict items or list elements."""
+    if isinstance(data, dict):
+        return data.items()
+    elif isinstance(data, list):
+        return enumerate(data)
+    return []
+
 def scrape_soccabet() -> List[Dict]:
     """Scrape SoccaBet Ghana via API."""
     print("Scraping SoccaBet Ghana...")
@@ -516,37 +524,54 @@ def scrape_soccabet() -> List[Dict]:
 
         data = resp.json()
 
-        # Get soccer sport data (ID: 77)
+        # Get soccer sport data (ID: 77 or key 'soccer')
         sports = data.get('sports', {})
-        soccer = sports.get('77', {})
+        soccer = sports.get('77', sports.get('soccer', {}))
+
+        if not soccer:
+            # Try to find soccer in list format
+            if isinstance(sports, list):
+                for sport in sports:
+                    if sport.get('id') == 77 or sport.get('name', '').lower() == 'soccer':
+                        soccer = sport
+                        break
 
         if not soccer:
             print("  Error: No soccer data found")
             return []
 
-        categories = soccer.get('categories', {})
+        categories = soccer.get('categories', soccer.get('regions', []))
 
         skip_patterns = ['esoccer', 'ebasketball', 'esports', '(thomas)', '(nathan)',
                          '(iron)', '(jason)', '(panther)', '(felix)', '(odin)', '(cleo)']
 
-        for cat_id, category in categories.items():
+        for cat_id, category in iter_dict_or_list(categories):
             if len(matches) >= MAX_MATCHES:
                 break
 
-            cat_name = category.get('name', 'Unknown')
-            tournaments = category.get('tournaments', {})
+            if isinstance(category, dict):
+                cat_name = category.get('name', 'Unknown')
+                tournaments = category.get('tournaments', category.get('competitions', []))
+            else:
+                continue
 
-            for tourn_id, tournament in tournaments.items():
+            for tourn_id, tournament in iter_dict_or_list(tournaments):
                 if len(matches) >= MAX_MATCHES:
                     break
 
-                tourn_name = tournament.get('name', 'Unknown')
-                league = f"{cat_name}. {tourn_name}"
-                raw_matches = tournament.get('matches', {})
+                if isinstance(tournament, dict):
+                    tourn_name = tournament.get('name', 'Unknown')
+                    league = f"{cat_name}. {tourn_name}"
+                    raw_matches = tournament.get('matches', tournament.get('events', []))
+                else:
+                    continue
 
-                for match_id, match in raw_matches.items():
+                for match_id, match in iter_dict_or_list(raw_matches):
                     if len(matches) >= MAX_MATCHES:
                         break
+
+                    if not isinstance(match, dict):
+                        continue
 
                     # Skip live matches
                     if match.get('live'):
@@ -554,9 +579,21 @@ def scrape_soccabet() -> List[Dict]:
 
                     name = match.get('name', '')
                     if not name or ' v ' not in name:
+                        # Try alternative format
+                        home = match.get('home', match.get('homeTeam', ''))
+                        away = match.get('away', match.get('awayTeam', ''))
+                        if home and away:
+                            name = f"{home} v {away}"
+                        else:
+                            continue
+
+                    if ' v ' in name:
+                        parts = name.split(' v ')
+                    elif ' vs ' in name:
+                        parts = name.split(' vs ')
+                    else:
                         continue
 
-                    parts = name.split(' v ')
                     if len(parts) != 2:
                         continue
 
@@ -568,34 +605,45 @@ def scrape_soccabet() -> List[Dict]:
                     if any(p in full_name for p in skip_patterns):
                         continue
 
-                    start_ts = match.get('ts', 0)
+                    start_ts = match.get('ts', match.get('startTime', 0))
+                    match_id_str = str(match.get('id', match_id))
 
                     # Find 1x2 market
-                    markets_data = match.get('markets', {})
+                    markets_data = match.get('markets', match.get('odds', []))
                     home_odds = draw_odds = away_odds = 0
 
-                    for mkt_id, mkt in markets_data.items():
-                        type_id = mkt.get('typeid', '')
-                        if type_id in ['4102', '4720']:
-                            selections = mkt.get('selections', {})
+                    for mkt_id, mkt in iter_dict_or_list(markets_data):
+                        if not isinstance(mkt, dict):
+                            continue
 
-                            for sel_id, sel in selections.items():
-                                outcome = sel.get('n', '')
-                                odds_str = sel.get('o', '0')
+                        type_id = str(mkt.get('typeid', mkt.get('typeId', mkt.get('marketType', ''))))
+                        mkt_name = mkt.get('name', '').lower()
+
+                        # Match 1X2 market by type ID or name
+                        if type_id in ['4102', '4720', '1'] or '1x2' in mkt_name or 'match result' in mkt_name:
+                            selections = mkt.get('selections', mkt.get('outcomes', []))
+
+                            for sel_id, sel in iter_dict_or_list(selections):
+                                if not isinstance(sel, dict):
+                                    continue
+
+                                outcome = str(sel.get('n', sel.get('name', sel.get('outcome', ''))))
+                                odds_str = sel.get('o', sel.get('odds', sel.get('price', '0')))
 
                                 try:
                                     odds = float(odds_str)
                                 except:
                                     continue
 
-                                if outcome == '1':
+                                if outcome in ['1', 'home', 'Home']:
                                     home_odds = odds
-                                elif outcome == 'X':
+                                elif outcome in ['X', 'x', 'draw', 'Draw']:
                                     draw_odds = odds
-                                elif outcome == '2':
+                                elif outcome in ['2', 'away', 'Away']:
                                     away_odds = odds
 
-                            break
+                            if home_odds > 0 and away_odds > 0:
+                                break
 
                     # Validate odds
                     if home_odds <= 1 or away_odds <= 1:
@@ -605,7 +653,7 @@ def scrape_soccabet() -> List[Dict]:
 
                     matches.append({
                         'bookmaker': 'SoccaBet Ghana',
-                        'event_id': str(match_id),
+                        'event_id': match_id_str,
                         'home_team': home_team,
                         'away_team': away_team,
                         'home_odds': home_odds,
@@ -619,6 +667,8 @@ def scrape_soccabet() -> List[Dict]:
 
     except Exception as e:
         print(f"  SoccaBet error: {e}")
+        import traceback
+        traceback.print_exc()
 
     return matches[:MAX_MATCHES]
 
