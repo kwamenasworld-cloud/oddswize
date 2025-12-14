@@ -781,24 +781,36 @@ def push_to_cloudflare(matched_events: List[List[Dict]]) -> bool:
     # Format for API
     api_data = [{'league': league, 'matches': matches} for league, matches in leagues.items()]
 
-    # Push to Cloudflare
+    # Push to Cloudflare with retry logic
     url = f"{CLOUDFLARE_WORKER_URL}/api/odds/update"
     headers = {
         'Content-Type': 'application/json',
         'X-API-Key': CLOUDFLARE_API_KEY
     }
 
-    try:
-        resp = requests.post(url, json=api_data, headers=headers, timeout=30)
-        if resp.status_code == 200:
-            print(f"  Success: {resp.json().get('message', 'OK')}")
-            return True
-        else:
-            print(f"  Failed: {resp.status_code} - {resp.text}")
-            return False
-    except Exception as e:
-        print(f"  Error: {e}")
-        return False
+    # Retry up to 3 times with increasing timeout
+    for attempt in range(3):
+        timeout = 60 + (attempt * 30)  # 60s, 90s, 120s
+        try:
+            print(f"  Attempt {attempt + 1}/3 (timeout: {timeout}s)...")
+            resp = requests.post(url, json=api_data, headers=headers, timeout=timeout)
+            if resp.status_code == 200:
+                print(f"  Success: {resp.json().get('message', 'OK')}")
+                return True
+            else:
+                print(f"  Failed: {resp.status_code} - {resp.text}")
+                if resp.status_code < 500:  # Don't retry client errors
+                    return False
+        except requests.exceptions.Timeout:
+            print(f"  Timeout on attempt {attempt + 1}")
+        except Exception as e:
+            print(f"  Error: {e}")
+
+        if attempt < 2:
+            time.sleep(2)  # Brief pause before retry
+
+    print("  All attempts failed")
+    return False
 
 
 # ============================================================================
