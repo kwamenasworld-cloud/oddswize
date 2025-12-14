@@ -13,112 +13,17 @@ const MARKETS = {
   'over_under': { id: 'over_under', name: 'O/U 2.5', labels: ['Over', 'Under'], description: 'Over/Under 2.5 Goals' },
 };
 
-// Helper to create demo match times at realistic kick-off hours
-const getDemoTime = (daysFromNow, hour, minute = 0) => {
-  const date = new Date();
-  date.setDate(date.getDate() + daysFromNow);
-  date.setHours(hour, minute, 0, 0);
-  return Math.floor(date.getTime() / 1000);
-};
-
-// Movement patterns for demo data
-const MOVEMENT_PATTERNS = ['steam', 'drift', 'random', 'random', 'steam', 'drift'];
-
-// Demo data with all markets
-const DEMO_MATCHES = [
-  {
-    home_team: 'Real Madrid',
-    away_team: 'Sevilla',
-    league: 'Spain. La Liga',
-    start_time: getDemoTime(1, 21, 0),
-    movement: 'steam', // Home odds shortening - money on Real Madrid
-    odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 1.28, draw_odds: 6.50, away_odds: 11.00, home_draw: 1.10, draw_away: 3.80, home_away: 1.18, over_25: 1.65, under_25: 2.20 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 1.27, draw_odds: 6.40, away_odds: 10.50, home_draw: 1.09, draw_away: 3.70, home_away: 1.17, over_25: 1.62, under_25: 2.25 },
-      { bookmaker: '1xBet Ghana', home_odds: 1.29, draw_odds: 6.80, away_odds: 12.60, home_draw: 1.11, draw_away: 4.00, home_away: 1.20, over_25: 1.68, under_25: 2.18 },
-      { bookmaker: '22Bet Ghana', home_odds: 1.29, draw_odds: 6.80, away_odds: 12.60, home_draw: 1.11, draw_away: 4.00, home_away: 1.20, over_25: 1.70, under_25: 2.15 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 1.26, draw_odds: 6.20, away_odds: 10.00, home_draw: 1.08, draw_away: 3.60, home_away: 1.15, over_25: 1.60, under_25: 2.30 },
-    ],
-  },
-  {
-    home_team: 'Barcelona',
-    away_team: 'Osasuna',
-    league: 'Spain. La Liga',
-    start_time: getDemoTime(2, 16, 0),
-    movement: 'drift', // Away odds lengthening
-    odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 1.25, draw_odds: 7.60, away_odds: 12.00, home_draw: 1.08, draw_away: 4.20, home_away: 1.15, over_25: 1.55, under_25: 2.40 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 1.24, draw_odds: 7.40, away_odds: 11.50, home_draw: 1.07, draw_away: 4.10, home_away: 1.14, over_25: 1.52, under_25: 2.45 },
-      { bookmaker: '1xBet Ghana', home_odds: 1.26, draw_odds: 7.60, away_odds: 12.00, home_draw: 1.09, draw_away: 4.25, home_away: 1.16, over_25: 1.58, under_25: 2.38 },
-      { bookmaker: '22Bet Ghana', home_odds: 1.26, draw_odds: 7.60, away_odds: 12.00, home_draw: 1.09, draw_away: 4.25, home_away: 1.16, over_25: 1.56, under_25: 2.42 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 1.23, draw_odds: 7.20, away_odds: 11.00, home_draw: 1.06, draw_away: 4.00, home_away: 1.13, over_25: 1.50, under_25: 2.50 },
-    ],
-  },
-  {
-    home_team: 'Manchester United',
-    away_team: 'Liverpool',
-    league: 'England. Premier League',
-    start_time: getDemoTime(3, 17, 30),
-    movement: 'steam', // Liverpool odds shortening - big match steam
-    odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 3.20, draw_odds: 3.40, away_odds: 2.25, home_draw: 1.65, draw_away: 1.35, home_away: 1.32, over_25: 1.72, under_25: 2.10 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 3.10, draw_odds: 3.35, away_odds: 2.30, home_draw: 1.62, draw_away: 1.37, home_away: 1.30, over_25: 1.70, under_25: 2.12 },
-      { bookmaker: '1xBet Ghana', home_odds: 3.25, draw_odds: 3.45, away_odds: 2.28, home_draw: 1.68, draw_away: 1.36, home_away: 1.34, over_25: 1.75, under_25: 2.08 },
-      { bookmaker: '22Bet Ghana', home_odds: 3.25, draw_odds: 3.45, away_odds: 2.28, home_draw: 1.68, draw_away: 1.36, home_away: 1.34, over_25: 1.78, under_25: 2.05 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 3.15, draw_odds: 3.30, away_odds: 2.20, home_draw: 1.60, draw_away: 1.33, home_away: 1.28, over_25: 1.68, under_25: 2.15 },
-    ],
-  },
-  {
-    home_team: 'DR Congo',
-    away_team: 'Benin',
-    league: 'Africa Cup of Nations',
-    start_time: getDemoTime(4, 14, 0),
-    movement: 'random',
-    odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 1.75, draw_odds: 3.60, away_odds: 5.80, home_draw: 1.22, draw_away: 2.15, home_away: 1.38, over_25: 2.10, under_25: 1.72 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 1.72, draw_odds: 3.55, away_odds: 5.60, home_draw: 1.20, draw_away: 2.10, home_away: 1.35, over_25: 2.05, under_25: 1.75 },
-      { bookmaker: '1xBet Ghana', home_odds: 1.80, draw_odds: 3.87, away_odds: 6.55, home_draw: 1.25, draw_away: 2.30, home_away: 1.42, over_25: 2.15, under_25: 1.70 },
-      { bookmaker: '22Bet Ghana', home_odds: 1.78, draw_odds: 3.70, away_odds: 6.00, home_draw: 1.23, draw_away: 2.20, home_away: 1.40, over_25: 2.12, under_25: 1.72 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 1.90, draw_odds: 3.50, away_odds: 5.40, home_draw: 1.28, draw_away: 2.05, home_away: 1.45, over_25: 2.00, under_25: 1.80 },
-    ],
-  },
-  {
-    home_team: 'Arsenal',
-    away_team: 'Chelsea',
-    league: 'England. Premier League',
-    start_time: getDemoTime(5, 15, 0),
-    movement: 'steam', // Over 2.5 steaming
-    odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 1.85, draw_odds: 3.80, away_odds: 4.20, home_draw: 1.28, draw_away: 1.95, home_away: 1.30, over_25: 1.65, under_25: 2.22 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 1.82, draw_odds: 3.75, away_odds: 4.10, home_draw: 1.26, draw_away: 1.92, home_away: 1.28, over_25: 1.62, under_25: 2.25 },
-      { bookmaker: '1xBet Ghana', home_odds: 1.88, draw_odds: 3.85, away_odds: 4.30, home_draw: 1.30, draw_away: 1.98, home_away: 1.32, over_25: 1.68, under_25: 2.18 },
-      { bookmaker: '22Bet Ghana', home_odds: 1.88, draw_odds: 3.85, away_odds: 4.30, home_draw: 1.30, draw_away: 1.98, home_away: 1.32, over_25: 1.70, under_25: 2.15 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 1.80, draw_odds: 3.70, away_odds: 4.00, home_draw: 1.24, draw_away: 1.88, home_away: 1.26, over_25: 1.60, under_25: 2.28 },
-    ],
-  },
-  {
-    home_team: 'Accra Hearts',
-    away_team: 'Asante Kotoko',
-    league: 'Ghana Premier League',
-    start_time: getDemoTime(6, 16, 0),
-    movement: 'drift', // Draw drifting - less likely
-    odds: [
-      { bookmaker: 'Betway Ghana', home_odds: 2.10, draw_odds: 3.20, away_odds: 3.50, home_draw: 1.28, draw_away: 1.65, home_away: 1.35, over_25: 2.20, under_25: 1.65 },
-      { bookmaker: 'SportyBet Ghana', home_odds: 2.05, draw_odds: 3.15, away_odds: 3.45, home_draw: 1.26, draw_away: 1.62, home_away: 1.33, over_25: 2.15, under_25: 1.68 },
-      { bookmaker: '1xBet Ghana', home_odds: 2.15, draw_odds: 3.25, away_odds: 3.55, home_draw: 1.30, draw_away: 1.68, home_away: 1.38, over_25: 2.25, under_25: 1.62 },
-      { bookmaker: '22Bet Ghana', home_odds: 2.12, draw_odds: 3.22, away_odds: 3.52, home_draw: 1.29, draw_away: 1.66, home_away: 1.36, over_25: 2.22, under_25: 1.64 },
-      { bookmaker: 'SoccaBet Ghana', home_odds: 2.00, draw_odds: 3.10, away_odds: 3.40, home_draw: 1.24, draw_away: 1.60, home_away: 1.31, over_25: 2.10, under_25: 1.70 },
-    ],
-  },
-];
-
 // Popular leagues for quick filters
 const POPULAR_LEAGUES = [
   { id: 'all', name: 'All', icon: '⚽' },
-  { id: 'premier', name: 'Premier League', icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', keywords: ['Premier League', 'England'] },
-  { id: 'laliga', name: 'La Liga', icon: '🇪🇸', keywords: ['La Liga', 'Spain'] },
+  { id: 'premier', name: 'Premier League', icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', keywords: ['Premier League', 'England. Premier'] },
+  { id: 'laliga', name: 'La Liga', icon: '🇪🇸', keywords: ['La Liga', 'Spain. La Liga'] },
+  { id: 'bundesliga', name: 'Bundesliga', icon: '🇩🇪', keywords: ['Bundesliga', 'Germany'] },
+  { id: 'seriea', name: 'Serie A', icon: '🇮🇹', keywords: ['Serie A', 'Italy'] },
+  { id: 'ligue1', name: 'Ligue 1', icon: '🇫🇷', keywords: ['Ligue 1', 'France'] },
+  { id: 'ucl', name: 'Champions League', icon: '🏆', keywords: ['Champions League', 'UEFA Champions'] },
   { id: 'ghana', name: 'Ghana', icon: '🇬🇭', keywords: ['Ghana'] },
-  { id: 'afcon', name: 'AFCON', icon: '🌍', keywords: ['Africa Cup', 'AFCON'] },
+  { id: 'africa', name: 'Africa', icon: '🌍', keywords: ['Africa', 'CAF', 'AFCON', 'Nigeria', 'Kenya', 'South Africa'] },
 ];
 
 // Date filter options
@@ -172,7 +77,7 @@ function OddsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState(null);
-  const [useDemo, setUseDemo] = useState(false);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeague, setSelectedLeague] = useState('all');
   const [selectedMarket, setSelectedMarket] = useState('1x2');
@@ -196,13 +101,14 @@ function OddsPage() {
   }, [matches]);
 
   const loadData = async () => {
+    setError(null);
     try {
       const [matchData, statusData] = await Promise.all([
-        getMatches(100, 0, 3),
+        getMatches(500, 0, 2),  // Get up to 500 matches, min 2 bookmakers
         getStatus(),
       ]);
 
-      // Add demo market data to API matches if missing
+      // Enrich matches with synthetic market data if missing
       const enrichedMatches = (matchData.matches || matchData).map(match => ({
         ...match,
         odds: match.odds?.map(odds => ({
@@ -218,11 +124,10 @@ function OddsPage() {
 
       setMatches(enrichedMatches);
       setStatus(statusData);
-      setUseDemo(false);
-    } catch (error) {
-      console.log('API unavailable, using demo data');
-      setMatches(DEMO_MATCHES);
-      setUseDemo(true);
+    } catch (err) {
+      console.error('Failed to load odds:', err);
+      setError('Unable to load odds. Please try again later.');
+      setMatches([]);
     } finally {
       setLoading(false);
     }
@@ -365,14 +270,15 @@ function OddsPage() {
     });
   }, [matches, searchQuery, selectedLeague, selectedDate]);
 
-  // Get featured/top matches (Premier League, big games with movement)
+  // Get featured/top matches (top leagues, most bookmakers)
   const featuredMatches = useMemo(() => {
-    const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions'];
+    const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions League', 'Serie A', 'Bundesliga'];
     return matches
       .filter(m =>
-        topLeagues.some(kw => m.league.toLowerCase().includes(kw.toLowerCase())) ||
-        m.movement === 'steam'
+        topLeagues.some(kw => m.league.toLowerCase().includes(kw.toLowerCase())) &&
+        m.odds?.length >= 3  // At least 3 bookmakers
       )
+      .sort((a, b) => (b.odds?.length || 0) - (a.odds?.length || 0))  // Most bookmakers first
       .slice(0, 3);
   }, [matches]);
 
@@ -414,7 +320,7 @@ function OddsPage() {
               const bestHome = getBestOdds(match, 'home_odds');
               const bestDraw = getBestOdds(match, 'draw_odds');
               const bestAway = getBestOdds(match, 'away_odds');
-              const oddsHistory = generateOddsHistory(match.odds?.[0]?.home_odds, 72, match.movement || 'random');
+              const oddsHistory = generateOddsHistory(match.odds?.[0]?.home_odds, 72, 'random');
               const movement = analyzeOddsMovement(oddsHistory);
 
               // Shorten team names for display
@@ -581,14 +487,18 @@ function OddsPage() {
           <button
             className="refresh-btn"
             onClick={handleRefresh}
-            disabled={refreshing || useDemo}
+            disabled={refreshing}
           >
             <svg className={`refresh-icon ${refreshing ? 'spinning' : ''}`} viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
             </svg>
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
-          {useDemo && <span className="demo-tag">Demo Mode</span>}
+          {status?.last_scan && (
+            <span className="last-update">
+              Updated: {new Date(status.last_scan).toLocaleTimeString()}
+            </span>
+          )}
         </div>
       </div>
 
@@ -646,12 +556,31 @@ function OddsPage() {
         {loading && (
           <div className="loading-state">
             <div className="spinner"></div>
-            <span>Loading odds...</span>
+            <span>Loading odds from bookmakers...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {!loading && error && (
+          <div className="empty-state error-state">
+            <span className="empty-icon">⚠️</span>
+            <p>{error}</p>
+            <button className="retry-btn" onClick={loadData}>Try Again</button>
           </div>
         )}
 
         {/* No Results */}
-        {!loading && filteredMatches.length === 0 && (
+        {!loading && !error && filteredMatches.length === 0 && matches.length === 0 && (
+          <div className="empty-state">
+            <span className="empty-icon">📊</span>
+            <p>No odds available yet</p>
+            <span>Data is being collected. Check back in a few minutes.</span>
+            <button className="retry-btn" onClick={loadData}>Refresh</button>
+          </div>
+        )}
+
+        {/* No Results from filter */}
+        {!loading && !error && filteredMatches.length === 0 && matches.length > 0 && (
           <div className="empty-state">
             <span className="empty-icon">🔍</span>
             <p>No matches found</p>
@@ -676,7 +605,7 @@ function OddsPage() {
               // Generate odds history for display (computed each render for demo simplicity)
               const primaryField = marketFields[0];
               const primaryOdds = match.odds?.[0]?.[primaryField];
-              const oddsHistory = generateOddsHistory(primaryOdds, 72, match.movement || 'random');
+              const oddsHistory = generateOddsHistory(primaryOdds, 72, 'random');
               const movement = analyzeOddsMovement(oddsHistory);
 
               return (
