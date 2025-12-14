@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { TeamLogo } from '../components/TeamLogo';
 import { BookmakerLogo } from '../components/BookmakerLogo';
+import { LeagueLogo } from '../components/LeagueLogo';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 
 // News articles for homepage (links to full articles)
@@ -74,12 +75,12 @@ const BETTING_TIPS = [
 
 // Popular leagues for navigation
 const POPULAR_LEAGUES = [
-  { name: 'Premier League', icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', matches: 10, slug: 'premier' },
-  { name: 'La Liga', icon: '🇪🇸', matches: 10, slug: 'laliga' },
-  { name: 'Ghana Premier', icon: '🇬🇭', matches: 9, slug: 'ghana' },
-  { name: 'Champions League', icon: '🏆', matches: 8, slug: 'champions' },
-  { name: 'Serie A', icon: '🇮🇹', matches: 10, slug: 'seriea' },
-  { name: 'Bundesliga', icon: '🇩🇪', matches: 9, slug: 'bundesliga' },
+  { id: 'premier', name: 'Premier League', matches: 10, slug: 'premier' },
+  { id: 'laliga', name: 'La Liga', matches: 10, slug: 'laliga' },
+  { id: 'ghana', name: 'Ghana Premier', matches: 9, slug: 'ghana' },
+  { id: 'ucl', name: 'Champions League', matches: 8, slug: 'champions' },
+  { id: 'seriea', name: 'Serie A', matches: 10, slug: 'seriea' },
+  { id: 'bundesliga', name: 'Bundesliga', matches: 9, slug: 'bundesliga' },
 ];
 
 function HomePage() {
@@ -251,7 +252,7 @@ function HomePage() {
         <div className="leagues-grid">
           {POPULAR_LEAGUES.map((league) => (
             <Link to={`/odds?league=${league.slug}`} key={league.slug} className="league-card">
-              <span className="league-icon">{league.icon}</span>
+              <LeagueLogo leagueId={league.id} size={40} />
               <span className="league-name">{league.name}</span>
               <span className="league-count">{league.matches} matches</span>
             </Link>

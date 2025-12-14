@@ -3339,12 +3339,12 @@ a {
   transform: translateY(-2px);
 }
 
-.league-icon {
-  font-size: 2rem;
+.league-card .league-logo,
+.league-card .league-logo-fallback {
   margin-bottom: 0.5rem;
 }
 
-.league-name {
+.league-card .league-name {
   font-size: 0.9rem;
   font-weight: 600;
   color: #333;
@@ -3687,11 +3687,13 @@ a {
     padding: 1rem;
   }
 
-  .league-icon {
-    font-size: 1.5rem;
+  .league-card .league-logo,
+  .league-card .league-logo-fallback {
+    width: 32px !important;
+    height: 32px !important;
   }
 
-  .league-name {
+  .league-card .league-name {
     font-size: 0.8rem;
   }
 }
