@@ -340,7 +340,7 @@ def scrape_22bet() -> List[Dict]:
 
                     seen_ids.add(event_id)
                     matches.append({
-                        'bookmaker': '22Bet',
+                        'bookmaker': '22Bet Ghana',
                         'event_id': str(event_id),
                         'home_team': home,
                         'away_team': away,

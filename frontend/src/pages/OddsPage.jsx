@@ -709,8 +709,8 @@ function OddsPage() {
           <span className="stat-lbl">Leagues</span>
         </div>
         <div className="stat highlight">
-          <span className="stat-num">{status?.arbitrage_count || 0}</span>
-          <span className="stat-lbl">Arb Opps</span>
+          <span className="stat-num">{activeBookmakers.length}</span>
+          <span className="stat-lbl">Bookmakers</span>
         </div>
       </div>
 

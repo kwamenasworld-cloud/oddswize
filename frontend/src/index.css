@@ -152,6 +152,7 @@ a {
   max-width: 1600px;
   margin: 0 auto;
   padding: 0;
+  overflow-x: hidden;
 }
 
 /* ========================= */
@@ -752,13 +753,16 @@ a {
 
 .toolbar-center {
   flex: 1;
+  min-width: 0;
   display: flex;
   justify-content: center;
+  overflow-x: auto;
 }
 
 .league-filters {
   display: flex;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .league-btn {
