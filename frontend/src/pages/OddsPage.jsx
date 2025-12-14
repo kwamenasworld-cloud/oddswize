@@ -14,17 +14,37 @@ const MARKETS = {
   'over_under': { id: 'over_under', name: 'O/U 2.5', labels: ['Over', 'Under'], description: 'Over/Under 2.5 Goals' },
 };
 
-// Popular leagues for quick filters
+// Popular leagues for quick filters - using exact patterns to avoid false matches
 const POPULAR_LEAGUES = [
-  { id: 'all', name: 'All' },
-  { id: 'premier', name: 'EPL', keywords: ['Premier League', 'England. Premier'] },
-  { id: 'laliga', name: 'La Liga', keywords: ['La Liga', 'Spain. La Liga'] },
-  { id: 'bundesliga', name: 'Bundesliga', keywords: ['Bundesliga', 'Germany'] },
-  { id: 'seriea', name: 'Serie A', keywords: ['Serie A', 'Italy'] },
-  { id: 'ligue1', name: 'Ligue 1', keywords: ['Ligue 1', 'France'] },
-  { id: 'ucl', name: 'UCL', keywords: ['Champions League', 'UEFA Champions'] },
-  { id: 'ghana', name: 'Ghana', keywords: ['Ghana'] },
-  { id: 'africa', name: 'Africa', keywords: ['Africa', 'CAF', 'AFCON', 'Nigeria', 'Kenya', 'South Africa'] },
+  { id: 'all', name: 'All', keywords: [] },
+  { id: 'premier', name: 'EPL', keywords: ['England. Premier League', 'English Premier', 'EPL'] },
+  { id: 'championship', name: 'Championship', keywords: ['England. Championship', 'English Championship'] },
+  { id: 'laliga', name: 'La Liga', keywords: ['Spain. La Liga', 'Spanish La Liga'] },
+  { id: 'bundesliga', name: 'Bundesliga', keywords: ['Germany. Bundesliga', 'German Bundesliga'] },
+  { id: 'seriea', name: 'Serie A', keywords: ['Italy. Serie A', 'Italian Serie A'] },
+  { id: 'ligue1', name: 'Ligue 1', keywords: ['France. Ligue 1', 'French Ligue 1'] },
+  { id: 'ucl', name: 'UCL', keywords: ['UEFA Champions League', 'Champions League'] },
+  { id: 'uel', name: 'Europa', keywords: ['UEFA Europa League', 'Europa League'] },
+  { id: 'ghana', name: 'Ghana', keywords: ['Ghana.', 'Ghana Premier'] },
+  { id: 'nigeria', name: 'Nigeria', keywords: ['Nigeria.', 'Nigerian'] },
+];
+
+// Country filters for broader filtering
+const COUNTRY_FILTERS = [
+  { id: 'all', name: 'All Countries' },
+  { id: 'england', name: 'England', keywords: ['England.', 'English'] },
+  { id: 'spain', name: 'Spain', keywords: ['Spain.', 'Spanish'] },
+  { id: 'germany', name: 'Germany', keywords: ['Germany.', 'German'] },
+  { id: 'italy', name: 'Italy', keywords: ['Italy.', 'Italian'] },
+  { id: 'france', name: 'France', keywords: ['France.', 'French'] },
+  { id: 'portugal', name: 'Portugal', keywords: ['Portugal.', 'Portuguese'] },
+  { id: 'netherlands', name: 'Netherlands', keywords: ['Netherlands.', 'Dutch', 'Eredivisie'] },
+  { id: 'scotland', name: 'Scotland', keywords: ['Scotland.', 'Scottish'] },
+  { id: 'ghana', name: 'Ghana', keywords: ['Ghana.'] },
+  { id: 'nigeria', name: 'Nigeria', keywords: ['Nigeria.'] },
+  { id: 'kenya', name: 'Kenya', keywords: ['Kenya.'] },
+  { id: 'southafrica', name: 'South Africa', keywords: ['South Africa.'] },
+  { id: 'europe', name: 'UEFA', keywords: ['UEFA', 'Champions League', 'Europa League'] },
 ];
 
 // Date filter options
@@ -81,6 +101,7 @@ function OddsPage() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeague, setSelectedLeague] = useState('all');
+  const [selectedCountry, setSelectedCountry] = useState('all');
   const [selectedMarket, setSelectedMarket] = useState('1x2');
   const [selectedOdd, setSelectedOdd] = useState(null);
   const [selectedDate, setSelectedDate] = useState('all');
@@ -245,31 +266,45 @@ function OddsPage() {
     setTimeout(() => setSelectedOdd(null), 3000);
   };
 
-  // Filter matches based on search, league, and date
+  // Filter matches based on search, league, country, and date
   const filteredMatches = useMemo(() => {
     return matches.filter((match) => {
       const searchLower = searchQuery.toLowerCase();
+      const leagueLower = match.league.toLowerCase();
+
       const matchesSearch =
         !searchQuery ||
         match.home_team.toLowerCase().includes(searchLower) ||
         match.away_team.toLowerCase().includes(searchLower) ||
-        match.league.toLowerCase().includes(searchLower);
+        leagueLower.includes(searchLower);
 
+      // League filter - more precise matching
       let matchesLeague = selectedLeague === 'all';
       if (!matchesLeague) {
         const league = POPULAR_LEAGUES.find((l) => l.id === selectedLeague);
-        if (league && league.keywords) {
+        if (league && league.keywords && league.keywords.length > 0) {
           matchesLeague = league.keywords.some((keyword) =>
-            match.league.toLowerCase().includes(keyword.toLowerCase())
+            leagueLower.includes(keyword.toLowerCase())
+          );
+        }
+      }
+
+      // Country filter
+      let matchesCountry = selectedCountry === 'all';
+      if (!matchesCountry) {
+        const country = COUNTRY_FILTERS.find((c) => c.id === selectedCountry);
+        if (country && country.keywords) {
+          matchesCountry = country.keywords.some((keyword) =>
+            leagueLower.includes(keyword.toLowerCase())
           );
         }
       }
 
       const matchesDate = matchesDateFilter(match.start_time, selectedDate);
 
-      return matchesSearch && matchesLeague && matchesDate;
+      return matchesSearch && matchesLeague && matchesCountry && matchesDate;
     });
-  }, [matches, searchQuery, selectedLeague, selectedDate]);
+  }, [matches, searchQuery, selectedLeague, selectedCountry, selectedDate]);
 
   // Get featured/top matches (top leagues, most bookmakers)
   const featuredMatches = useMemo(() => {
@@ -475,13 +510,30 @@ function OddsPage() {
               <button
                 key={league.id}
                 className={`league-btn ${selectedLeague === league.id ? 'active' : ''}`}
-                onClick={() => setSelectedLeague(league.id)}
+                onClick={() => {
+                  setSelectedLeague(league.id);
+                  if (league.id !== 'all') setSelectedCountry('all'); // Reset country when selecting league
+                }}
               >
                 <LeagueLogo leagueId={league.id} size={14} />
                 <span className="league-name">{league.name}</span>
               </button>
             ))}
           </div>
+          <select
+            className="country-select"
+            value={selectedCountry}
+            onChange={(e) => {
+              setSelectedCountry(e.target.value);
+              if (e.target.value !== 'all') setSelectedLeague('all'); // Reset league when selecting country
+            }}
+          >
+            {COUNTRY_FILTERS.map((country) => (
+              <option key={country.id} value={country.id}>
+                {country.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="toolbar-right">

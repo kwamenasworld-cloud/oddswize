@@ -15,7 +15,7 @@ import type {
 } from './types';
 
 // Cache TTL in seconds
-const CACHE_TTL = 300; // 5 minutes
+const CACHE_TTL = 900; // 15 minutes (matches scraper schedule)
 
 // Ghana bookmakers
 const GHANA_BOOKMAKERS = [
@@ -189,9 +189,9 @@ async function updateOddsData(
       },
     };
 
-    // Store in KV with TTL
+    // Store in KV with 1 hour TTL (scraper runs every 15min, so plenty of buffer)
     await env.ODDS_CACHE.put('all_odds', JSON.stringify(oddsResponse), {
-      expirationTtl: CACHE_TTL * 2, // Keep slightly longer than cache TTL
+      expirationTtl: 3600, // 1 hour
     });
 
     // Also store individual matches for faster lookups
@@ -200,7 +200,7 @@ async function updateOddsData(
         await env.MATCHES_DATA.put(
           `match:${match.id}`,
           JSON.stringify(match),
-          { expirationTtl: CACHE_TTL * 2 }
+          { expirationTtl: 3600 } // 1 hour
         );
       }
     }
