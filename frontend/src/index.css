@@ -4192,6 +4192,18 @@ a {
 .news-list-image {
   height: 200px;
   position: relative;
+  overflow: hidden;
+}
+
+.news-list-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.news-list-item:hover .news-list-image img {
+  transform: scale(1.05);
 }
 
 .news-list-content {

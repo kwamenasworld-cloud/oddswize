@@ -10,7 +10,7 @@ export const ARTICLES = [
     category: 'Premier League',
     date: 'December 14, 2024',
     readTime: '3 min read',
-    image: 'epl',
+    image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&h=400&fit=crop',
     content: `
       <p>The Premier League title race is heating up as we enter the crucial second half of the season. With multiple teams still in contention, bettors in Ghana have plenty of opportunities to find value across the major bookmakers.</p>
 
@@ -54,7 +54,7 @@ export const ARTICLES = [
     category: 'Ghana Football',
     date: 'December 14, 2024',
     readTime: '4 min read',
-    image: 'ghana',
+    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=400&fit=crop',
     content: `
       <p>The Africa Cup of Nations 2025 qualifiers are in full swing, and the Ghana Black Stars are fighting to secure their place in the tournament. For Ghanaian bettors, this presents exciting opportunities to back the national team.</p>
 
@@ -106,7 +106,7 @@ export const ARTICLES = [
     category: 'Champions League',
     date: 'December 13, 2024',
     readTime: '5 min read',
-    image: 'ucl',
+    image: 'https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?w=800&h=400&fit=crop',
     content: `
       <p>The UEFA Champions League continues to deliver thrilling football, and this week's fixtures offer plenty of betting opportunities. Our team has analyzed the odds across Ghana's bookmakers to find the best value bets.</p>
 
@@ -163,7 +163,7 @@ export const ARTICLES = [
     category: 'Betting Guide',
     date: 'December 12, 2024',
     readTime: '8 min read',
-    image: 'guide',
+    image: 'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=800&h=400&fit=crop',
     content: `
       <p>Understanding how to compare betting odds is one of the most important skills for any bettor. In Ghana, with multiple licensed bookmakers offering different prices, knowing how to find the best odds can significantly increase your long-term profits.</p>
 
@@ -269,7 +269,7 @@ export const ARTICLES = [
     category: 'Ghana Football',
     date: 'December 11, 2024',
     readTime: '6 min read',
-    image: 'ghana',
+    image: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800&h=400&fit=crop',
     content: `
       <p>The Ghana Premier League is back in full swing, and local bettors have plenty of opportunities to back their favorite teams. Here's our comprehensive betting preview for the 2024/25 season.</p>
 
@@ -334,7 +334,7 @@ export const ARTICLES = [
     category: 'Betting Guide',
     date: 'December 10, 2024',
     readTime: '5 min read',
-    image: 'guide',
+    image: 'https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=800&h=400&fit=crop',
     content: `
       <p>Mobile Money has revolutionized sports betting in Ghana, making it incredibly easy to deposit and withdraw funds. This guide covers everything you need to know about using MoMo for betting.</p>
 
@@ -443,7 +443,8 @@ function NewsPage() {
       <section className="news-list">
         {ARTICLES.map((article) => (
           <Link to={`/news/${article.slug}`} key={article.id} className="news-list-item">
-            <div className={`news-list-image news-image-${article.image}`}>
+            <div className="news-list-image">
+              <img src={article.image} alt={article.title} loading="lazy" />
               <span className="news-category">{article.category}</span>
             </div>
             <div className="news-list-content">
