@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { TeamLogo, BookmakerLogo } from '../components/TeamLogo';
-import { BOOKMAKER_AFFILIATES } from '../components/BookmakerLogos';
+import { TeamLogo } from '../components/TeamLogo';
+import { BookmakerLogo } from '../components/BookmakerLogo';
+import { BOOKMAKER_AFFILIATES } from '../config/affiliates';
 
 // Demo news articles for SEO
 const NEWS_ARTICLES = [
