@@ -6,6 +6,7 @@ import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
 import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
 import Sparkline, { generateOddsHistory, analyzeOddsMovement } from '../components/Sparkline';
+import ShareButton from '../components/ShareButton';
 
 // Market types
 const MARKETS = {
@@ -111,7 +112,7 @@ function OddsPage() {
   const [status, setStatus] = useState(null);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLeague, setSelectedLeague] = useState('all');
+  const [selectedLeagues, setSelectedLeagues] = useState([]); // Changed to array for multiple selection
   const [selectedCountry, setSelectedCountry] = useState('all');
   const [selectedMarket, setSelectedMarket] = useState('1x2');
   const [selectedOdd, setSelectedOdd] = useState(null);
@@ -289,15 +290,19 @@ function OddsPage() {
         match.away_team.toLowerCase().includes(searchLower) ||
         leagueLower.includes(searchLower);
 
-      // League filter - more precise matching
-      let matchesLeague = selectedLeague === 'all';
+      // League filter - more precise matching with multiple selection support
+      let matchesLeague = selectedLeagues.length === 0; // If no leagues selected, show all
       if (!matchesLeague) {
-        const league = POPULAR_LEAGUES.find((l) => l.id === selectedLeague);
-        if (league && league.keywords && league.keywords.length > 0) {
-          matchesLeague = league.keywords.some((keyword) =>
-            leagueLower.includes(keyword.toLowerCase())
-          );
-        }
+        // Check if match belongs to any of the selected leagues
+        matchesLeague = selectedLeagues.some((leagueId) => {
+          const league = POPULAR_LEAGUES.find((l) => l.id === leagueId);
+          if (league && league.keywords && league.keywords.length > 0) {
+            return league.keywords.some((keyword) =>
+              leagueLower.includes(keyword.toLowerCase())
+            );
+          }
+          return false;
+        });
       }
 
       // Country filter
@@ -315,7 +320,7 @@ function OddsPage() {
 
       return matchesSearch && matchesLeague && matchesCountry && matchesDate;
     });
-  }, [matches, searchQuery, selectedLeague, selectedCountry, selectedDate]);
+  }, [matches, searchQuery, selectedLeagues, selectedCountry, selectedDate]);
 
   // Filter visible league pills based on selected country
   const visibleLeagues = useMemo(() => {
@@ -490,7 +495,7 @@ function OddsPage() {
         <button
           className="cta-btn cta-leagues"
           onClick={() => {
-            setSelectedLeague('all');
+            setSelectedLeagues([]);
             setSelectedDate('all');
             setShowAllMatches(true);
           }}
@@ -530,10 +535,23 @@ function OddsPage() {
             {visibleLeagues.map((league) => (
               <button
                 key={league.id}
-                className={`league-btn ${selectedLeague === league.id ? 'active' : ''}`}
+                className={`league-btn ${
+                  league.id === 'all'
+                    ? selectedLeagues.length === 0 ? 'active' : ''
+                    : selectedLeagues.includes(league.id) ? 'active' : ''
+                }`}
                 onClick={() => {
-                  setSelectedLeague(league.id);
-                  if (league.id !== 'all') setSelectedCountry('all'); // Reset country when selecting league
+                  if (league.id === 'all') {
+                    // Clear all selections
+                    setSelectedLeagues([]);
+                  } else {
+                    // Toggle league selection
+                    setSelectedLeagues(prev =>
+                      prev.includes(league.id)
+                        ? prev.filter(id => id !== league.id) // Remove if already selected
+                        : [...prev, league.id] // Add if not selected
+                    );
+                  }
                 }}
               >
                 <LeagueLogo leagueId={league.id} size={14} />
@@ -546,7 +564,7 @@ function OddsPage() {
             value={selectedCountry}
             onChange={(e) => {
               setSelectedCountry(e.target.value);
-              if (e.target.value !== 'all') setSelectedLeague('all'); // Reset league when selecting country
+              if (e.target.value !== 'all') setSelectedLeagues([]); // Reset leagues when selecting country
             }}
           >
             {COUNTRY_FILTERS.map((country) => (
@@ -676,11 +694,19 @@ function OddsPage() {
               const bestOdds = marketFields.map(field => getBestOdds(match, field));
               const avgOdds = marketFields.map(field => getMarketAverage(match, field));
 
+              // Calculate best 1x2 odds for sharing (always use 1x2 regardless of selected market)
+              const best1x2Home = getBestOdds(match, 'home_odds');
+              const best1x2Draw = getBestOdds(match, 'draw_odds');
+              const best1x2Away = getBestOdds(match, 'away_odds');
+
               // Generate odds history for display (computed each render for demo simplicity)
               const primaryField = marketFields[0];
               const primaryOdds = match.odds?.[0]?.[primaryField];
               const oddsHistory = generateOddsHistory(primaryOdds, 72, 'random');
               const movement = analyzeOddsMovement(oddsHistory);
+
+              // Create share link for this specific match
+              const shareLink = `${window.location.origin}/odds?match=${encodeURIComponent(match.home_team + ' vs ' + match.away_team)}`;
 
               return (
                 <div key={idx} className="match-row" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
@@ -707,6 +733,17 @@ function OddsPage() {
                         </span>
                       </div>
                     )}
+                    {/* Share button */}
+                    <ShareButton
+                      home_team={match.home_team}
+                      away_team={match.away_team}
+                      league={match.league}
+                      time={formatTime(match.start_time)}
+                      bestHome={best1x2Home.value || 0}
+                      bestDraw={best1x2Draw.value || 0}
+                      bestAway={best1x2Away.value || 0}
+                      shareLink={shareLink}
+                    />
                   </div>
 
                   {/* Kick-off Time */}

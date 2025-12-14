@@ -37,7 +37,7 @@ export const BOOKMAKER_AFFILIATES = {
     colorLight: '#e8f0fa',
     colorDark: '#154a8f',
     logo: '/logos/1xbet.png',
-    affiliateUrl: 'https://1xbet.com/gh/?refId=YOUR_AFFILIATE_ID',
+    affiliateUrl: 'https://reffpa.com/L?tag=d_5045676m_97c_',
     signupBonus: 'Get 200% up to GHS 750',
     rating: 4.6,
     features: ['High Odds', 'Many Markets', 'Live Betting'],
