@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import OddsPage from './pages/OddsPage';
 import BookmakersPage from './pages/BookmakersPage';
+import NewsPage from './pages/NewsPage';
+import ArticlePage from './pages/ArticlePage';
 import SettingsPage from './pages/SettingsPage';
 import { AccountModal, UserMenu, LoginButton } from './components/AccountModal';
 import { getUser } from './services/userPreferences';
@@ -43,6 +45,8 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/odds" element={<OddsPage />} />
             <Route path="/bookmakers" element={<BookmakersPage />} />
+            <Route path="/news" element={<NewsPage />} />
+            <Route path="/news/:slug" element={<ArticlePage />} />
           </Routes>
         </main>
         <Footer />
@@ -104,6 +108,13 @@ function Header({ user, onLoginClick, onLogout, onOpenSettings }) {
             onClick={() => setMenuOpen(false)}
           >
             Bookmakers
+          </NavLink>
+          <NavLink
+            to="/news"
+            className={({ isActive }) => isActive ? 'active' : ''}
+            onClick={() => setMenuOpen(false)}
+          >
+            News
           </NavLink>
         </nav>
 

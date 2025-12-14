@@ -4,10 +4,11 @@ import { TeamLogo } from '../components/TeamLogo';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 
-// Demo news articles for SEO
+// News articles for homepage (links to full articles)
 const NEWS_ARTICLES = [
   {
     id: 1,
+    slug: 'premier-league-title-race-best-odds',
     title: 'Premier League Title Race Heats Up: Best Odds for Top 4 Finish',
     excerpt: 'With the season reaching its climax, we analyze the best betting odds for the Premier League top 4 race across Ghana\'s bookmakers.',
     category: 'Premier League',
@@ -17,6 +18,7 @@ const NEWS_ARTICLES = [
   },
   {
     id: 2,
+    slug: 'afcon-2025-ghana-black-stars-odds',
     title: 'AFCON 2025 Qualifiers: Ghana Black Stars Odds Analysis',
     excerpt: 'The Black Stars face crucial qualifiers. Here\'s where to find the best odds on Ghana\'s matches at Betway, Sportybet and more.',
     category: 'Ghana Football',
@@ -26,6 +28,7 @@ const NEWS_ARTICLES = [
   },
   {
     id: 3,
+    slug: 'champions-league-predictions-best-value-bets',
     title: 'Champions League Predictions: Best Value Bets This Week',
     excerpt: 'Our experts break down the Champions League matchday odds and highlight the best value picks from Ghanaian sportsbooks.',
     category: 'Champions League',
@@ -35,6 +38,7 @@ const NEWS_ARTICLES = [
   },
   {
     id: 4,
+    slug: 'how-to-compare-betting-odds-ghana-guide',
     title: 'How to Compare Betting Odds in Ghana: A Complete Guide',
     excerpt: 'Learn how to find the best betting value by comparing odds across Betway, Sportybet, 1xBet and other licensed bookmakers.',
     category: 'Betting Guide',
@@ -263,7 +267,7 @@ function HomePage() {
         </div>
         <div className="news-grid">
           {NEWS_ARTICLES.map((article) => (
-            <Link to="/odds" key={article.id} className="news-card">
+            <Link to={`/news/${article.slug}`} key={article.id} className="news-card">
               <div className={`news-image news-image-${article.image}`}>
                 <span className="news-category">{article.category}</span>
               </div>
