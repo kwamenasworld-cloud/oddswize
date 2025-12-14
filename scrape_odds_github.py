@@ -22,6 +22,8 @@ CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
 MAX_MATCHES = 500  # Full coverage
 MAX_CHAMPIONSHIPS = 50  # Top leagues by match count
+TIMEOUT = 15  # Reduced timeout for faster failures
+BATCH_SIZE = 100  # Larger batches = fewer requests
 
 # Common headers for API requests
 HEADERS = {
@@ -41,6 +43,7 @@ def scrape_sportybet() -> List[Dict]:
     print("Scraping SportyBet Ghana...")
     matches = []
     seen_ids = set()
+    session = requests.Session()
 
     headers = {
         **HEADERS,
@@ -56,7 +59,7 @@ def scrape_sportybet() -> List[Dict]:
 
         try:
             url = f"{SPORTYBET_API}?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10&pageSize=100&pageNum={page}&option=1"
-            resp = requests.get(url, headers=headers, timeout=30)
+            resp = session.get(url, headers=headers, timeout=TIMEOUT)
             data = resp.json()
 
             if data.get('bizCode') != 10000:
@@ -142,10 +145,11 @@ def scrape_1xbet() -> List[Dict]:
     print("Scraping 1xBet Ghana...")
     matches = []
     seen_ids = set()
+    session = requests.Session()  # Reuse connections
 
     try:
         # Get championships
-        resp = requests.get(f"{ONEXBET_API}/GetChampsZip?sport=1&lng=en", headers=HEADERS, timeout=30)
+        resp = session.get(f"{ONEXBET_API}/GetChampsZip?sport=1&lng=en", headers=HEADERS, timeout=TIMEOUT)
         champs = resp.json().get("Value", [])
         champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)[:MAX_CHAMPIONSHIPS]
 
@@ -163,7 +167,7 @@ def scrape_1xbet() -> List[Dict]:
 
             # Get games for championship
             try:
-                resp = requests.get(f"{ONEXBET_API}/GetChampZip?champ={champ_id}&lng=en", headers=HEADERS, timeout=30)
+                resp = session.get(f"{ONEXBET_API}/GetChampZip?champ={champ_id}&lng=en", headers=HEADERS, timeout=TIMEOUT)
                 value = resp.json().get("Value", {})
                 games = value.get("G", []) if isinstance(value, dict) else []
             except:
@@ -171,16 +175,16 @@ def scrape_1xbet() -> List[Dict]:
 
             game_ids = [g.get("I") for g in games if g.get("I") and g.get("I") not in seen_ids]
 
-            # Fetch games with odds in batches
-            for i in range(0, len(game_ids), 50):
+            # Fetch games with odds in larger batches
+            for i in range(0, len(game_ids), BATCH_SIZE):
                 if len(matches) >= MAX_MATCHES:
                     break
 
-                batch_ids = game_ids[i:i+50]
+                batch_ids = game_ids[i:i+BATCH_SIZE]
                 ids_str = ",".join(str(i) for i in batch_ids)
 
                 try:
-                    resp = requests.get(f"{ONEXBET_API}/GetGamesZip?ids={ids_str}&lng=en", headers=HEADERS, timeout=30)
+                    resp = session.get(f"{ONEXBET_API}/GetGamesZip?ids={ids_str}&lng=en", headers=HEADERS, timeout=TIMEOUT)
                     games_data = resp.json().get("Value", [])
                 except:
                     continue
@@ -254,10 +258,11 @@ def scrape_22bet() -> List[Dict]:
     print("Scraping 22Bet...")
     matches = []
     seen_ids = set()
+    session = requests.Session()  # Reuse connections
 
     try:
         # Get championships
-        resp = requests.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", headers=HEADERS, timeout=30)
+        resp = session.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", headers=HEADERS, timeout=TIMEOUT)
         champs = resp.json().get("Value", [])
         champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)[:MAX_CHAMPIONSHIPS]
 
@@ -275,7 +280,7 @@ def scrape_22bet() -> List[Dict]:
 
             # Get games for championship
             try:
-                resp = requests.get(f"{TWENTYTWOBET_API}/GetChampZip?champ={champ_id}&lng=en", headers=HEADERS, timeout=30)
+                resp = session.get(f"{TWENTYTWOBET_API}/GetChampZip?champ={champ_id}&lng=en", headers=HEADERS, timeout=TIMEOUT)
                 value = resp.json().get("Value", {})
                 games = value.get("G", []) if isinstance(value, dict) else []
             except:
@@ -283,16 +288,16 @@ def scrape_22bet() -> List[Dict]:
 
             game_ids = [g.get("I") for g in games if g.get("I") and g.get("I") not in seen_ids]
 
-            # Fetch games with odds in batches
-            for i in range(0, len(game_ids), 50):
+            # Fetch games with odds in larger batches
+            for i in range(0, len(game_ids), BATCH_SIZE):
                 if len(matches) >= MAX_MATCHES:
                     break
 
-                batch_ids = game_ids[i:i+50]
+                batch_ids = game_ids[i:i+BATCH_SIZE]
                 ids_str = ",".join(str(i) for i in batch_ids)
 
                 try:
-                    resp = requests.get(f"{TWENTYTWOBET_API}/GetGamesZip?ids={ids_str}&lng=en", headers=HEADERS, timeout=30)
+                    resp = session.get(f"{TWENTYTWOBET_API}/GetGamesZip?ids={ids_str}&lng=en", headers=HEADERS, timeout=TIMEOUT)
                     games_data = resp.json().get("Value", [])
                 except:
                     continue
@@ -366,6 +371,7 @@ def scrape_betway() -> List[Dict]:
     print("Scraping Betway Ghana...")
     matches = []
     seen_ids = set()
+    session = requests.Session()
 
     headers = {
         **HEADERS,
@@ -389,7 +395,7 @@ def scrape_betway() -> List[Dict]:
                 f"&Skip={skip}"
                 f"&Take={page_size}"
             )
-            resp = requests.get(url, headers=headers, timeout=60)
+            resp = session.get(url, headers=headers, timeout=TIMEOUT*2)  # Betway slower
             data = resp.json()
 
             events = data.get('events', [])
@@ -506,9 +512,9 @@ def scrape_soccabet() -> List[Dict]:
 
     try:
         session = requests.Session()
-        session.get('https://www.soccabet.com/', headers=headers, timeout=15)
+        session.get('https://www.soccabet.com/', headers=headers, timeout=TIMEOUT)
 
-        resp = session.get(SOCCABET_API, headers=headers, timeout=60)
+        resp = session.get(SOCCABET_API, headers=headers, timeout=TIMEOUT*2)
         if resp.status_code != 200:
             print(f"  Error: HTTP {resp.status_code}")
             return []
