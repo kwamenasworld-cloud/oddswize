@@ -19,8 +19,8 @@ from difflib import SequenceMatcher
 # Configuration
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
-MAX_MATCHES = 200  # Reduced for faster execution
-MAX_CHAMPIONSHIPS = 25  # Limit championships to process
+MAX_MATCHES = 350  # Balance between coverage and speed
+MAX_CHAMPIONSHIPS = 40  # Top leagues by match count
 
 # Common headers for API requests
 HEADERS = {
@@ -49,7 +49,7 @@ def scrape_sportybet() -> List[Dict]:
         'platform': 'web',
     }
 
-    for page in range(1, 5):  # Max 5 pages for speed
+    for page in range(1, 8):  # Max 7 pages
         if len(matches) >= MAX_MATCHES:
             break
 
@@ -374,7 +374,7 @@ def scrape_betway() -> List[Dict]:
     skip = 0
     page_size = 500
 
-    for _ in range(5):  # Max 5 pages for speed
+    for _ in range(7):  # Max 7 pages
         if len(matches) >= MAX_MATCHES:
             break
 
