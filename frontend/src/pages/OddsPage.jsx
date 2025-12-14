@@ -16,28 +16,28 @@ const MARKETS = {
 
 // Popular leagues for quick filters - using exact patterns to avoid false matches
 const POPULAR_LEAGUES = [
-  { id: 'all', name: 'All', keywords: [] },
-  { id: 'premier', name: 'EPL', keywords: ['England. Premier League', 'English Premier', 'EPL'] },
-  { id: 'championship', name: 'Championship', keywords: ['England. Championship', 'English Championship'] },
-  { id: 'league1', name: 'League One', keywords: ['England. League One'] },
-  { id: 'league2', name: 'League Two', keywords: ['England. League Two'] },
-  { id: 'laliga', name: 'La Liga', keywords: ['Spain. La Liga', 'Spanish La Liga'] },
-  { id: 'laliga2', name: 'La Liga 2', keywords: ['Spain. La Liga 2', 'Segunda Division'] },
-  { id: 'bundesliga', name: 'Bundesliga', keywords: ['Germany. Bundesliga', 'German Bundesliga'] },
-  { id: 'bundesliga2', name: '2. Bundesliga', keywords: ['Germany. 2. Bundesliga', '2. Bundesliga'] },
-  { id: 'seriea', name: 'Serie A', keywords: ['Italy. Serie A', 'Italian Serie A'] },
-  { id: 'serieb', name: 'Serie B', keywords: ['Italy. Serie B', 'Italian Serie B'] },
-  { id: 'ligue1', name: 'Ligue 1', keywords: ['France. Ligue 1', 'French Ligue 1'] },
-  { id: 'ligue2', name: 'Ligue 2', keywords: ['France. Ligue 2', 'French Ligue 2'] },
-  { id: 'eredivisie', name: 'Eredivisie', keywords: ['Netherlands. Eredivisie', 'Dutch Eredivisie'] },
-  { id: 'primeira', name: 'Primeira Liga', keywords: ['Portugal. Primeira Liga', 'Portuguese'] },
-  { id: 'ucl', name: 'UCL', keywords: ['UEFA Champions League', 'Champions League'] },
-  { id: 'uel', name: 'Europa', keywords: ['UEFA Europa League', 'Europa League'] },
-  { id: 'conference', name: 'Conference', keywords: ['UEFA Conference League', 'Conference League'] },
-  { id: 'facup', name: 'FA Cup', keywords: ['England. FA Cup', 'FA Cup'] },
-  { id: 'eflcup', name: 'EFL Cup', keywords: ['England. League Cup', 'League Cup', 'EFL Cup', 'Carabao'] },
-  { id: 'ghana', name: 'Ghana PL', keywords: ['Ghana.', 'Ghana Premier'] },
-  { id: 'nigeria', name: 'Nigeria', keywords: ['Nigeria.', 'Nigerian'] },
+  { id: 'all', name: 'All', keywords: [], country: 'all' },
+  { id: 'premier', name: 'EPL', keywords: ['England. Premier League', 'English Premier', 'EPL'], country: 'england' },
+  { id: 'championship', name: 'Championship', keywords: ['England. Championship', 'English Championship'], country: 'england' },
+  { id: 'league1', name: 'League One', keywords: ['England. League One'], country: 'england' },
+  { id: 'league2', name: 'League Two', keywords: ['England. League Two'], country: 'england' },
+  { id: 'facup', name: 'FA Cup', keywords: ['England. FA Cup', 'FA Cup'], country: 'england' },
+  { id: 'eflcup', name: 'EFL Cup', keywords: ['England. League Cup', 'League Cup', 'EFL Cup', 'Carabao'], country: 'england' },
+  { id: 'laliga', name: 'La Liga', keywords: ['Spain. La Liga', 'Spanish La Liga'], country: 'spain' },
+  { id: 'laliga2', name: 'La Liga 2', keywords: ['Spain. La Liga 2', 'Segunda Division'], country: 'spain' },
+  { id: 'bundesliga', name: 'Bundesliga', keywords: ['Germany. Bundesliga', 'German Bundesliga'], country: 'germany' },
+  { id: 'bundesliga2', name: '2. Bundesliga', keywords: ['Germany. 2. Bundesliga', '2. Bundesliga'], country: 'germany' },
+  { id: 'seriea', name: 'Serie A', keywords: ['Italy. Serie A', 'Italian Serie A'], country: 'italy' },
+  { id: 'serieb', name: 'Serie B', keywords: ['Italy. Serie B', 'Italian Serie B'], country: 'italy' },
+  { id: 'ligue1', name: 'Ligue 1', keywords: ['France. Ligue 1', 'French Ligue 1'], country: 'france' },
+  { id: 'ligue2', name: 'Ligue 2', keywords: ['France. Ligue 2', 'French Ligue 2'], country: 'france' },
+  { id: 'eredivisie', name: 'Eredivisie', keywords: ['Netherlands. Eredivisie', 'Dutch Eredivisie'], country: 'netherlands' },
+  { id: 'primeira', name: 'Primeira Liga', keywords: ['Portugal. Primeira Liga', 'Portuguese'], country: 'portugal' },
+  { id: 'ucl', name: 'UCL', keywords: ['UEFA Champions League', 'Champions League'], country: 'europe' },
+  { id: 'uel', name: 'Europa', keywords: ['UEFA Europa League', 'Europa League'], country: 'europe' },
+  { id: 'conference', name: 'Conference', keywords: ['UEFA Conference League', 'Conference League'], country: 'europe' },
+  { id: 'ghana', name: 'Ghana PL', keywords: ['Ghana.', 'Ghana Premier'], country: 'ghana' },
+  { id: 'nigeria', name: 'Nigeria', keywords: ['Nigeria.', 'Nigerian'], country: 'nigeria' },
 ];
 
 // Country filters for broader filtering
@@ -317,6 +317,16 @@ function OddsPage() {
     });
   }, [matches, searchQuery, selectedLeague, selectedCountry, selectedDate]);
 
+  // Filter visible league pills based on selected country
+  const visibleLeagues = useMemo(() => {
+    if (selectedCountry === 'all') {
+      return POPULAR_LEAGUES;
+    }
+    return POPULAR_LEAGUES.filter(league =>
+      league.country === 'all' || league.country === selectedCountry
+    );
+  }, [selectedCountry]);
+
   // Get featured/top matches (top leagues, most bookmakers)
   const featuredMatches = useMemo(() => {
     const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions League', 'Serie A', 'Bundesliga'];
@@ -517,7 +527,7 @@ function OddsPage() {
 
         <div className="toolbar-center">
           <div className="league-filters">
-            {POPULAR_LEAGUES.map((league) => (
+            {visibleLeagues.map((league) => (
               <button
                 key={league.id}
                 className={`league-btn ${selectedLeague === league.id ? 'active' : ''}`}
