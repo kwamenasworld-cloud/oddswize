@@ -15,12 +15,13 @@ import requests
 from datetime import datetime
 from typing import Dict, List, Set, Optional
 from difflib import SequenceMatcher
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuration
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
-MAX_MATCHES = 350  # Balance between coverage and speed
-MAX_CHAMPIONSHIPS = 40  # Top leagues by match count
+MAX_MATCHES = 500  # Full coverage
+MAX_CHAMPIONSHIPS = 50  # Top leagues by match count
 
 # Common headers for API requests
 HEADERS = {
@@ -49,7 +50,7 @@ def scrape_sportybet() -> List[Dict]:
         'platform': 'web',
     }
 
-    for page in range(1, 8):  # Max 7 pages
+    for page in range(1, 10):  # Max 9 pages
         if len(matches) >= MAX_MATCHES:
             break
 
@@ -374,7 +375,7 @@ def scrape_betway() -> List[Dict]:
     skip = 0
     page_size = 500
 
-    for _ in range(7):  # Max 7 pages
+    for _ in range(10):  # Max 10 pages
         if len(matches) >= MAX_MATCHES:
             break
 
@@ -804,28 +805,30 @@ def main():
     print(f"Time: {datetime.now().isoformat()}")
     print("=" * 60)
 
-    # Scrape all bookmakers
+    # Scrape all bookmakers in parallel for speed
     all_matches = {}
+    scrapers = {
+        'SportyBet Ghana': scrape_sportybet,
+        '1xBet Ghana': scrape_1xbet,
+        '22Bet Ghana': scrape_22bet,
+        'Betway Ghana': scrape_betway,
+        'SoccaBet Ghana': scrape_soccabet,
+    }
 
-    sportybet = scrape_sportybet()
-    if sportybet:
-        all_matches['SportyBet Ghana'] = sportybet
-
-    onexbet = scrape_1xbet()
-    if onexbet:
-        all_matches['1xBet Ghana'] = onexbet
-
-    twentytwobet = scrape_22bet()
-    if twentytwobet:
-        all_matches['22Bet'] = twentytwobet
-
-    betway = scrape_betway()
-    if betway:
-        all_matches['Betway Ghana'] = betway
-
-    soccabet = scrape_soccabet()
-    if soccabet:
-        all_matches['SoccaBet Ghana'] = soccabet
+    print("\nRunning scrapers in parallel...")
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_bookie = {
+            executor.submit(scraper): bookie
+            for bookie, scraper in scrapers.items()
+        }
+        for future in as_completed(future_to_bookie):
+            bookie = future_to_bookie[future]
+            try:
+                matches = future.result()
+                if matches:
+                    all_matches[bookie] = matches
+            except Exception as e:
+                print(f"  {bookie} failed: {e}")
 
     total = sum(len(m) for m in all_matches.values())
     print(f"\nTotal scraped: {total} matches from {len(all_matches)} bookmakers")
