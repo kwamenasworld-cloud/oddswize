@@ -19,7 +19,8 @@ from difflib import SequenceMatcher
 # Configuration
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
-MAX_MATCHES = 500
+MAX_MATCHES = 200  # Reduced for faster execution
+MAX_CHAMPIONSHIPS = 25  # Limit championships to process
 
 # Common headers for API requests
 HEADERS = {
@@ -48,7 +49,7 @@ def scrape_sportybet() -> List[Dict]:
         'platform': 'web',
     }
 
-    for page in range(1, 10):  # Max 10 pages
+    for page in range(1, 5):  # Max 5 pages for speed
         if len(matches) >= MAX_MATCHES:
             break
 
@@ -120,7 +121,6 @@ def scrape_sportybet() -> List[Dict]:
                     })
 
             print(f"  Page {page}: {len(matches)} matches")
-            time.sleep(0.1)
 
         except Exception as e:
             print(f"  Page {page} error: {e}")
@@ -146,7 +146,7 @@ def scrape_1xbet() -> List[Dict]:
         # Get championships
         resp = requests.get(f"{ONEXBET_API}/GetChampsZip?sport=1&lng=en", headers=HEADERS, timeout=30)
         champs = resp.json().get("Value", [])
-        champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)
+        champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)[:MAX_CHAMPIONSHIPS]
 
         skip_patterns = ["alternative", "team vs player", "specials", "fantasy", "esports"]
 
@@ -235,10 +235,6 @@ def scrape_1xbet() -> List[Dict]:
                         'start_time': game.get("S", 0),
                     })
 
-                time.sleep(0.05)
-
-            time.sleep(0.02)
-
     except Exception as e:
         print(f"  1xBet error: {e}")
 
@@ -262,7 +258,7 @@ def scrape_22bet() -> List[Dict]:
         # Get championships
         resp = requests.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", headers=HEADERS, timeout=30)
         champs = resp.json().get("Value", [])
-        champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)
+        champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)[:MAX_CHAMPIONSHIPS]
 
         skip_patterns = ["alternative", "team vs player", "specials", "fantasy", "esports"]
 
@@ -351,10 +347,6 @@ def scrape_22bet() -> List[Dict]:
                         'start_time': game.get("S", 0),
                     })
 
-                time.sleep(0.05)
-
-            time.sleep(0.02)
-
     except Exception as e:
         print(f"  22Bet error: {e}")
 
@@ -382,7 +374,7 @@ def scrape_betway() -> List[Dict]:
     skip = 0
     page_size = 500
 
-    for _ in range(10):  # Max 10 pages
+    for _ in range(5):  # Max 5 pages for speed
         if len(matches) >= MAX_MATCHES:
             break
 
@@ -478,7 +470,6 @@ def scrape_betway() -> List[Dict]:
                 break
 
             skip += page_size
-            time.sleep(0.1)
 
         except Exception as e:
             print(f"  Betway error: {e}")
@@ -515,7 +506,6 @@ def scrape_soccabet() -> List[Dict]:
     try:
         session = requests.Session()
         session.get('https://www.soccabet.com/', headers=headers, timeout=15)
-        time.sleep(0.1)
 
         resp = session.get(SOCCABET_API, headers=headers, timeout=60)
         if resp.status_code != 200:
