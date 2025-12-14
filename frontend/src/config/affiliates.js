@@ -50,7 +50,7 @@ export const BOOKMAKER_AFFILIATES = {
     colorLight: '#fef6e6',
     colorDark: '#d4901e',
     logo: '/logos/22bet.png',
-    affiliateUrl: 'https://22bet.com.gh/?refCode=YOUR_AFFILIATE_ID',
+    affiliateUrl: 'https://moy.auraodin.com/redirect.aspx?pid=157982&bid=1494&lpid=544',
     signupBonus: 'Get 100% up to GHS 750',
     rating: 4.5,
     features: ['100% Bonus', 'Virtual Sports', 'E-Sports'],
