@@ -322,8 +322,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (path === '/api/odds/update' && request.method === 'POST') {
       // Check for API key
       const apiKey = request.headers.get('X-API-Key');
-      if (!apiKey || apiKey !== env.CORS_ORIGIN) {
-        // Simple auth - in production use proper secrets
+      if (!apiKey || apiKey !== env.API_SECRET) {
         return errorResponse('Unauthorized', 401, env);
       }
 

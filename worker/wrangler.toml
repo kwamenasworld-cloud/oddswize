@@ -14,7 +14,10 @@ id = "YOUR_KV_NAMESPACE_ID"  # Replace after running: wrangler kv:namespace crea
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
-CORS_ORIGIN = "https://oddswize.com"
+CORS_ORIGIN = "*"
+
+# Secrets (set via: wrangler secret put API_SECRET)
+# API_SECRET = "your-secret-key" (use wrangler secret put)
 
 # Development settings
 [env.dev]

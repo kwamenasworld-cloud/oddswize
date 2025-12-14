@@ -4,6 +4,7 @@ export interface Env {
   MATCHES_DATA: KVNamespace;
   ENVIRONMENT: string;
   CORS_ORIGIN: string;
+  API_SECRET: string;
 }
 
 // Match data types
