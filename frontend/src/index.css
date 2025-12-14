@@ -803,9 +803,9 @@ a {
   font-weight: 500;
 }
 
-.league-icon {
-  font-size: 12px;
-  line-height: 1;
+.league-btn .league-logo,
+.league-btn .league-logo-fallback {
+  flex-shrink: 0;
 }
 
 .league-name {
@@ -1874,10 +1874,6 @@ a {
     font-size: 10px;
   }
 
-  .league-icon {
-    font-size: 11px;
-  }
-
   .league-name {
     font-size: 9px;
   }
@@ -2022,10 +2018,6 @@ a {
   .league-btn {
     padding: 2px 4px;
     font-size: 9px;
-  }
-
-  .league-icon {
-    font-size: 10px;
   }
 
   .refresh-btn {

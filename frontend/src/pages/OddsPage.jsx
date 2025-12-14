@@ -3,6 +3,7 @@ import { getMatches, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
+import { LeagueLogo } from '../components/LeagueLogo';
 import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
 import Sparkline, { generateOddsHistory, analyzeOddsMovement } from '../components/Sparkline';
 
@@ -15,15 +16,15 @@ const MARKETS = {
 
 // Popular leagues for quick filters
 const POPULAR_LEAGUES = [
-  { id: 'all', name: 'All', icon: '⚽' },
-  { id: 'premier', name: 'Premier League', icon: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', keywords: ['Premier League', 'England. Premier'] },
-  { id: 'laliga', name: 'La Liga', icon: '🇪🇸', keywords: ['La Liga', 'Spain. La Liga'] },
-  { id: 'bundesliga', name: 'Bundesliga', icon: '🇩🇪', keywords: ['Bundesliga', 'Germany'] },
-  { id: 'seriea', name: 'Serie A', icon: '🇮🇹', keywords: ['Serie A', 'Italy'] },
-  { id: 'ligue1', name: 'Ligue 1', icon: '🇫🇷', keywords: ['Ligue 1', 'France'] },
-  { id: 'ucl', name: 'Champions League', icon: '🏆', keywords: ['Champions League', 'UEFA Champions'] },
-  { id: 'ghana', name: 'Ghana', icon: '🇬🇭', keywords: ['Ghana'] },
-  { id: 'africa', name: 'Africa', icon: '🌍', keywords: ['Africa', 'CAF', 'AFCON', 'Nigeria', 'Kenya', 'South Africa'] },
+  { id: 'all', name: 'All' },
+  { id: 'premier', name: 'EPL', keywords: ['Premier League', 'England. Premier'] },
+  { id: 'laliga', name: 'La Liga', keywords: ['La Liga', 'Spain. La Liga'] },
+  { id: 'bundesliga', name: 'Bundesliga', keywords: ['Bundesliga', 'Germany'] },
+  { id: 'seriea', name: 'Serie A', keywords: ['Serie A', 'Italy'] },
+  { id: 'ligue1', name: 'Ligue 1', keywords: ['Ligue 1', 'France'] },
+  { id: 'ucl', name: 'UCL', keywords: ['Champions League', 'UEFA Champions'] },
+  { id: 'ghana', name: 'Ghana', keywords: ['Ghana'] },
+  { id: 'africa', name: 'Africa', keywords: ['Africa', 'CAF', 'AFCON', 'Nigeria', 'Kenya', 'South Africa'] },
 ];
 
 // Date filter options
@@ -476,7 +477,7 @@ function OddsPage() {
                 className={`league-btn ${selectedLeague === league.id ? 'active' : ''}`}
                 onClick={() => setSelectedLeague(league.id)}
               >
-                <span className="league-icon">{league.icon}</span>
+                <LeagueLogo leagueId={league.id} size={14} />
                 <span className="league-name">{league.name}</span>
               </button>
             ))}
