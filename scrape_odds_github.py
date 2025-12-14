@@ -671,6 +671,131 @@ def scrape_soccabet() -> List[Dict]:
 
 
 # ============================================================================
+# Betfox Ghana Scraper
+# ============================================================================
+
+BETFOX_API = "https://www.betfoxgh.com/api/sport/upcoming"
+
+def scrape_betfox() -> List[Dict]:
+    """Scrape Betfox Ghana via API."""
+    print("Scraping Betfox Ghana...")
+    matches = []
+
+    headers = {
+        **HEADERS,
+        'Referer': 'https://www.betfoxgh.com/',
+    }
+
+    try:
+        session = requests.Session()
+        session.get('https://www.betfoxgh.com/', headers=headers, timeout=TIMEOUT)
+
+        # Try to get soccer matches
+        resp = session.get(f"{BETFOX_API}/1", headers=headers, timeout=TIMEOUT*2)  # Sport ID 1 for soccer
+        if resp.status_code != 200:
+            print(f"  Error: HTTP {resp.status_code}")
+            return []
+
+        data = resp.json()
+
+        # Process matches from Betfox API structure
+        events = data.get('data', {}).get('events', [])
+        if not events:
+            # Try alternative structure
+            events = data.get('events', [])
+
+        skip_patterns = ['esoccer', 'ebasketball', 'esports', 'virtual']
+
+        for event in events:
+            if len(matches) >= MAX_MATCHES:
+                break
+
+            # Skip live matches
+            if event.get('is_live') or event.get('live'):
+                continue
+
+            home_team = event.get('home_team', event.get('homeTeam', ''))
+            away_team = event.get('away_team', event.get('awayTeam', ''))
+
+            if not home_team or not away_team:
+                continue
+
+            # Skip eSports
+            full_name = f"{home_team} {away_team}".lower()
+            if any(p in full_name for p in skip_patterns):
+                continue
+
+            # Extract league information
+            league = event.get('tournament', {}).get('name', 'Unknown')
+            category = event.get('category', {}).get('name', '')
+            if category:
+                league = f"{category}. {league}"
+
+            # Extract 1X2 odds
+            home_odds = draw_odds = away_odds = None
+            markets = event.get('markets', [])
+
+            for market in markets:
+                if market.get('name') in ['1X2', '1x2', 'Match Result', 'Full Time Result']:
+                    outcomes = market.get('outcomes', [])
+                    for outcome in outcomes:
+                        odds = outcome.get('odds', outcome.get('price'))
+                        if not odds:
+                            continue
+
+                        odds_val = float(odds)
+                        outcome_name = outcome.get('name', '').lower()
+
+                        if outcome_name in ['1', 'home', 'w1']:
+                            home_odds = odds_val
+                        elif outcome_name in ['x', 'draw']:
+                            draw_odds = odds_val
+                        elif outcome_name in ['2', 'away', 'w2']:
+                            away_odds = odds_val
+                    break
+
+            if not home_odds or not away_odds:
+                continue
+
+            # Get match start time
+            start_time = event.get('start_time', event.get('scheduled', event.get('date')))
+            start_ts = None
+            if start_time:
+                try:
+                    if isinstance(start_time, (int, float)):
+                        start_ts = int(start_time)
+                    else:
+                        from dateutil import parser
+                        dt = parser.parse(start_time)
+                        start_ts = int(dt.timestamp())
+                except:
+                    pass
+
+            event_id = str(event.get('id', event.get('event_id', f"{home_team}_{away_team}")))
+
+            matches.append({
+                'bookmaker': 'Betfox Ghana',
+                'event_id': event_id,
+                'home_team': home_team,
+                'away_team': away_team,
+                'home_odds': home_odds,
+                'draw_odds': draw_odds if draw_odds else 0,
+                'away_odds': away_odds,
+                'league': league,
+                'start_time': start_ts,
+            })
+
+        print(f"  Total: {len(matches)} matches from Betfox")
+
+    except Exception as e:
+        print(f"  Betfox error: {e}")
+        import traceback
+        traceback.print_exc()
+
+    return matches[:MAX_MATCHES]
+
+
+# ============================================================================
 # Event Matching
 # ============================================================================
 
@@ -831,10 +956,11 @@ def main():
         '22Bet Ghana': scrape_22bet,
         'Betway Ghana': scrape_betway,
         'SoccaBet Ghana': scrape_soccabet,
+        'Betfox Ghana': scrape_betfox,
     }
 
     print("\nRunning scrapers in parallel...")
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=6) as executor:
         future_to_bookie = {
             executor.submit(scraper): bookie
             for bookie, scraper in scrapers.items()

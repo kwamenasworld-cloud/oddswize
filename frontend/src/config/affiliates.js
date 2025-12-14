@@ -68,6 +68,19 @@ export const BOOKMAKER_AFFILIATES = {
     rating: 4.4,
     features: ['Local Focus', 'Easy Deposit', 'SMS Betting'],
   },
+  'Betfox Ghana': {
+    id: 'betfox',
+    name: 'Betfox',
+    shortName: 'BF',
+    color: '#ff6b00',
+    colorLight: '#fff4e6',
+    colorDark: '#cc5600',
+    logo: '/logos/betfox.png',
+    affiliateUrl: 'https://www.betfoxgh.com/?ref=YOUR_AFFILIATE_ID',
+    signupBonus: 'Get 100% Welcome Bonus',
+    rating: 4.3,
+    features: ['Fast Payouts', 'Ghana Focus', 'Mobile Betting'],
+  },
 };
 
 // Get affiliate URL for a bookmaker
@@ -95,6 +108,7 @@ export const BOOKMAKER_ORDER = [
   '1xBet Ghana',
   '22Bet Ghana',
   'SoccaBet Ghana',
+  'Betfox Ghana',
 ];
 
 // Bookmaker Logo Component

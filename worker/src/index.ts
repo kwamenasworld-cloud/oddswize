@@ -24,6 +24,7 @@ const GHANA_BOOKMAKERS = [
   '1xBet Ghana',
   '22Bet Ghana',
   'SoccaBet Ghana',
+  'Betfox Ghana',
 ];
 
 /**
