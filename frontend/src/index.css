@@ -3677,3 +3677,411 @@ a {
     font-size: 0.8rem;
   }
 }
+
+/* ========================= */
+/* Bookmakers Page           */
+/* ========================= */
+.bookmakers-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+.bookmakers-hero {
+  background: linear-gradient(135deg, var(--dark) 0%, var(--dark-light) 100%);
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  color: white;
+}
+
+.bookmakers-hero h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.bookmakers-hero p {
+  font-size: 1.1rem;
+  opacity: 0.85;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+.hero-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-number {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--success);
+}
+
+.stat-text {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* Bookmaker Cards */
+.bookmakers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.bookmaker-card-full {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.bookmaker-card-full:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.rank-badge {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.bookmaker-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.bookmaker-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.bookmaker-info h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.bonus-highlight {
+  padding: 0.75rem 1.25rem;
+  border: 2px solid;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.bonus-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.bonus-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.bookmaker-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.bookmaker-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1.25rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.detail-icon {
+  font-size: 1.5rem;
+}
+
+.detail-item > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.bookmaker-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 2rem;
+  color: white;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.cta-terms {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+/* Comparison Table */
+.comparison-section {
+  background: white;
+  border-radius: 16px;
+  padding: 1.75rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.comparison-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+}
+
+.comparison-table-wrapper {
+  overflow-x: auto;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comparison-table th {
+  text-align: left;
+  padding: 1rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.comparison-table td {
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.bookmaker-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+}
+
+.bonus-cell {
+  color: var(--success);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.check-icon {
+  color: var(--success);
+  font-weight: bold;
+}
+
+.join-btn {
+  display: inline-block;
+  padding: 0.5rem 1.25rem;
+  color: white;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: transform 0.2s;
+}
+
+.join-btn:hover {
+  transform: scale(1.05);
+}
+
+/* Info Section */
+.info-section {
+  margin-bottom: 2.5rem;
+}
+
+.info-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.info-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transition: transform 0.2s;
+}
+
+.info-card:hover {
+  transform: translateY(-4px);
+}
+
+.info-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.info-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.info-card p {
+  font-size: 0.85rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* Disclaimer */
+.disclaimer-box {
+  background: #fff3cd;
+  border-radius: 12px;
+  padding: 1.5rem;
+  font-size: 0.85rem;
+  color: #856404;
+  line-height: 1.6;
+}
+
+/* Bookmakers Page Responsive */
+@media (max-width: 768px) {
+  .bookmakers-hero {
+    padding: 2rem 1.5rem;
+  }
+
+  .bookmakers-hero h1 {
+    font-size: 1.75rem;
+  }
+
+  .hero-stats-row {
+    gap: 1.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.35rem;
+  }
+
+  .bookmaker-card-header {
+    flex-direction: column;
+  }
+
+  .bonus-highlight {
+    width: 100%;
+  }
+
+  .bookmaker-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .bookmaker-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cta-button {
+    justify-content: center;
+  }
+
+  .cta-terms {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .bookmakers-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .hero-stats-row {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .stat-item {
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .bookmaker-card-full {
+    padding: 1.25rem;
+  }
+
+  .bookmaker-identity {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bookmaker-details {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,4 +1,5 @@
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
+import { BookmakerLogo, StarRating, FeatureBadge } from '../components/BookmakerLogo';
 
 function BookmakersPage() {
   const bookmakers = BOOKMAKER_ORDER.map((name) => ({
@@ -7,183 +8,145 @@ function BookmakersPage() {
   }));
 
   return (
-    <div className="container">
+    <div className="bookmakers-page">
       {/* Hero Banner */}
-      <div
-        className="promo-banner"
-        style={{
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-          padding: '2rem',
-          marginBottom: '2rem',
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Ghana Betting Sites</h1>
-          <p style={{ opacity: 0.8 }}>
-            Compare welcome bonuses and sign up with the best bookmakers in Ghana
-          </p>
+      <section className="bookmakers-hero">
+        <div className="hero-content">
+          <h1>Best Betting Sites in Ghana</h1>
+          <p>Compare welcome bonuses and sign up with trusted, licensed bookmakers</p>
+          <div className="hero-stats-row">
+            <div className="stat-item">
+              <span className="stat-number">5</span>
+              <span className="stat-text">Bookmakers</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">GHS 2,000+</span>
+              <span className="stat-text">Total Bonuses</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">100%</span>
+              <span className="stat-text">Licensed</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Bookmaker Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <section className="bookmakers-list">
         {bookmakers.map((bookie, idx) => (
-          <div key={bookie.id} className="odds-section">
-            <div
-              className="section-header"
-              style={{ background: bookie.color }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span
-                  style={{
-                    background: 'rgba(255,255,255,0.2)',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '20px',
-                    fontSize: '0.9rem',
-                  }}
-                >
-                  #{idx + 1}
-                </span>
-                <h2 className="section-title">{bookie.name}</h2>
+          <article key={bookie.id} className="bookmaker-card-full">
+            {/* Rank Badge */}
+            <div className="rank-badge" style={{ background: bookie.color }}>
+              #{idx + 1}
+            </div>
+
+            {/* Header with Logo */}
+            <div className="bookmaker-card-header">
+              <div className="bookmaker-identity">
+                <BookmakerLogo bookmaker={bookie.name} size={56} />
+                <div className="bookmaker-info">
+                  <h2>{bookie.name}</h2>
+                  <StarRating rating={bookie.rating} size={14} />
+                </div>
               </div>
+              <div className="bonus-highlight" style={{ borderColor: bookie.color }}>
+                <span className="bonus-label">Welcome Bonus</span>
+                <span className="bonus-value" style={{ color: bookie.color }}>{bookie.signupBonus}</span>
+              </div>
+            </div>
+
+            {/* Features */}
+            <div className="bookmaker-features">
+              {bookie.features?.map((feature, i) => (
+                <FeatureBadge key={i} text={feature} color={bookie.color} />
+              ))}
+            </div>
+
+            {/* Details Grid */}
+            <div className="bookmaker-details">
+              <div className="detail-item">
+                <span className="detail-icon">📱</span>
+                <div>
+                  <span className="detail-label">Mobile App</span>
+                  <span className="detail-value">iOS & Android</span>
+                </div>
+              </div>
+              <div className="detail-item">
+                <span className="detail-icon">💳</span>
+                <div>
+                  <span className="detail-label">Min Deposit</span>
+                  <span className="detail-value">GHS 1</span>
+                </div>
+              </div>
+              <div className="detail-item">
+                <span className="detail-icon">💰</span>
+                <div>
+                  <span className="detail-label">Payment</span>
+                  <span className="detail-value">MoMo, Vodafone, Bank</span>
+                </div>
+              </div>
+              <div className="detail-item">
+                <span className="detail-icon">⚡</span>
+                <div>
+                  <span className="detail-label">Payout Speed</span>
+                  <span className="detail-value">Instant - 24hrs</span>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="bookmaker-cta">
               <a
                 href={bookie.affiliateUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="promo-btn"
+                className="cta-button"
+                style={{ background: bookie.color }}
               >
-                Visit Site
+                Claim Bonus
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+                </svg>
               </a>
+              <span className="cta-terms">New customers only. T&Cs apply. 18+</span>
             </div>
-
-            <div style={{ padding: '1.5rem' }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '1.5rem',
-                }}
-              >
-                {/* Welcome Bonus */}
-                <div>
-                  <h4 style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                    WELCOME BONUS
-                  </h4>
-                  <p style={{ fontSize: '1.2rem', fontWeight: '600', color: '#00c853' }}>
-                    {bookie.signupBonus}
-                  </p>
-                </div>
-
-                {/* Features */}
-                <div>
-                  <h4 style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                    KEY FEATURES
-                  </h4>
-                  <ul style={{ fontSize: '0.9rem', paddingLeft: '1.2rem', color: '#555' }}>
-                    <li>Mobile App Available</li>
-                    <li>Live Betting</li>
-                    <li>Cash Out Feature</li>
-                  </ul>
-                </div>
-
-                {/* Payment Methods */}
-                <div>
-                  <h4 style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                    PAYMENT METHODS
-                  </h4>
-                  <p style={{ fontSize: '0.9rem', color: '#555' }}>
-                    MTN Mobile Money, Vodafone Cash, AirtelTigo Money, Bank Transfer
-                  </p>
-                </div>
-
-                {/* Rating */}
-                <div>
-                  <h4 style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                    OUR RATING
-                  </h4>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: '#ffc107', fontSize: '1.2rem' }}>★★★★★</span>
-                    <span style={{ fontWeight: '600' }}>4.{9 - idx}/5</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* CTA */}
-              <div
-                style={{
-                  marginTop: '1.5rem',
-                  padding: '1rem',
-                  background: '#f8f9fa',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '1rem',
-                }}
-              >
-                <div>
-                  <p style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
-                    Sign up now and claim your bonus!
-                  </p>
-                  <p style={{ fontSize: '0.85rem', color: '#666' }}>
-                    New customers only. T&Cs apply. 18+
-                  </p>
-                </div>
-                <a
-                  href={bookie.affiliateUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    background: bookie.color,
-                    color: 'white',
-                    padding: '0.75rem 2rem',
-                    borderRadius: '25px',
-                    fontWeight: '600',
-                    transition: 'transform 0.2s',
-                  }}
-                  onMouseOver={(e) => (e.target.style.transform = 'scale(1.05)')}
-                  onMouseOut={(e) => (e.target.style.transform = 'scale(1)')}
-                >
-                  Claim {bookie.signupBonus.split(' ').slice(1, 3).join(' ')}
-                </a>
-              </div>
-            </div>
-          </div>
+          </article>
         ))}
-      </div>
+      </section>
 
       {/* Comparison Table */}
-      <div className="odds-section" style={{ marginTop: '2rem' }}>
-        <div className="section-header">
-          <h2 className="section-title">Quick Comparison</h2>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="odds-table">
+      <section className="comparison-section">
+        <h2>Quick Comparison</h2>
+        <div className="comparison-table-wrapper">
+          <table className="comparison-table">
             <thead>
               <tr>
-                <th style={{ textAlign: 'left' }}>Bookmaker</th>
+                <th>Bookmaker</th>
                 <th>Welcome Bonus</th>
+                <th>Rating</th>
                 <th>Min Deposit</th>
                 <th>Mobile App</th>
-                <th>Live Betting</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {bookmakers.map((bookie) => (
                 <tr key={bookie.id}>
-                  <td style={{ textAlign: 'left', fontWeight: '600' }}>{bookie.name}</td>
-                  <td style={{ color: '#00c853', fontWeight: '600' }}>{bookie.signupBonus}</td>
+                  <td className="bookmaker-cell">
+                    <BookmakerLogo bookmaker={bookie.name} size={28} />
+                    <span>{bookie.name}</span>
+                  </td>
+                  <td className="bonus-cell">{bookie.signupBonus}</td>
+                  <td><StarRating rating={bookie.rating} size={12} /></td>
                   <td>GHS 1</td>
-                  <td>✓</td>
-                  <td>✓</td>
+                  <td><span className="check-icon">✓</span></td>
                   <td>
                     <a
                       href={bookie.affiliateUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="odds-btn best"
+                      className="join-btn"
+                      style={{ background: bookie.color }}
                     >
                       Join
                     </a>
@@ -193,19 +156,37 @@ function BookmakersPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
+
+      {/* Info Section */}
+      <section className="info-section">
+        <h2>How We Rate Bookmakers</h2>
+        <div className="info-grid">
+          <div className="info-card">
+            <span className="info-icon">🔒</span>
+            <h3>Licensed & Secure</h3>
+            <p>All bookmakers are licensed to operate in Ghana with secure payment processing.</p>
+          </div>
+          <div className="info-card">
+            <span className="info-icon">💰</span>
+            <h3>Competitive Odds</h3>
+            <p>We compare odds daily to ensure you're getting the best value on your bets.</p>
+          </div>
+          <div className="info-card">
+            <span className="info-icon">📱</span>
+            <h3>Mobile Experience</h3>
+            <p>All featured sites offer excellent mobile apps for betting on the go.</p>
+          </div>
+          <div className="info-card">
+            <span className="info-icon">🎁</span>
+            <h3>Best Bonuses</h3>
+            <p>Exclusive welcome bonuses and ongoing promotions for new customers.</p>
+          </div>
+        </div>
+      </section>
 
       {/* Disclaimer */}
-      <div
-        style={{
-          marginTop: '2rem',
-          padding: '1.5rem',
-          background: '#fff3cd',
-          borderRadius: '8px',
-          fontSize: '0.85rem',
-          color: '#856404',
-        }}
-      >
+      <div className="disclaimer-box">
         <strong>Disclaimer:</strong> OddsWize may receive commission from bookmakers when you sign
         up through our affiliate links. This does not affect the odds or information displayed on
         our site. Gambling can be addictive - please gamble responsibly. You must be 18+ to

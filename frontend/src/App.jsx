@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import OddsPage from './pages/OddsPage';
-import ArbitragePage from './pages/ArbitragePage';
 import BookmakersPage from './pages/BookmakersPage';
 import SettingsPage from './pages/SettingsPage';
 import { AccountModal, UserMenu, LoginButton } from './components/AccountModal';
@@ -43,7 +42,6 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/odds" element={<OddsPage />} />
-            <Route path="/arbitrage" element={<ArbitragePage />} />
             <Route path="/bookmakers" element={<BookmakersPage />} />
           </Routes>
         </main>
@@ -99,13 +97,6 @@ function Header({ user, onLoginClick, onLogout, onOpenSettings }) {
             onClick={() => setMenuOpen(false)}
           >
             Odds
-          </NavLink>
-          <NavLink
-            to="/arbitrage"
-            className={({ isActive }) => isActive ? 'active' : ''}
-            onClick={() => setMenuOpen(false)}
-          >
-            Arbitrage
           </NavLink>
           <NavLink
             to="/bookmakers"

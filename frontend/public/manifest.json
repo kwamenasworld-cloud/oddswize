@@ -1,0 +1,59 @@
+{
+  "name": "OddsWize - Ghana Betting Odds Comparison",
+  "short_name": "OddsWize",
+  "description": "Compare betting odds across Ghana's top bookmakers. Find the best odds and arbitrage opportunities.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#1976d2",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["sports", "utilities", "finance"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/odds-comparison.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Odds Comparison View"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Compare Odds",
+      "short_name": "Odds",
+      "description": "Compare betting odds across bookmakers",
+      "url": "/odds",
+      "icons": [{ "src": "/favicon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Arbitrage Finder",
+      "short_name": "Arbitrage",
+      "description": "Find arbitrage betting opportunities",
+      "url": "/arbitrage",
+      "icons": [{ "src": "/favicon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

@@ -1,0 +1,24 @@
+# OddsWize Robots.txt
+# https://oddswize.com
+
+User-agent: *
+Allow: /
+
+# Allow all major search engine crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Yahoo! Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# Sitemap location
+Sitemap: https://oddswize.com/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
