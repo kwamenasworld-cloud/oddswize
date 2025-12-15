@@ -22,7 +22,7 @@ export interface Match {
   home_team: string;
   away_team: string;
   league: string;
-  kickoff: string;
+  start_time: number;  // Unix timestamp in seconds
   odds: BookmakerOdds[];
   is_live?: boolean;
 }

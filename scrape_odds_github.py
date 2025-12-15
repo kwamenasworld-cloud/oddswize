@@ -975,7 +975,7 @@ def push_to_cloudflare(matched_events: List[List[Dict]]) -> bool:
             'home_team': base['home_team'],
             'away_team': base['away_team'],
             'league': league,
-            'kickoff': datetime.fromtimestamp(base.get('start_time', 0)).isoformat() if base.get('start_time') else datetime.now().isoformat(),
+            'start_time': base.get('start_time', int(datetime.now().timestamp())),
             'odds': [
                 {
                     'bookmaker': m['bookmaker'],
