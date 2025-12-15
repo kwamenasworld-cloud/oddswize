@@ -686,36 +686,74 @@ def scrape_betfox() -> List[Dict]:
 
         async def fetch_betfox_data():
             """Async function to fetch Betfox data with Playwright"""
+            categories_data = None
+            competitions_data = []
+
+            async def handle_response(response):
+                """Capture API responses"""
+                nonlocal categories_data, competitions_data
+                url = response.url
+
+                # Capture categories (has list of competitions)
+                if '/api/offer/v3/categories?sport=Football' in url and response.status == 200:
+                    try:
+                        categories_data = await response.json()
+                    except:
+                        pass
+
+                # Capture competition enriched data (has actual events with odds)
+                if '/api/offer/v4/competitions' in url and 'enriched=2' in url and response.status == 200:
+                    try:
+                        comp_data = await response.json()
+                        competitions_data.append(comp_data)
+                    except:
+                        pass
+
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+                # Launch with non-headless mode (works with Xvfb in GitHub Actions)
+                browser = await p.chromium.launch(
+                    headless=False,  # Non-headless to bypass Cloudflare
+                    args=['--disable-blink-features=AutomationControlled', '--no-sandbox']
+                )
                 context = await browser.new_context(
-                    viewport={'width': 375, 'height': 667},
-                    user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15'
+                    viewport={'width': 1920, 'height': 1080},
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    locale='en-US',
+                    timezone_id='Africa/Accra',
                 )
+
+                # Add stealth script to avoid detection
+                await context.add_init_script("""
+                    Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                """)
+
                 page = await context.new_page()
+                page.on('response', handle_response)
 
-                # Navigate to the sportsbook page first to get past Cloudflare
-                await page.goto('https://www.betfox.com.gh/sportsbook', wait_until='networkidle', timeout=30000)
-                await asyncio.sleep(2)
+                try:
+                    # Navigate to sportsbook
+                    await page.goto('https://www.betfox.com.gh/sportsbook', wait_until='networkidle', timeout=60000)
+                    await asyncio.sleep(3)
 
-                # Fetch the API data
-                api_response = await page.request.get(
-                    'https://www.betfox.com.gh/api/offer/v3/sports?live=false',
-                    headers={
-                        'Accept': 'application/json',
-                        'Referer': 'https://www.betfox.com.gh/sportsbook',
-                        'x-betr-operator': 'bf-group',
-                        'x-betr-brand': 'betfox.com.gh',
-                        'x-locale': 'en',
-                    }
-                )
+                    # Click on popular competitions to load their events
+                    competitions_to_fetch = ['Premier League', 'LaLiga', 'Serie A', 'Bundesliga', 'Ligue 1', 'Champions League']
 
-                await browser.close()
+                    for comp_name in competitions_to_fetch:
+                        try:
+                            await page.click(f'text={comp_name}', timeout=5000)
+                            await asyncio.sleep(2)
+                        except:
+                            pass  # Competition might not be visible
 
-                if api_response.ok:
-                    return await api_response.json()
-                else:
-                    print(f"  API request failed: {api_response.status}")
+                    # Wait for API calls to complete
+                    await asyncio.sleep(3)
+
+                    await browser.close()
+                    return competitions_data if competitions_data else None
+
+                except Exception as e:
+                    print(f"  Browser error: {e}")
+                    await browser.close()
                     return None
 
         # Run the async function
@@ -724,85 +762,88 @@ def scrape_betfox() -> List[Dict]:
             print("  Failed to fetch Betfox data")
             return []
 
-        # Process the response
-        sports = data.get('sports', [])
+        # Process the enriched competition data
         skip_patterns = ['esoccer', 'ebasketball', 'esports', 'virtual']
 
-        for sport in sports:
-            if sport.get('name') != 'Football':
-                continue
+        for comp_response in data:
+            enriched_events = comp_response.get('enriched', [])
 
-            for category in sport.get('categories', []):
-                category_name = category.get('name', '')
+            for event in enriched_events:
+                if len(matches) >= MAX_MATCHES:
+                    break
 
-                for competition in category.get('competitions', []):
-                    competition_name = competition.get('name', '')
-                    league = f"{category_name}. {competition_name}" if category_name else competition_name
+                # Skip live events
+                if event.get('live'):
+                    continue
 
-                    for event in competition.get('events', []):
-                        if len(matches) >= MAX_MATCHES:
-                            break
+                # Get team names from competitors
+                competitors = event.get('competitors', [])
+                if len(competitors) < 2:
+                    continue
 
-                        # Skip live events
-                        if event.get('isLive'):
-                            continue
+                home_team = competitors[0].get('name', '')
+                away_team = competitors[1].get('name', '')
 
-                        home_team = event.get('homeTeam', {}).get('name', '')
-                        away_team = event.get('awayTeam', {}).get('name', '')
+                if not home_team or not away_team:
+                    continue
 
-                        if not home_team or not away_team:
-                            continue
+                # Skip eSports
+                full_name = f"{home_team} {away_team}".lower()
+                if any(p in full_name for p in skip_patterns):
+                    continue
 
-                        # Skip eSports
-                        full_name = f"{home_team} {away_team}".lower()
-                        if any(p in full_name for p in skip_patterns):
-                            continue
+                # Get league from competition info (from minimal section)
+                minimal = comp_response.get('minimal', {})
+                league = minimal.get('name', 'Unknown')
+                category = minimal.get('category', {}).get('name', '')
+                if category:
+                    league = f"{category}. {league}"
 
-                        # Extract 1X2 odds
-                        home_odds = draw_odds = away_odds = None
+                # Extract 1X2 odds from FOOTBALL_WINNER market
+                home_odds = draw_odds = away_odds = None
 
-                        for market in event.get('markets', []):
-                            if market.get('name') in ['Match Result', '1X2', '1x2', 'Full Time Result']:
-                                selections = market.get('selections', [])
-                                for selection in selections:
-                                    sel_name = selection.get('name', '').lower()
-                                    odds = selection.get('price')
+                for market in event.get('markets', []):
+                    if market.get('type') == 'FOOTBALL_WINNER':
+                        outcomes = market.get('outcomes', [])
+                        for outcome in outcomes:
+                            value = outcome.get('value')
+                            odds = outcome.get('odds')
 
-                                    if odds:
-                                        if sel_name == home_team.lower() or sel_name in ['1', 'home', 'w1']:
-                                            home_odds = float(odds)
-                                        elif sel_name in ['draw', 'x']:
-                                            draw_odds = float(odds)
-                                        elif sel_name == away_team.lower() or sel_name in ['2', 'away', 'w2']:
-                                            away_odds = float(odds)
-                                break
+                            if odds and value:
+                                if value == 'HOME':
+                                    home_odds = float(odds)
+                                elif value == 'DRAW':
+                                    draw_odds = float(odds)
+                                elif value == 'AWAY':
+                                    away_odds = float(odds)
+                        break
 
-                        if not home_odds or not away_odds:
-                            continue
+                if not home_odds or not away_odds:
+                    continue
 
-                        # Get match start time
-                        start_ts = None
-                        start_time = event.get('startDate')
-                        if start_time:
-                            try:
-                                dt = parser.parse(start_time)
-                                start_ts = int(dt.timestamp())
-                            except:
-                                pass
+                # Get match start time
+                start_ts = None
+                start_time = event.get('startTime')
+                if start_time:
+                    try:
+                        dt = parser.parse(start_time)
+                        start_ts = int(dt.timestamp())
+                    except:
+                        pass
 
-                        event_id = str(event.get('id', f"{home_team}_{away_team}"))
+                event_id = str(event.get('id', f"{home_team}_{away_team}"))
 
-                        matches.append({
-                            'bookmaker': 'Betfox Ghana',
-                            'event_id': event_id,
-                            'home_team': home_team,
-                            'away_team': away_team,
-                            'home_odds': home_odds,
-                            'draw_odds': draw_odds if draw_odds else 0,
-                            'away_odds': away_odds,
-                            'league': league,
-                            'start_time': start_ts,
-                        })
+                matches.append({
+                    'bookmaker': 'Betfox Ghana',
+                    'event_id': event_id,
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'home_odds': home_odds,
+                    'draw_odds': draw_odds if draw_odds else 0,
+                    'away_odds': away_odds,
+                    'league': league,
+                    'start_time': start_ts,
+                })
 
         print(f"  Total: {len(matches)} matches from Betfox")
 

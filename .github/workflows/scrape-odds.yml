@@ -28,12 +28,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 lxml playwright python-dateutil
           python -m playwright install chromium
+          # Install Xvfb for running non-headless browsers
+          sudo apt-get update
+          sudo apt-get install -y xvfb
 
       - name: Run odds scraper
         env:
           CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+          DISPLAY: ':99'
         run: |
+          # Start Xvfb (virtual display) in background
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 2
+          # Run scraper with virtual display
           python scrape_odds_github.py
 
       - name: Upload results as artifact
