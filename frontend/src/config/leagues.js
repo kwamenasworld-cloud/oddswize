@@ -12,10 +12,10 @@ export const LEAGUES = {
     keywords: [
       'England. Premier League',
       'English Premier League',
-      'Premier League',
       'EPL',
       'England Premier',
       'Barclays Premier League',
+      'England 1. Premier League',
     ],
   },
 
@@ -29,11 +29,10 @@ export const LEAGUES = {
       'Spain. La Liga',
       'Spain. LaLiga',
       'Spanish La Liga',
-      'LaLiga',
-      'La Liga',
       'LaLiga Santander',
-      'Primera Division',
+      'LaLiga EA Sports',
       'Spain Primera',
+      'Spain 1. La Liga',
     ],
   },
 
@@ -46,9 +45,9 @@ export const LEAGUES = {
     keywords: [
       'Italy. Serie A',
       'Italian Serie A',
-      'Serie A',
       'Serie A TIM',
       'Italy Serie A',
+      'Italy 1. Serie A',
     ],
   },
 
@@ -90,10 +89,10 @@ export const LEAGUES = {
     tier: 1,
     keywords: [
       'UEFA Champions League',
-      'Champions League',
-      'UCL',
       'UEFA. Champions League',
+      'UCL',
       'Europe. Champions League',
+      'UEFA Champions League. League Phase',
     ],
   },
 
@@ -105,10 +104,10 @@ export const LEAGUES = {
     tier: 2,
     keywords: [
       'UEFA Europa League',
-      'Europa League',
-      'UEL',
       'UEFA. Europa League',
+      'UEL',
       'Europe. Europa League',
+      'UEFA Europa League. League Phase',
     ],
   },
 
@@ -119,11 +118,54 @@ export const LEAGUES = {
     country: 'europe',
     tier: 2,
     keywords: [
+      'UEFA Europa Conference League',
       'UEFA Conference League',
-      'Conference League',
       'UECL',
       'UEFA. Conference League',
       'Europa Conference League',
+      'International Clubs. UEFA Europa Conference League',
+    ],
+  },
+
+  // English League One
+  leagueone: {
+    id: 'leagueone',
+    name: 'League One',
+    country: 'england',
+    tier: 3,
+    keywords: [
+      'England. League One',
+      'English League One',
+      'EFL League One',
+      'Sky Bet League One',
+    ],
+  },
+
+  // English League Two
+  leaguetwo: {
+    id: 'leaguetwo',
+    name: 'League Two',
+    country: 'england',
+    tier: 3,
+    keywords: [
+      'England. League Two',
+      'English League Two',
+      'EFL League Two',
+      'Sky Bet League Two',
+    ],
+  },
+
+  // English National League (Conference)
+  nationalleague: {
+    id: 'nationalleague',
+    name: 'National League',
+    country: 'england',
+    tier: 4,
+    keywords: [
+      'England. Conference National',
+      'England. National League',
+      'National League',
+      'Vanarama National League',
     ],
   },
 
@@ -165,9 +207,9 @@ export const LEAGUES = {
     tier: 2,
     keywords: [
       'England. EFL Cup',
+      'England. League Cup',
       'EFL Cup',
       'Carabao Cup',
-      'League Cup',
       'English League Cup',
     ],
   },
@@ -195,10 +237,11 @@ export const LEAGUES = {
     tier: 3,
     keywords: [
       'Spain. La Liga 2',
+      'Spain. LaLiga 2',
       'LaLiga 2',
-      'La Liga 2',
       'Segunda Division',
       'LaLiga SmartBank',
+      'LaLiga Hypermotion',
     ],
   },
 
@@ -223,10 +266,25 @@ export const LEAGUES = {
     country: 'germany',
     tier: 3,
     keywords: [
+      'Germany. 2nd Bundesliga',
       'Germany. 2. Bundesliga',
       '2. Bundesliga',
       'Bundesliga 2',
       'German 2. Bundesliga',
+    ],
+  },
+
+  // 3. Liga (Germany)
+  bundesliga3: {
+    id: 'bundesliga3',
+    name: '3. Liga',
+    country: 'germany',
+    tier: 4,
+    keywords: [
+      'Germany. 3rd Liga',
+      'Germany. 3. Liga',
+      '3. Liga',
+      'German 3. Liga',
     ],
   },
 
@@ -468,20 +526,123 @@ export const getPopularLeagues = () => {
   return POPULAR_LEAGUE_IDS.map(id => LEAGUES[id]).filter(Boolean);
 };
 
-// Match a league string against known leagues
-// Returns the league config or null if no match
+// Country name variations mapping to our country IDs
+// Used for parsing "Country. League" format from APIs
+const COUNTRY_NAME_TO_ID = {
+  'england': 'england',
+  'english': 'england',
+  'spain': 'spain',
+  'spanish': 'spain',
+  'italy': 'italy',
+  'italian': 'italy',
+  'germany': 'germany',
+  'german': 'germany',
+  'france': 'france',
+  'french': 'france',
+  'netherlands': 'netherlands',
+  'dutch': 'netherlands',
+  'holland': 'netherlands',
+  'portugal': 'portugal',
+  'portuguese': 'portugal',
+  'scotland': 'scotland',
+  'scottish': 'scotland',
+  'belgium': 'belgium',
+  'belgian': 'belgium',
+  'turkey': 'turkey',
+  'turkish': 'turkey',
+  'ghana': 'ghana',
+  'ghanaian': 'ghana',
+  'usa': 'usa',
+  'united states': 'usa',
+  'saudi arabia': 'saudi',
+  'brazil': 'brazil',
+  'brazilian': 'brazil',
+  'argentina': 'argentina',
+  'argentine': 'argentina',
+  'europe': 'europe',
+  'european': 'europe',
+  'uefa': 'europe',
+  'international': 'international',
+  'international clubs': 'europe', // UEFA club competitions
+  'world': 'international',
+  'africa': 'africa',
+  'african': 'africa',
+  'caf': 'africa',
+  'south america': 'southamerica',
+  'conmebol': 'southamerica',
+};
+
+/**
+ * Extract country/region from league string
+ * Handles formats like "Country. League Name" or "Region. Competition"
+ */
+const extractCountryFromLeague = (leagueString) => {
+  if (!leagueString) return null;
+
+  // Pattern: "Country. League Name" - extract everything before first ". "
+  const match = leagueString.match(/^([^.]+)\.\s*/);
+  if (match) {
+    const extracted = match[1].trim().toLowerCase();
+    return COUNTRY_NAME_TO_ID[extracted] || null;
+  }
+  return null;
+};
+
+/**
+ * Match a league string against known leagues
+ * Uses country-first matching to prevent false positives
+ *
+ * Algorithm:
+ * 1. Extract country from "Country. League" format
+ * 2. If country found, only match leagues from that country
+ * 3. If no country found, use keyword matching with specificity scoring
+ *
+ * @param {string} leagueString - The league name from the API
+ * @returns {object|null} - The matched league config or null
+ */
 export const matchLeague = (leagueString) => {
   if (!leagueString) return null;
   const lower = leagueString.toLowerCase().trim();
 
-  for (const league of Object.values(LEAGUES)) {
+  // Step 1: Extract country from "Country. League" format
+  const extractedCountryId = extractCountryFromLeague(leagueString);
+
+  // Step 2: If we identified a country, only search leagues from that country
+  if (extractedCountryId) {
+    const countryLeagues = Object.values(LEAGUES).filter(
+      l => l.country === extractedCountryId
+    );
+
+    for (const league of countryLeagues) {
+      for (const keyword of league.keywords) {
+        if (lower.includes(keyword.toLowerCase())) {
+          return league;
+        }
+      }
+    }
+
+    // Country identified but no specific league matched - return null
+    // This prevents "Jamaica. Premier League" from matching English Premier League
+    return null;
+  }
+
+  // Step 3: No country prefix - use keyword matching with specificity
+  // Sort by keyword length (longer = more specific = higher priority)
+  const allLeagues = Object.values(LEAGUES);
+  let bestMatch = null;
+  let bestMatchLength = 0;
+
+  for (const league of allLeagues) {
     for (const keyword of league.keywords) {
-      if (lower.includes(keyword.toLowerCase())) {
-        return league;
+      const keywordLower = keyword.toLowerCase();
+      if (lower.includes(keywordLower) && keywordLower.length > bestMatchLength) {
+        bestMatch = league;
+        bestMatchLength = keywordLower.length;
       }
     }
   }
-  return null;
+
+  return bestMatch;
 };
 
 // Check if a league string matches a specific league ID
@@ -509,6 +670,13 @@ export const isCountryMatch = (leagueString, countryId) => {
   if (!leagueString || !countryId) return false;
   if (countryId === 'all') return true;
 
+  // First try to extract country from "Country. League" format
+  const extractedCountryId = extractCountryFromLeague(leagueString);
+  if (extractedCountryId) {
+    return extractedCountryId === countryId;
+  }
+
+  // Then try matching via league config
   const matchedLeague = matchLeague(leagueString);
   if (matchedLeague) {
     return matchedLeague.country === countryId;
