@@ -926,6 +926,9 @@ a {
   background: #f8f9fa;
   border-bottom: 2px solid var(--border);
   min-width: 900px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header-match,
@@ -968,6 +971,9 @@ a {
   background: #fafafa;
   border-bottom: 1px solid var(--border);
   min-width: 900px;
+  position: sticky;
+  top: 60px;
+  z-index: 99;
 }
 
 .outcome-match,
