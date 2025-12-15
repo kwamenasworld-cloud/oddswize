@@ -45,12 +45,21 @@ def scrape_sportybet() -> List[Dict]:
     seen_ids = set()
     session = requests.Session()
 
+    # First visit main page to get cookies (required for API access)
+    try:
+        page_headers = {
+            'User-Agent': HEADERS['User-Agent'],
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        session.get('https://www.sportybet.com/gh/', headers=page_headers, timeout=TIMEOUT)
+        time.sleep(2)  # Delay to avoid rate limiting
+    except Exception:
+        pass  # Continue even if this fails
+
     headers = {
         **HEADERS,
-        'Referer': 'https://www.sportybet.com/gh/sport/football',
-        'clientid': 'web',
-        'operid': '3',
-        'platform': 'web',
+        'Referer': 'https://www.sportybet.com/gh/',
     }
 
     for page in range(1, 20):  # Max 19 pages for comprehensive coverage
@@ -58,11 +67,12 @@ def scrape_sportybet() -> List[Dict]:
             break
 
         try:
-            url = f"{SPORTYBET_API}?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10&pageSize=150&pageNum={page}&option=1"
+            url = f"{SPORTYBET_API}?sportId=sr%3Asport%3A1&marketId=1&pageSize=50&pageNum={page}"
             resp = session.get(url, headers=headers, timeout=TIMEOUT)
             data = resp.json()
 
             if data.get('bizCode') != 10000:
+                print(f"  Page {page}: API error - bizCode={data.get('bizCode')}, message={data.get('message', '')}")
                 break
 
             tournaments = data.get('data', {}).get('tournaments', [])
