@@ -1,45 +1,17 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import HomePage from './pages/HomePage';
 import OddsPage from './pages/OddsPage';
 import BookmakersPage from './pages/BookmakersPage';
 import NewsPage from './pages/NewsPage';
 import ArticlePage from './pages/ArticlePage';
-import SettingsPage from './pages/SettingsPage';
-import { AccountModal, UserMenu, LoginButton } from './components/AccountModal';
-import { getUser } from './services/userPreferences';
 import './index.css';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [showAccountModal, setShowAccountModal] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-
-  useEffect(() => {
-    // Check if user is logged in on mount
-    const savedUser = getUser();
-    if (savedUser) {
-      setUser(savedUser);
-    }
-  }, []);
-
-  const handleAuthChange = (newUser) => {
-    setUser(newUser);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-  };
-
   return (
     <BrowserRouter>
       <div className="app">
-        <Header
-          user={user}
-          onLoginClick={() => setShowAccountModal(true)}
-          onLogout={handleLogout}
-          onOpenSettings={() => setShowSettings(true)}
-        />
+        <Header />
         <main>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -50,25 +22,12 @@ function App() {
           </Routes>
         </main>
         <Footer />
-
-        <AccountModal
-          isOpen={showAccountModal}
-          onClose={() => setShowAccountModal(false)}
-          onAuthChange={handleAuthChange}
-        />
-
-        {showSettings && (
-          <SettingsPage
-            onClose={() => setShowSettings(false)}
-            onLogout={handleLogout}
-          />
-        )}
       </div>
     </BrowserRouter>
   );
 }
 
-function Header({ user, onLoginClick, onLogout, onOpenSettings }) {
+function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -119,15 +78,6 @@ function Header({ user, onLoginClick, onLogout, onOpenSettings }) {
         </nav>
 
         <div className="header-right">
-          {user ? (
-            <UserMenu
-              user={user}
-              onLogout={onLogout}
-              onOpenSettings={onOpenSettings}
-            />
-          ) : (
-            <LoginButton onClick={onLoginClick} />
-          )}
           <div className="header-badge">
             <span className="age-badge">18+</span>
             <span className="responsible-text">Gamble Responsibly</span>
