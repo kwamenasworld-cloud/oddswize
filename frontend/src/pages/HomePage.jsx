@@ -63,9 +63,9 @@ const BETTING_TIPS = [
     description: 'Value betting means finding odds that are higher than the true probability. Our highlights show you where the value is.',
   },
   {
-    icon: '📈',
-    title: 'Track Line Movements',
-    description: 'Watch for "steam" moves (shortening odds) which often indicate smart money. Our sparklines show you the trends.',
+    icon: '🏆',
+    title: 'Bet on What You Know',
+    description: 'Focus on leagues and teams you follow closely. Better knowledge leads to better predictions and more informed bets.',
   },
   {
     icon: '🎯',
@@ -74,14 +74,14 @@ const BETTING_TIPS = [
   },
 ];
 
-// Popular leagues for navigation
+// Popular leagues for navigation - IDs must match OddsPage POPULAR_LEAGUES
 const POPULAR_LEAGUES = [
-  { id: 'premier', name: 'Premier League', matches: 10, slug: 'premier' },
-  { id: 'laliga', name: 'La Liga', matches: 10, slug: 'laliga' },
-  { id: 'ghana', name: 'Ghana Premier', matches: 9, slug: 'ghana' },
-  { id: 'ucl', name: 'Champions League', matches: 8, slug: 'champions' },
-  { id: 'seriea', name: 'Serie A', matches: 10, slug: 'seriea' },
-  { id: 'bundesliga', name: 'Bundesliga', matches: 9, slug: 'bundesliga' },
+  { id: 'premier', name: 'Premier League', keywords: ['England. Premier League'] },
+  { id: 'laliga', name: 'La Liga', keywords: ['Spain. La Liga'] },
+  { id: 'ghana', name: 'Ghana Premier', keywords: ['Ghana.'] },
+  { id: 'ucl', name: 'Champions League', keywords: ['Champions League'] },
+  { id: 'seriea', name: 'Serie A', keywords: ['Italy. Serie A'] },
+  { id: 'bundesliga', name: 'Bundesliga', keywords: ['Germany. Bundesliga'] },
 ];
 
 function HomePage() {
@@ -116,12 +116,37 @@ function HomePage() {
     return best;
   };
 
-  // Featured matches (top leagues)
+  // Featured matches (today's matches from top leagues)
   const featuredMatches = useMemo(() => {
-    const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions'];
+    const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions', 'Serie A', 'Bundesliga'];
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
     return matches
-      .filter(m => topLeagues.some(kw => m.league?.toLowerCase().includes(kw.toLowerCase())))
+      .filter(m => {
+        // Must be today
+        const matchDate = new Date(m.start_time * 1000);
+        const isToday = matchDate >= today && matchDate < tomorrow;
+        if (!isToday) return false;
+
+        // Must be from top leagues
+        return topLeagues.some(kw => m.league?.toLowerCase().includes(kw.toLowerCase()));
+      })
+      .sort((a, b) => (a.start_time || 0) - (b.start_time || 0))
       .slice(0, 6);
+  }, [matches]);
+
+  // Count matches per league for display
+  const leagueMatchCounts = useMemo(() => {
+    const counts = {};
+    POPULAR_LEAGUES.forEach(league => {
+      counts[league.id] = matches.filter(m =>
+        league.keywords.some(kw => m.league?.toLowerCase().includes(kw.toLowerCase()))
+      ).length;
+    });
+    return counts;
   }, [matches]);
 
   // Format kickoff time
@@ -152,16 +177,16 @@ function HomePage() {
           </p>
           <div className="hero-stats">
             <div className="stat">
-              <span className="stat-value">5+</span>
+              <span className="stat-value">6</span>
               <span className="stat-label">Bookmakers</span>
             </div>
             <div className="stat">
-              <span className="stat-value">{matches.length || '100+'}+</span>
-              <span className="stat-label">Live Matches</span>
+              <span className="stat-value">{matches.length || '100'}+</span>
+              <span className="stat-label">Matches</span>
             </div>
             <div className="stat">
-              <span className="stat-value">24/7</span>
-              <span className="stat-label">Updated</span>
+              <span className="stat-value">30m</span>
+              <span className="stat-label">Updates</span>
             </div>
           </div>
           <div className="hero-cta">
@@ -247,10 +272,10 @@ function HomePage() {
         </div>
         <div className="leagues-grid">
           {POPULAR_LEAGUES.map((league) => (
-            <Link to={`/odds?league=${league.slug}`} key={league.slug} className="league-card">
+            <Link to={`/odds?league=${league.id}`} key={league.id} className="league-card">
               <LeagueLogo leagueId={league.id} size={40} />
               <span className="league-name">{league.name}</span>
-              <span className="league-count">{league.matches} matches</span>
+              <span className="league-count">{leagueMatchCounts[league.id] || 0} matches</span>
             </Link>
           ))}
         </div>
@@ -317,7 +342,7 @@ function HomePage() {
               >
                 <BookmakerLogo bookmaker={bookie} size={40} />
                 <span className="bookmaker-name">{config.name}</span>
-                <span className="bookmaker-bonus">{config.bonus || 'Sign Up Bonus'}</span>
+                <span className="bookmaker-bonus">{config.signupBonus || 'Sign Up Bonus'}</span>
               </a>
             );
           })}
@@ -341,15 +366,15 @@ function HomePage() {
           <details className="faq-item">
             <summary>Which bookmakers are available in Ghana?</summary>
             <p>
-              OddsWize compares odds from licensed bookmakers in Ghana including Betway, Sportybet,
-              1xBet, Betika, and Supabets. All featured bookmakers are licensed to operate in Ghana
+              OddsWize compares odds from 6 bookmakers operating in Ghana: Betway, Sportybet,
+              1xBet, 22Bet, SoccaBet, and Betfox. All featured bookmakers are licensed to operate in Ghana
               and offer mobile money deposits.
             </p>
           </details>
           <details className="faq-item">
             <summary>How often are the odds updated?</summary>
             <p>
-              Our odds are updated every 5-15 minutes to ensure you see the most current prices.
+              Our odds are updated every 30 minutes to ensure you see current prices.
               Odds can change quickly, especially close to kick-off, so we recommend checking
               the bookmaker's website before placing your bet.
             </p>

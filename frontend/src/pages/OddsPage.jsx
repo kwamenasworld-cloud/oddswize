@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getMatches, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
 import { BookmakerLogo } from '../components/BookmakerLogo';
@@ -105,13 +106,25 @@ const MARKET_FIELDS = {
 };
 
 function OddsPage() {
+  const [searchParams] = useSearchParams();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState(null);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLeagues, setSelectedLeagues] = useState([]); // Changed to array for multiple selection
+  const [selectedLeagues, setSelectedLeagues] = useState(() => {
+    // Initialize from URL param if present
+    const leagueParam = searchParams.get('league');
+    if (leagueParam) {
+      // Check if it's a valid league ID
+      const league = POPULAR_LEAGUES.find(l => l.id === leagueParam);
+      if (league && league.id !== 'all') {
+        return [leagueParam];
+      }
+    }
+    return [];
+  });
   const [selectedCountry, setSelectedCountry] = useState('all');
   const [selectedMarket, setSelectedMarket] = useState('1x2');
   const [selectedOdd, setSelectedOdd] = useState(null);
