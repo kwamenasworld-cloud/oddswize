@@ -945,11 +945,36 @@ a {
   color: #333;
 }
 
-/* Odds Container - overflow-y: clip doesn't create scroll container, allowing sticky to work */
+/* Odds Wrapper - contains sticky header + scrollable content */
+.odds-wrapper {
+  background: white;
+  position: relative;
+}
+
+/* Sticky Header Section - sticks to top when scrolling */
+.odds-sticky-header {
+  position: sticky;
+  top: 52px; /* Below navbar */
+  z-index: 100;
+  background: white;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Hide scrollbar on sticky header (content scrollbar is visible) */
+.odds-sticky-header::-webkit-scrollbar {
+  display: none;
+}
+.odds-sticky-header {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Odds Container - scrollable content area */
 .odds-container {
   background: white;
   overflow-x: auto;
-  overflow-y: clip; /* clip doesn't create scroll container like auto/scroll does */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -960,10 +985,6 @@ a {
   background: #f8f9fa;
   border-bottom: 2px solid var(--border);
   min-width: 900px;
-  position: sticky;
-  top: 52px; /* just below navbar */
-  z-index: 100;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .header-match,
@@ -1006,10 +1027,6 @@ a {
   background: #fafafa;
   border-bottom: 1px solid var(--border);
   min-width: 900px;
-  position: sticky;
-  top: 108px; /* odds-header top (52px) + header height (~56px) */
-  z-index: 99;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
 
 .outcome-match,
@@ -2108,20 +2125,16 @@ a {
     font-size: 0.65rem;
   }
 
+  /* Mobile sticky header positioning */
+  .odds-sticky-header {
+    top: 48px; /* Slightly smaller on mobile */
+  }
+
   /* Adjust grid for mobile scrolling */
   .odds-header,
   .outcome-row,
   .match-row {
     grid-template-columns: minmax(160px, 200px) 70px repeat(5, 100px);
-  }
-
-  /* Mobile sticky header positioning - stick just below navbar */
-  .odds-header {
-    top: 48px; /* just below mobile navbar */
-  }
-
-  .outcome-row {
-    top: 100px; /* odds-header top (48px) + header height (~52px) */
   }
 
   .team-name {

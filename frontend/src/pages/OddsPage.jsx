@@ -168,10 +168,33 @@ function OddsPage() {
   );
   const [showAllMatches, setShowAllMatches] = useState(false);
   const [selectedSort, setSelectedSort] = useState('time');
-
   useEffect(() => {
     loadData();
   }, []);
+
+  // Sync horizontal scroll between sticky header and content
+  useEffect(() => {
+    const stickyHeader = document.querySelector('.odds-sticky-header');
+    const content = document.querySelector('.odds-container');
+
+    if (!stickyHeader || !content) return;
+
+    const syncContentToHeader = () => {
+      stickyHeader.scrollLeft = content.scrollLeft;
+    };
+
+    const syncHeaderToContent = () => {
+      content.scrollLeft = stickyHeader.scrollLeft;
+    };
+
+    content.addEventListener('scroll', syncContentToHeader);
+    stickyHeader.addEventListener('scroll', syncHeaderToContent);
+
+    return () => {
+      content.removeEventListener('scroll', syncContentToHeader);
+      stickyHeader.removeEventListener('scroll', syncHeaderToContent);
+    };
+  }, [loading]); // Re-attach when loading changes
 
   // Sync URL params with selected leagues (handles navigation from HomePage)
   useEffect(() => {
@@ -715,41 +738,46 @@ function OddsPage() {
       </div>
 
       {/* Main Odds Grid */}
-      <div className="odds-container">
-        {/* Table Header - Bookmakers */}
-        <div className="odds-header" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
-          <div className="header-match">Match</div>
-          <div className="header-time">Kick-off</div>
-          {activeBookmakers.map((name) => {
-            const config = BOOKMAKER_AFFILIATES[name];
-            return (
-              <a
-                key={name}
-                href={config.affiliateUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="header-bookmaker"
-              >
-                <BookmakerLogo bookmaker={name} size={28} />
-                <span className="bookie-name">{config.name}</span>
-              </a>
-            );
-          })}
+      <div className="odds-wrapper">
+        {/* Sticky Header Section */}
+        <div className="odds-sticky-header">
+          {/* Table Header - Bookmakers */}
+          <div className="odds-header" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
+            <div className="header-match">Match</div>
+            <div className="header-time">Kick-off</div>
+            {activeBookmakers.map((name) => {
+              const config = BOOKMAKER_AFFILIATES[name];
+              return (
+                <a
+                  key={name}
+                  href={config.affiliateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="header-bookmaker"
+                >
+                  <BookmakerLogo bookmaker={name} size={28} />
+                  <span className="bookie-name">{config.name}</span>
+                </a>
+              );
+            })}
+          </div>
+
+          {/* Outcome Labels Row */}
+          <div className="outcome-row" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
+            <div className="outcome-match"></div>
+            <div className="outcome-time"></div>
+            {activeBookmakers.map((name) => (
+              <div key={name} className={`outcome-labels ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
+                {currentMarket.labels.map((label, i) => (
+                  <span key={i}>{label}</span>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Outcome Labels Row */}
-        <div className="outcome-row" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
-          <div className="outcome-match"></div>
-          <div className="outcome-time"></div>
-          {activeBookmakers.map((name) => (
-            <div key={name} className={`outcome-labels ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
-              {currentMarket.labels.map((label, i) => (
-                <span key={i}>{label}</span>
-              ))}
-            </div>
-          ))}
-        </div>
-
+        {/* Scrollable Content */}
+        <div className="odds-container">
         {/* Loading State */}
         {loading && (
           <div className="loading-state">
@@ -890,7 +918,8 @@ function OddsPage() {
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </div>
-      </div>
+        </div>{/* End odds-container */}
+      </div>{/* End odds-wrapper */}
 
       {/* Quick Stats Footer */}
       <div className="quick-stats">
