@@ -331,15 +331,30 @@ function OddsPage() {
     );
   }, [selectedCountry]);
 
-  // Get featured/top matches (top leagues, most bookmakers)
+  // Get featured/top matches (today's matches from top leagues)
   const featuredMatches = useMemo(() => {
     const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions League', 'Serie A', 'Bundesliga'];
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
     return matches
-      .filter(m =>
-        topLeagues.some(kw => m.league.toLowerCase().includes(kw.toLowerCase())) &&
-        m.odds?.length >= 3  // At least 3 bookmakers
-      )
-      .sort((a, b) => (b.odds?.length || 0) - (a.odds?.length || 0))  // Most bookmakers first
+      .filter(m => {
+        // Must be today
+        const matchDate = new Date(m.start_time * 1000);
+        const isToday = matchDate >= today && matchDate < tomorrow;
+        if (!isToday) return false;
+
+        // Must be from top leagues
+        const isTopLeague = topLeagues.some(kw => m.league.toLowerCase().includes(kw.toLowerCase()));
+
+        // Must have at least 2 bookmakers
+        const hasEnoughBookies = m.odds?.length >= 2;
+
+        return isTopLeague && hasEnoughBookies;
+      })
+      .sort((a, b) => (a.start_time || 0) - (b.start_time || 0))  // Soonest first
       .slice(0, 3);
   }, [matches]);
 
