@@ -152,7 +152,6 @@ a {
   max-width: 1600px;
   margin: 0 auto;
   padding: 0;
-  overflow-x: hidden;
 }
 
 /* ========================= */
@@ -929,6 +928,7 @@ a {
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .header-match,
@@ -972,8 +972,9 @@ a {
   border-bottom: 1px solid var(--border);
   min-width: 900px;
   position: sticky;
-  top: 60px;
+  top: 75px;
   z-index: 99;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
 
 .outcome-match,
