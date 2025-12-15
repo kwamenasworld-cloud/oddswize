@@ -76,7 +76,7 @@ export const BOOKMAKER_AFFILIATES = {
     colorLight: '#fff4e6',
     colorDark: '#cc5600',
     logo: '/logos/betfox.png',
-    affiliateUrl: 'https://www.betfoxgh.com/?ref=YOUR_AFFILIATE_ID',
+    affiliateUrl: 'https://www.betfox.com.gh/',
     signupBonus: 'Get 100% Welcome Bonus',
     rating: 4.3,
     features: ['Fast Payouts', 'Ghana Focus', 'Mobile Betting'],

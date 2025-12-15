@@ -25,6 +25,8 @@ const BOOKMAKER_DOMAINS = {
   '22bet': '22bet.com',
   'soccabet ghana': 'soccabet.com.gh',
   'soccabet': 'soccabet.com.gh',
+  'betfox ghana': 'betfox.com.gh',
+  'betfox': 'betfox.com.gh',
   'bet365': 'bet365.com',
   'betking': 'betking.com',
   'betwinner': 'betwinner.com',
