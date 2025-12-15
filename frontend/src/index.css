@@ -960,7 +960,7 @@ a {
   border-bottom: 2px solid var(--border);
   min-width: 900px;
   position: sticky;
-  top: 0;
+  top: 104px; /* navbar (52px) + toolbar (52px) */
   z-index: 100;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -1006,7 +1006,7 @@ a {
   border-bottom: 1px solid var(--border);
   min-width: 900px;
   position: sticky;
-  top: 75px;
+  top: 160px; /* odds-header top (104px) + header height (~56px) */
   z-index: 99;
   box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
@@ -2112,6 +2112,15 @@ a {
   .outcome-row,
   .match-row {
     grid-template-columns: minmax(160px, 200px) 70px repeat(5, 100px);
+  }
+
+  /* Mobile sticky header positioning - toolbar is taller on mobile due to stacking */
+  .odds-header {
+    top: 200px; /* navbar (48px) + stacked toolbar (~152px) */
+  }
+
+  .outcome-row {
+    top: 252px; /* odds-header top + header height (~52px) */
   }
 
   .team-name {
