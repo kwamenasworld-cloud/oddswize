@@ -95,7 +95,8 @@ function HomePage() {
 
   const loadMatches = async () => {
     try {
-      const data = await getMatches(20, 0, 2);
+      // Load more matches to get accurate league counts
+      const data = await getMatches(500, 0, 2);
       setMatches(data.matches || []);
     } catch (error) {
       console.error('Failed to load matches:', error);
