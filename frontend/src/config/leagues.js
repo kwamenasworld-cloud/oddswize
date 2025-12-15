@@ -575,17 +575,24 @@ const COUNTRY_NAME_TO_ID = {
 /**
  * Extract country/region from league string
  * Handles formats like "Country. League Name" or "Region. Competition"
+ *
+ * Returns: { hasPrefix: boolean, countryId: string|null }
+ * - hasPrefix: true if string has "Something. League" format
+ * - countryId: the mapped country ID, or null if country not recognized
  */
 const extractCountryFromLeague = (leagueString) => {
-  if (!leagueString) return null;
+  if (!leagueString) return { hasPrefix: false, countryId: null };
 
   // Pattern: "Country. League Name" - extract everything before first ". "
   const match = leagueString.match(/^([^.]+)\.\s*/);
   if (match) {
     const extracted = match[1].trim().toLowerCase();
-    return COUNTRY_NAME_TO_ID[extracted] || null;
+    return {
+      hasPrefix: true,
+      countryId: COUNTRY_NAME_TO_ID[extracted] || null
+    };
   }
-  return null;
+  return { hasPrefix: false, countryId: null };
 };
 
 /**
@@ -593,9 +600,10 @@ const extractCountryFromLeague = (leagueString) => {
  * Uses country-first matching to prevent false positives
  *
  * Algorithm:
- * 1. Extract country from "Country. League" format
- * 2. If country found, only match leagues from that country
- * 3. If no country found, use keyword matching with specificity scoring
+ * 1. Check if string has "Country. League" format
+ * 2. If yes and country is recognized, only match leagues from that country
+ * 3. If yes but country is NOT recognized (e.g., Jamaica), return null
+ * 4. If no country prefix, use keyword matching with specificity scoring
  *
  * @param {string} leagueString - The league name from the API
  * @returns {object|null} - The matched league config or null
@@ -604,30 +612,35 @@ export const matchLeague = (leagueString) => {
   if (!leagueString) return null;
   const lower = leagueString.toLowerCase().trim();
 
-  // Step 1: Extract country from "Country. League" format
-  const extractedCountryId = extractCountryFromLeague(leagueString);
+  // Step 1: Check for "Country. League" format
+  const { hasPrefix, countryId } = extractCountryFromLeague(leagueString);
 
-  // Step 2: If we identified a country, only search leagues from that country
-  if (extractedCountryId) {
-    const countryLeagues = Object.values(LEAGUES).filter(
-      l => l.country === extractedCountryId
-    );
+  // Step 2: If string has country prefix format
+  if (hasPrefix) {
+    // If country is recognized, only search that country's leagues
+    if (countryId) {
+      const countryLeagues = Object.values(LEAGUES).filter(
+        l => l.country === countryId
+      );
 
-    for (const league of countryLeagues) {
-      for (const keyword of league.keywords) {
-        if (lower.includes(keyword.toLowerCase())) {
-          return league;
+      for (const league of countryLeagues) {
+        for (const keyword of league.keywords) {
+          if (lower.includes(keyword.toLowerCase())) {
+            return league;
+          }
         }
       }
     }
 
-    // Country identified but no specific league matched - return null
-    // This prevents "Jamaica. Premier League" from matching English Premier League
+    // Country prefix exists but either:
+    // - Country not recognized (e.g., "Jamaica. Premier League")
+    // - Country recognized but no matching league
+    // Return null to prevent false positives
     return null;
   }
 
   // Step 3: No country prefix - use keyword matching with specificity
-  // Sort by keyword length (longer = more specific = higher priority)
+  // This handles formats like "EPL", "UCL", "Bundesliga"
   const allLeagues = Object.values(LEAGUES);
   let bestMatch = null;
   let bestMatchLength = 0;
@@ -654,6 +667,21 @@ export const isLeagueMatch = (leagueString, leagueId) => {
   if (!league) return false;
 
   const lower = leagueString.toLowerCase().trim();
+
+  // Check for country prefix format
+  const { hasPrefix, countryId } = extractCountryFromLeague(leagueString);
+
+  if (hasPrefix) {
+    // If country is recognized, only match if league's country matches
+    if (countryId) {
+      if (league.country !== countryId) return false;
+    } else {
+      // Country prefix exists but not recognized - don't match
+      return false;
+    }
+  }
+
+  // Keyword matching
   return league.keywords.some(kw => lower.includes(kw.toLowerCase()));
 };
 
@@ -671,9 +699,9 @@ export const isCountryMatch = (leagueString, countryId) => {
   if (countryId === 'all') return true;
 
   // First try to extract country from "Country. League" format
-  const extractedCountryId = extractCountryFromLeague(leagueString);
-  if (extractedCountryId) {
-    return extractedCountryId === countryId;
+  const { hasPrefix, countryId: extractedId } = extractCountryFromLeague(leagueString);
+  if (hasPrefix && extractedId) {
+    return extractedId === countryId;
   }
 
   // Then try matching via league config
