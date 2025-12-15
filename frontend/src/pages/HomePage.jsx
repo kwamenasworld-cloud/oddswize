@@ -4,6 +4,7 @@ import { TeamLogo } from '../components/TeamLogo';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
+import { LEAGUES, matchLeague } from '../config/leagues';
 import { getMatches } from '../services/api';
 
 // News articles for homepage (links to full articles)
@@ -74,14 +75,14 @@ const BETTING_TIPS = [
   },
 ];
 
-// Popular leagues for navigation - IDs must match OddsPage POPULAR_LEAGUES
+// Popular leagues for navigation - using centralized config
 const POPULAR_LEAGUES = [
-  { id: 'premier', name: 'Premier League', keywords: ['England. Premier League'] },
-  { id: 'laliga', name: 'La Liga', keywords: ['Spain. La Liga'] },
-  { id: 'ghana', name: 'Ghana Premier', keywords: ['Ghana.'] },
-  { id: 'ucl', name: 'Champions League', keywords: ['Champions League'] },
-  { id: 'seriea', name: 'Serie A', keywords: ['Italy. Serie A'] },
-  { id: 'bundesliga', name: 'Bundesliga', keywords: ['Germany. Bundesliga'] },
+  LEAGUES.premier,
+  LEAGUES.laliga,
+  LEAGUES.ghana,
+  LEAGUES.ucl,
+  LEAGUES.seriea,
+  LEAGUES.bundesliga,
 ];
 
 function HomePage() {
@@ -118,7 +119,7 @@ function HomePage() {
 
   // Featured matches (today's matches from top leagues)
   const featuredMatches = useMemo(() => {
-    const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions', 'Serie A', 'Bundesliga'];
+    const topLeagueIds = ['premier', 'laliga', 'ucl', 'seriea', 'bundesliga', 'ligue1'];
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
@@ -131,20 +132,22 @@ function HomePage() {
         const isToday = matchDate >= today && matchDate < tomorrow;
         if (!isToday) return false;
 
-        // Must be from top leagues
-        return topLeagues.some(kw => m.league?.toLowerCase().includes(kw.toLowerCase()));
+        // Must be from top leagues (using centralized matching)
+        const matchedLeague = matchLeague(m.league);
+        return matchedLeague && topLeagueIds.includes(matchedLeague.id);
       })
       .sort((a, b) => (a.start_time || 0) - (b.start_time || 0))
       .slice(0, 6);
   }, [matches]);
 
-  // Count matches per league for display
+  // Count matches per league for display (using centralized matching)
   const leagueMatchCounts = useMemo(() => {
     const counts = {};
     POPULAR_LEAGUES.forEach(league => {
-      counts[league.id] = matches.filter(m =>
-        league.keywords.some(kw => m.league?.toLowerCase().includes(kw.toLowerCase()))
-      ).length;
+      counts[league.id] = matches.filter(m => {
+        const matchedLeague = matchLeague(m.league);
+        return matchedLeague && matchedLeague.id === league.id;
+      }).length;
     });
     return counts;
   }, [matches]);

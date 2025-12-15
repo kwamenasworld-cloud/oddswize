@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getMatches, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
+import { LEAGUES, COUNTRIES, matchesAnyLeague, isCountryMatch, getLeagueTier } from '../config/leagues';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
@@ -15,48 +16,35 @@ const MARKETS = {
   'over_under': { id: 'over_under', name: 'O/U 2.5', labels: ['Over', 'Under'], description: 'Over/Under 2.5 Goals' },
 };
 
-// Popular leagues for quick filters - using exact patterns to avoid false matches
+// Build popular leagues list from centralized config (with short display names)
 const POPULAR_LEAGUES = [
-  { id: 'all', name: 'All', keywords: [], country: 'all' },
-  { id: 'premier', name: 'EPL', keywords: ['England. Premier League', 'English Premier', 'EPL'], country: 'england' },
-  { id: 'championship', name: 'Championship', keywords: ['England. Championship', 'English Championship'], country: 'england' },
-  { id: 'league1', name: 'League One', keywords: ['England. League One'], country: 'england' },
-  { id: 'league2', name: 'League Two', keywords: ['England. League Two'], country: 'england' },
-  { id: 'facup', name: 'FA Cup', keywords: ['England. FA Cup', 'FA Cup'], country: 'england' },
-  { id: 'eflcup', name: 'EFL Cup', keywords: ['England. League Cup', 'League Cup', 'EFL Cup', 'Carabao'], country: 'england' },
-  { id: 'laliga', name: 'La Liga', keywords: ['Spain. La Liga', 'Spanish La Liga'], country: 'spain' },
-  { id: 'laliga2', name: 'La Liga 2', keywords: ['Spain. La Liga 2', 'Segunda Division'], country: 'spain' },
-  { id: 'bundesliga', name: 'Bundesliga', keywords: ['Germany. Bundesliga', 'German Bundesliga'], country: 'germany' },
-  { id: 'bundesliga2', name: '2. Bundesliga', keywords: ['Germany. 2. Bundesliga', '2. Bundesliga'], country: 'germany' },
-  { id: 'seriea', name: 'Serie A', keywords: ['Italy. Serie A', 'Italian Serie A'], country: 'italy' },
-  { id: 'serieb', name: 'Serie B', keywords: ['Italy. Serie B', 'Italian Serie B'], country: 'italy' },
-  { id: 'ligue1', name: 'Ligue 1', keywords: ['France. Ligue 1', 'French Ligue 1'], country: 'france' },
-  { id: 'ligue2', name: 'Ligue 2', keywords: ['France. Ligue 2', 'French Ligue 2'], country: 'france' },
-  { id: 'eredivisie', name: 'Eredivisie', keywords: ['Netherlands. Eredivisie', 'Dutch Eredivisie'], country: 'netherlands' },
-  { id: 'primeira', name: 'Primeira Liga', keywords: ['Portugal. Primeira Liga', 'Portuguese'], country: 'portugal' },
-  { id: 'ucl', name: 'UCL', keywords: ['UEFA Champions League', 'Champions League'], country: 'europe' },
-  { id: 'uel', name: 'Europa', keywords: ['UEFA Europa League', 'Europa League'], country: 'europe' },
-  { id: 'conference', name: 'Conference', keywords: ['UEFA Conference League', 'Conference League'], country: 'europe' },
-  { id: 'ghana', name: 'Ghana PL', keywords: ['Ghana.', 'Ghana Premier'], country: 'ghana' },
-  { id: 'nigeria', name: 'Nigeria', keywords: ['Nigeria.', 'Nigerian'], country: 'nigeria' },
+  { id: 'all', name: 'All', country: 'all' },
+  { ...LEAGUES.premier, name: 'EPL' },
+  { ...LEAGUES.championship, name: 'Championship' },
+  { ...LEAGUES.laliga, name: 'La Liga' },
+  { ...LEAGUES.bundesliga, name: 'Bundesliga' },
+  { ...LEAGUES.seriea, name: 'Serie A' },
+  { ...LEAGUES.ligue1, name: 'Ligue 1' },
+  { ...LEAGUES.ucl, name: 'UCL' },
+  { ...LEAGUES.europa, name: 'Europa' },
+  { ...LEAGUES.conference, name: 'Conference' },
+  { ...LEAGUES.eredivisie, name: 'Eredivisie' },
+  { ...LEAGUES.portugal, name: 'Primeira Liga' },
+  { ...LEAGUES.ghana, name: 'Ghana PL' },
+  { ...LEAGUES.facup, name: 'FA Cup' },
+  { ...LEAGUES.eflcup, name: 'EFL Cup' },
+  { ...LEAGUES.laliga2, name: 'La Liga 2' },
+  { ...LEAGUES.bundesliga2, name: '2. Bundesliga' },
+  { ...LEAGUES.serieb, name: 'Serie B' },
+  { ...LEAGUES.ligue2, name: 'Ligue 2' },
 ];
 
-// Country filters for broader filtering
+// Build country filters from centralized config
 const COUNTRY_FILTERS = [
   { id: 'all', name: 'All Countries' },
-  { id: 'england', name: 'England', keywords: ['England.', 'English'] },
-  { id: 'spain', name: 'Spain', keywords: ['Spain.', 'Spanish'] },
-  { id: 'germany', name: 'Germany', keywords: ['Germany.', 'German'] },
-  { id: 'italy', name: 'Italy', keywords: ['Italy.', 'Italian'] },
-  { id: 'france', name: 'France', keywords: ['France.', 'French'] },
-  { id: 'portugal', name: 'Portugal', keywords: ['Portugal.', 'Portuguese'] },
-  { id: 'netherlands', name: 'Netherlands', keywords: ['Netherlands.', 'Dutch', 'Eredivisie'] },
-  { id: 'scotland', name: 'Scotland', keywords: ['Scotland.', 'Scottish'] },
-  { id: 'ghana', name: 'Ghana', keywords: ['Ghana.'] },
-  { id: 'nigeria', name: 'Nigeria', keywords: ['Nigeria.'] },
-  { id: 'kenya', name: 'Kenya', keywords: ['Kenya.'] },
-  { id: 'southafrica', name: 'South Africa', keywords: ['South Africa.'] },
-  { id: 'europe', name: 'UEFA', keywords: ['UEFA', 'Champions League', 'Europa League'] },
+  ...Object.values(COUNTRIES)
+    .filter(c => ['england', 'spain', 'germany', 'italy', 'france', 'portugal', 'netherlands', 'scotland', 'ghana', 'europe'].includes(c.id))
+    .map(c => ({ id: c.id, name: c.name, flag: c.flag })),
 ];
 
 // Date filter options
@@ -66,6 +54,52 @@ const DATE_FILTERS = [
   { id: 'weekend', name: 'Weekend', icon: '🗓️' },
   { id: 'all', name: 'All', icon: '📋' },
 ];
+
+// Sort options for matches
+const SORT_OPTIONS = [
+  { id: 'time', name: 'Kick-off Time', icon: '🕐' },
+  { id: 'popularity', name: 'Popularity', icon: '🔥' },
+  { id: 'bookmakers', name: 'Most Bookmakers', icon: '📊' },
+  { id: 'league', name: 'League Name', icon: '🏆' },
+];
+
+// Calculate popularity score for a match using centralized league tiers
+const getPopularityScore = (match) => {
+  let score = 0;
+
+  // Score based on number of bookmakers (more bookmakers = more popular)
+  const bookmakerCount = match.odds?.length || 0;
+  score += bookmakerCount * 15;
+
+  // Score based on league tier from centralized config (tier 1 = most popular)
+  const tier = getLeagueTier(match.league);
+  score += (5 - tier) * 25; // Tier 1 = +100, Tier 2 = +75, etc.
+
+  // Bonus for matches happening soon (within 24 hours)
+  const now = Date.now() / 1000;
+  const timeDiff = (match.start_time || 0) - now;
+  if (timeDiff > 0 && timeDiff < 86400) {
+    score += Math.max(0, 50 - (timeDiff / 3600)); // More points for sooner matches
+  }
+
+  return score;
+};
+
+// Format relative time (e.g., "5 mins ago")
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return 'Unknown';
+
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+};
 
 // Check if date falls within filter
 const matchesDateFilter = (timestamp, filter) => {
@@ -133,10 +167,24 @@ function OddsPage() {
     BOOKMAKER_ORDER.reduce((acc, b) => ({ ...acc, [b]: true }), {})
   );
   const [showAllMatches, setShowAllMatches] = useState(false);
+  const [selectedSort, setSelectedSort] = useState('time');
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Sync URL params with selected leagues (handles navigation from HomePage)
+  useEffect(() => {
+    const leagueParam = searchParams.get('league');
+    if (leagueParam) {
+      const league = POPULAR_LEAGUES.find(l => l.id === leagueParam);
+      if (league && league.id !== 'all') {
+        setSelectedLeagues([leagueParam]);
+        // Also reset country filter to show all when filtering by league from URL
+        setSelectedCountry('all');
+      }
+    }
+  }, [searchParams]);
 
   // Preload team logos when matches change
   useEffect(() => {
@@ -294,39 +342,18 @@ function OddsPage() {
   const filteredMatches = useMemo(() => {
     return matches.filter((match) => {
       const searchLower = searchQuery.toLowerCase();
-      const leagueLower = match.league.toLowerCase();
 
       const matchesSearch =
         !searchQuery ||
         match.home_team.toLowerCase().includes(searchLower) ||
         match.away_team.toLowerCase().includes(searchLower) ||
-        leagueLower.includes(searchLower);
+        match.league.toLowerCase().includes(searchLower);
 
-      // League filter - more precise matching with multiple selection support
-      let matchesLeague = selectedLeagues.length === 0; // If no leagues selected, show all
-      if (!matchesLeague) {
-        // Check if match belongs to any of the selected leagues
-        matchesLeague = selectedLeagues.some((leagueId) => {
-          const league = POPULAR_LEAGUES.find((l) => l.id === leagueId);
-          if (league && league.keywords && league.keywords.length > 0) {
-            return league.keywords.some((keyword) =>
-              leagueLower.includes(keyword.toLowerCase())
-            );
-          }
-          return false;
-        });
-      }
+      // League filter using centralized matching
+      const matchesLeague = matchesAnyLeague(match.league, selectedLeagues);
 
-      // Country filter
-      let matchesCountry = selectedCountry === 'all';
-      if (!matchesCountry) {
-        const country = COUNTRY_FILTERS.find((c) => c.id === selectedCountry);
-        if (country && country.keywords) {
-          matchesCountry = country.keywords.some((keyword) =>
-            leagueLower.includes(keyword.toLowerCase())
-          );
-        }
-      }
+      // Country filter using centralized matching
+      const matchesCountry = isCountryMatch(match.league, selectedCountry);
 
       const matchesDate = matchesDateFilter(match.start_time, selectedDate);
 
@@ -379,8 +406,33 @@ function OddsPage() {
   // Get active bookmakers
   const activeBookmakers = BOOKMAKER_ORDER.filter(b => enabledBookies[b]);
 
-  // Group matches by league
+  // Sort function based on selected sort option
+  const sortMatches = (matchList) => {
+    return [...matchList].sort((a, b) => {
+      switch (selectedSort) {
+        case 'time':
+          return (a.start_time || 0) - (b.start_time || 0);
+        case 'popularity':
+          return getPopularityScore(b) - getPopularityScore(a);
+        case 'bookmakers':
+          return (b.odds?.length || 0) - (a.odds?.length || 0);
+        case 'league':
+          return (a.league || '').localeCompare(b.league || '');
+        default:
+          return 0;
+      }
+    });
+  };
+
+  // Group matches by league (or flat list for certain sorts)
   const groupedMatches = useMemo(() => {
+    // For popularity and bookmakers sort, show flat list sorted globally
+    if (selectedSort === 'popularity' || selectedSort === 'bookmakers') {
+      const sorted = sortMatches(filteredMatches);
+      return { 'All Matches': sorted };
+    }
+
+    // For league sort, group by league and sort league names
     const groups = {};
     filteredMatches.forEach(match => {
       if (!groups[match.league]) {
@@ -388,8 +440,24 @@ function OddsPage() {
       }
       groups[match.league].push(match);
     });
+
+    // Sort matches within each league by time
+    Object.keys(groups).forEach(league => {
+      groups[league] = sortMatches(groups[league]);
+    });
+
+    // For league sort, return sorted by league name
+    if (selectedSort === 'league') {
+      const sortedKeys = Object.keys(groups).sort();
+      const sortedGroups = {};
+      sortedKeys.forEach(key => {
+        sortedGroups[key] = groups[key];
+      });
+      return sortedGroups;
+    }
+
     return groups;
-  }, [filteredMatches]);
+  }, [filteredMatches, selectedSort]);
 
   // Get current market config
   const currentMarket = MARKETS[selectedMarket];
@@ -596,6 +664,20 @@ function OddsPage() {
         </div>
 
         <div className="toolbar-right">
+          <div className="sort-selector">
+            <label className="sort-label">Sort:</label>
+            <select
+              className="sort-select"
+              value={selectedSort}
+              onChange={(e) => setSelectedSort(e.target.value)}
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.icon} {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             className="refresh-btn"
             onClick={handleRefresh}
@@ -607,9 +689,13 @@ function OddsPage() {
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           {status?.last_scan && (
-            <span className="last-update">
-              Updated: {new Date(status.last_scan).toLocaleTimeString()}
-            </span>
+            <div className="last-update-badge">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+              <span className="update-time">{formatRelativeTime(status.last_scan)}</span>
+            </div>
           )}
         </div>
       </div>
@@ -809,20 +895,25 @@ function OddsPage() {
       {/* Quick Stats Footer */}
       <div className="quick-stats">
         <div className="stat">
-          <span className="stat-num">{status?.total_matches || matches.length * 5}</span>
-          <span className="stat-lbl">Total Matches</span>
-        </div>
-        <div className="stat">
           <span className="stat-num">{filteredMatches.length}</span>
-          <span className="stat-lbl">Displayed</span>
+          <span className="stat-lbl">Matches</span>
         </div>
         <div className="stat">
           <span className="stat-num">{Object.keys(groupedMatches).length}</span>
           <span className="stat-lbl">Leagues</span>
         </div>
-        <div className="stat highlight">
+        <div className="stat">
           <span className="stat-num">{activeBookmakers.length}</span>
           <span className="stat-lbl">Bookmakers</span>
+        </div>
+        <div className="stat last-updated-stat">
+          <span className="stat-num update-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+          </span>
+          <span className="stat-lbl">{status?.last_scan ? formatRelativeTime(status.last_scan) : 'Loading...'}</span>
         </div>
       </div>
 

@@ -20,10 +20,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Configuration
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
-MAX_MATCHES = 500  # Full coverage
-MAX_CHAMPIONSHIPS = 50  # Top leagues by match count
-TIMEOUT = 15  # Reduced timeout for faster failures
-BATCH_SIZE = 100  # Larger batches = fewer requests
+MAX_MATCHES = 1500  # Comprehensive coverage - big/medium/small leagues
+MAX_CHAMPIONSHIPS = 150  # More leagues for broader coverage
+TIMEOUT = 12  # Fast timeout to avoid slow requests holding up the process
+BATCH_SIZE = 150  # Larger batches = fewer HTTP requests
 
 # Common headers for API requests
 HEADERS = {
@@ -53,12 +53,12 @@ def scrape_sportybet() -> List[Dict]:
         'platform': 'web',
     }
 
-    for page in range(1, 10):  # Max 9 pages
+    for page in range(1, 20):  # Max 19 pages for comprehensive coverage
         if len(matches) >= MAX_MATCHES:
             break
 
         try:
-            url = f"{SPORTYBET_API}?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10&pageSize=100&pageNum={page}&option=1"
+            url = f"{SPORTYBET_API}?sportId=sr%3Asport%3A1&marketId=1%2C18%2C10&pageSize=150&pageNum={page}&option=1"
             resp = session.get(url, headers=headers, timeout=TIMEOUT)
             data = resp.json()
 
@@ -379,9 +379,9 @@ def scrape_betway() -> List[Dict]:
     }
 
     skip = 0
-    page_size = 500
+    page_size = 750  # Larger page size for fewer requests
 
-    for _ in range(10):  # Max 10 pages
+    for _ in range(15):  # Max 15 pages for more comprehensive coverage
         if len(matches) >= MAX_MATCHES:
             break
 
@@ -743,9 +743,9 @@ def scrape_betfox() -> List[Dict]:
 
                     # Fetch enriched data for ALL competitions in batches
                     all_data = []
-                    batch_size = 15  # Larger batches
+                    batch_size = 25  # Larger batches for fewer requests
 
-                    for i in range(0, len(competition_ids), batch_size):  # Get ALL competitions
+                    for i in range(0, len(competition_ids), batch_size):
                         batch = competition_ids[i:i+batch_size]
                         ids_param = ','.join(batch)
 
@@ -763,7 +763,7 @@ def scrape_betfox() -> List[Dict]:
                             }}''')
                             all_data.append(batch_data)
                             print(f"  Batch {i//batch_size + 1}/{(len(competition_ids) + batch_size - 1) // batch_size} done")
-                            await asyncio.sleep(0.5)  # Faster rate limiting
+                            await asyncio.sleep(0.3)  # Fast rate limiting
                         except Exception as e:
                             print(f"  Batch {i//batch_size + 1} failed: {e}")
 
@@ -1097,7 +1097,7 @@ def main():
                     for m in e
                 ]
             }
-            for e in matched[:200]
+            for e in matched[:500]  # Include more matches in output
         ]
     }
 

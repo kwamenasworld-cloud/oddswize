@@ -849,6 +849,40 @@ a {
   gap: 0.75rem;
 }
 
+.sort-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sort-label {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.sort-select {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 140px;
+}
+
+.sort-select:hover {
+  border-color: var(--primary);
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+
 .refresh-btn {
   display: flex;
   align-items: center;
@@ -1358,6 +1392,27 @@ a {
   margin-left: 0.5rem;
 }
 
+.last-update-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: #2e7d32;
+  font-weight: 600;
+  border: 1px solid #a5d6a7;
+}
+
+.last-update-badge svg {
+  color: #43a047;
+}
+
+.last-update-badge .update-time {
+  white-space: nowrap;
+}
+
 /* Scroll Hint Mobile */
 .scroll-hint-mobile {
   display: none;
@@ -1403,6 +1458,29 @@ a {
 
 .quick-stats .stat.highlight .stat-num {
   color: var(--success);
+}
+
+.quick-stats .stat.last-updated-stat {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #a5d6a7;
+}
+
+.quick-stats .stat.last-updated-stat .update-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-stats .stat.last-updated-stat .update-icon svg {
+  color: #43a047;
+}
+
+.quick-stats .stat.last-updated-stat .stat-lbl {
+  color: #2e7d32;
+  font-weight: 600;
+  font-size: 0.75rem;
 }
 
 /* ========================= */
@@ -1993,6 +2071,23 @@ a {
   .toolbar-right {
     order: 3;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .sort-selector {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .sort-select {
+    min-width: 110px;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.4rem;
+  }
+
+  .sort-label {
+    display: none;
   }
 
   .scroll-hint-mobile {
