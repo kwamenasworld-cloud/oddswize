@@ -4,6 +4,7 @@ import { TeamLogo } from '../components/TeamLogo';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
+import { getMatches } from '../services/api';
 
 // News articles for homepage (links to full articles)
 const NEWS_ARTICLES = [
@@ -93,16 +94,11 @@ function HomePage() {
 
   const loadMatches = async () => {
     try {
-      // Try to load from API
-      const response = await fetch('/api/odds');
-      if (response.ok) {
-        const data = await response.json();
-        setMatches(data.matches || []);
-      }
+      const data = await getMatches(20, 0, 2);
+      setMatches(data.matches || []);
     } catch (error) {
-      console.log('Using demo data');
-      // Generate demo data
-      setMatches(generateDemoMatches());
+      console.error('Failed to load matches:', error);
+      setMatches([]);
     } finally {
       setLoading(false);
     }
@@ -387,27 +383,6 @@ function HomePage() {
       </section>
     </div>
   );
-}
-
-// Generate demo matches for display
-function generateDemoMatches() {
-  const demoMatches = [
-    { home_team: 'Liverpool', away_team: 'Manchester City', league: 'England. Premier League' },
-    { home_team: 'Real Madrid', away_team: 'Barcelona', league: 'Spain. La Liga' },
-    { home_team: 'Arsenal', away_team: 'Chelsea', league: 'England. Premier League' },
-    { home_team: 'Bayern Munich', away_team: 'Dortmund', league: 'Germany. Bundesliga' },
-    { home_team: 'PSG', away_team: 'Marseille', league: 'France. Ligue 1' },
-    { home_team: 'Inter Milan', away_team: 'AC Milan', league: 'Italy. Serie A' },
-  ];
-
-  return demoMatches.map((match, idx) => ({
-    ...match,
-    start_time: Math.floor(Date.now() / 1000) + (idx + 1) * 3600 * 4,
-    odds: [
-      { bookmaker: 'betway', home_odds: 1.8 + Math.random() * 0.5, draw_odds: 3.2 + Math.random() * 0.5, away_odds: 2.8 + Math.random() * 0.5 },
-      { bookmaker: 'sportybet', home_odds: 1.75 + Math.random() * 0.5, draw_odds: 3.1 + Math.random() * 0.5, away_odds: 2.9 + Math.random() * 0.5 },
-    ],
-  }));
 }
 
 export default HomePage;

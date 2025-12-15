@@ -5,7 +5,6 @@ import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
 import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
-import Sparkline, { generateOddsHistory, analyzeOddsMovement } from '../components/Sparkline';
 import ShareButton from '../components/ShareButton';
 
 // Market types
@@ -382,8 +381,6 @@ function OddsPage() {
               const bestHome = getBestOdds(match, 'home_odds');
               const bestDraw = getBestOdds(match, 'draw_odds');
               const bestAway = getBestOdds(match, 'away_odds');
-              const oddsHistory = generateOddsHistory(match.odds?.[0]?.home_odds, 72, 'random');
-              const movement = analyzeOddsMovement(oddsHistory);
 
               // Shorten team names for display
               const shortenName = (name) => {
@@ -404,11 +401,6 @@ function OddsPage() {
                 <div key={idx} className="hero-card">
                   <div className="hero-card-header">
                     <span className="hero-league">{match.league}</span>
-                    {movement.trend !== 'stable' && (
-                      <span className={`movement-badge ${movement.trend}`}>
-                        {movement.trend === 'steam' ? '🔥 HOT' : '📈 DRIFT'}
-                      </span>
-                    )}
                   </div>
                   <div className="hero-teams">
                     <div className="hero-team">
@@ -699,12 +691,6 @@ function OddsPage() {
               const best1x2Draw = getBestOdds(match, 'draw_odds');
               const best1x2Away = getBestOdds(match, 'away_odds');
 
-              // Generate odds history for display (computed each render for demo simplicity)
-              const primaryField = marketFields[0];
-              const primaryOdds = match.odds?.[0]?.[primaryField];
-              const oddsHistory = generateOddsHistory(primaryOdds, 72, 'random');
-              const movement = analyzeOddsMovement(oddsHistory);
-
               // Create share link for this specific match
               const shareLink = `${window.location.origin}/odds?match=${encodeURIComponent(match.home_team + ' vs ' + match.away_team)}`;
 
@@ -720,19 +706,6 @@ function OddsPage() {
                       <TeamLogo teamName={match.away_team} size={20} />
                       <span className="team-name">{match.away_team}</span>
                     </div>
-                    {/* Movement indicator */}
-                    {movement.trend !== 'stable' && (
-                      <div className="odds-movement">
-                        <Sparkline
-                          data={oddsHistory}
-                          width={36}
-                          height={14}
-                        />
-                        <span className={`movement-tag ${movement.trend}`}>
-                          {movement.trend === 'steam' ? '🔥 STEAM' : '📈 DRIFT'}
-                        </span>
-                      </div>
-                    )}
                     {/* Share button */}
                     <ShareButton
                       home_team={match.home_team}
