@@ -945,10 +945,11 @@ a {
   color: #333;
 }
 
-/* Odds Container */
+/* Odds Container - overflow-y: clip doesn't create scroll container, allowing sticky to work */
 .odds-container {
   background: white;
   overflow-x: auto;
+  overflow-y: clip; /* clip doesn't create scroll container like auto/scroll does */
   -webkit-overflow-scrolling: touch;
 }
 
