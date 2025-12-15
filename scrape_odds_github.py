@@ -686,29 +686,6 @@ def scrape_betfox() -> List[Dict]:
 
         async def fetch_betfox_data():
             """Async function to fetch Betfox data with Playwright"""
-            categories_data = None
-            competitions_data = []
-
-            async def handle_response(response):
-                """Capture API responses"""
-                nonlocal categories_data, competitions_data
-                url = response.url
-
-                # Capture categories (has list of competitions)
-                if '/api/offer/v3/categories?sport=Football' in url and response.status == 200:
-                    try:
-                        categories_data = await response.json()
-                    except:
-                        pass
-
-                # Capture competition enriched data (has actual events with odds)
-                if '/api/offer/v4/competitions' in url and 'enriched=2' in url and response.status == 200:
-                    try:
-                        comp_data = await response.json()
-                        competitions_data.append(comp_data)
-                    except:
-                        pass
-
             async with async_playwright() as p:
                 # Launch with non-headless mode (works with Xvfb in GitHub Actions)
                 browser = await p.chromium.launch(
@@ -728,28 +705,71 @@ def scrape_betfox() -> List[Dict]:
                 """)
 
                 page = await context.new_page()
-                page.on('response', handle_response)
 
                 try:
                     # Navigate to sportsbook
                     await page.goto('https://www.betfox.com.gh/sportsbook', wait_until='networkidle', timeout=60000)
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(5)
 
-                    # Click on popular competitions to load their events
-                    competitions_to_fetch = ['Premier League', 'LaLiga', 'Serie A', 'Bundesliga', 'Ligue 1', 'Champions League']
+                    # Fetch categories to get all competition IDs
+                    print("  Fetching all competitions...")
+                    categories = await page.evaluate('''async () => {
+                        const response = await fetch('https://www.betfox.com.gh/api/offer/v3/categories?sport=Football', {
+                            headers: {
+                                'Accept': 'application/json',
+                                'x-betr-operator': 'bf-group',
+                                'x-betr-brand': 'betfox.com.gh',
+                                'x-locale': 'en',
+                            }
+                        });
+                        return await response.json();
+                    }''')
 
-                    for comp_name in competitions_to_fetch:
+                    # Extract all competition IDs
+                    competition_ids = []
+                    for category_group in ['popularCompetitions', 'popularCategories', 'remainingCategories']:
+                        items = categories.get(category_group, [])
+                        if category_group == 'popularCompetitions':
+                            for comp in items:
+                                competition_ids.append(comp.get('id'))
+                        else:
+                            for category in items:
+                                for comp in category.get('competitions', []):
+                                    competition_ids.append(comp.get('id'))
+
+                    # Remove duplicates and take top competitions by fixture count
+                    competition_ids = list(set(competition_ids))
+                    print(f"  Found {len(competition_ids)} unique competitions")
+
+                    # Fetch enriched data for ALL competitions in batches
+                    all_data = []
+                    batch_size = 15  # Larger batches
+
+                    for i in range(0, len(competition_ids), batch_size):  # Get ALL competitions
+                        batch = competition_ids[i:i+batch_size]
+                        ids_param = ','.join(batch)
+
                         try:
-                            await page.click(f'text={comp_name}', timeout=5000)
-                            await asyncio.sleep(2)
-                        except:
-                            pass  # Competition might not be visible
-
-                    # Wait for API calls to complete
-                    await asyncio.sleep(3)
+                            batch_data = await page.evaluate(f'''async () => {{
+                                const response = await fetch('https://www.betfox.com.gh/api/offer/v4/competitions?ids={ids_param}&enriched=2&sport=Football', {{
+                                    headers: {{
+                                        'Accept': 'application/json',
+                                        'x-betr-operator': 'bf-group',
+                                        'x-betr-brand': 'betfox.com.gh',
+                                        'x-locale': 'en',
+                                    }}
+                                }});
+                                return await response.json();
+                            }}''')
+                            all_data.append(batch_data)
+                            print(f"  Batch {i//batch_size + 1}/{(len(competition_ids) + batch_size - 1) // batch_size} done")
+                            await asyncio.sleep(0.5)  # Faster rate limiting
+                        except Exception as e:
+                            print(f"  Batch {i//batch_size + 1} failed: {e}")
 
                     await browser.close()
-                    return competitions_data if competitions_data else None
+                    print(f"  Fetched {len(all_data)} batches of enriched data")
+                    return all_data if all_data else None
 
                 except Exception as e:
                     print(f"  Browser error: {e}")
