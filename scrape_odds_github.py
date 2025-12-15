@@ -766,84 +766,87 @@ def scrape_betfox() -> List[Dict]:
         skip_patterns = ['esoccer', 'ebasketball', 'esports', 'virtual']
 
         for comp_response in data:
-            enriched_events = comp_response.get('enriched', [])
+            enriched_comps = comp_response.get('enriched', [])
 
-            for event in enriched_events:
-                if len(matches) >= MAX_MATCHES:
-                    break
-
-                # Skip live events
-                if event.get('live'):
-                    continue
-
-                # Get team names from competitors
-                competitors = event.get('competitors', [])
-                if len(competitors) < 2:
-                    continue
-
-                home_team = competitors[0].get('name', '')
-                away_team = competitors[1].get('name', '')
-
-                if not home_team or not away_team:
-                    continue
-
-                # Skip eSports
-                full_name = f"{home_team} {away_team}".lower()
-                if any(p in full_name for p in skip_patterns):
-                    continue
-
-                # Get league from competition info (from minimal section)
-                minimal = comp_response.get('minimal', {})
-                league = minimal.get('name', 'Unknown')
-                category = minimal.get('category', {}).get('name', '')
+            for comp in enriched_comps:
+                # Get league info from competition
+                league = comp.get('name', 'Unknown')
+                category = comp.get('category', {}).get('name', '')
                 if category:
                     league = f"{category}. {league}"
 
-                # Extract 1X2 odds from FOOTBALL_WINNER market
-                home_odds = draw_odds = away_odds = None
+                # Process fixtures (matches) in this competition
+                fixtures = comp.get('fixtures', [])
 
-                for market in event.get('markets', []):
-                    if market.get('type') == 'FOOTBALL_WINNER':
-                        outcomes = market.get('outcomes', [])
-                        for outcome in outcomes:
-                            value = outcome.get('value')
-                            odds = outcome.get('odds')
-
-                            if odds and value:
-                                if value == 'HOME':
-                                    home_odds = float(odds)
-                                elif value == 'DRAW':
-                                    draw_odds = float(odds)
-                                elif value == 'AWAY':
-                                    away_odds = float(odds)
+                for fixture in fixtures:
+                    if len(matches) >= MAX_MATCHES:
                         break
 
-                if not home_odds or not away_odds:
-                    continue
+                    # Skip live events
+                    if fixture.get('live'):
+                        continue
 
-                # Get match start time
-                start_ts = None
-                start_time = event.get('startTime')
-                if start_time:
-                    try:
-                        dt = parser.parse(start_time)
-                        start_ts = int(dt.timestamp())
-                    except:
-                        pass
+                    # Get team names from competitors
+                    competitors = fixture.get('competitors', [])
+                    if len(competitors) < 2:
+                        continue
 
-                event_id = str(event.get('id', f"{home_team}_{away_team}"))
+                    home_team = competitors[0].get('name', '')
+                    away_team = competitors[1].get('name', '')
 
-                matches.append({
-                    'bookmaker': 'Betfox Ghana',
-                    'event_id': event_id,
-                    'home_team': home_team,
-                    'away_team': away_team,
-                    'home_odds': home_odds,
-                    'draw_odds': draw_odds if draw_odds else 0,
-                    'away_odds': away_odds,
-                    'league': league,
-                    'start_time': start_ts,
-                })
+                    if not home_team or not away_team:
+                        continue
+
+                    # Skip eSports
+                    full_name = f"{home_team} {away_team}".lower()
+                    if any(p in full_name for p in skip_patterns):
+                        continue
+
+                    # Extract 1X2 odds from FOOTBALL_WINNER market
+                    home_odds = draw_odds = away_odds = None
+
+                    for market in fixture.get('markets', []):
+                        if market.get('type') == 'FOOTBALL_WINNER':
+                            outcomes = market.get('outcomes', [])
+                            for outcome in outcomes:
+                                value = outcome.get('value')
+                                odds = outcome.get('odds')
+
+                                if odds and value:
+                                    if value == 'HOME':
+                                        home_odds = float(odds)
+                                    elif value == 'DRAW':
+                                        draw_odds = float(odds)
+                                    elif value == 'AWAY':
+                                        away_odds = float(odds)
+                            break
+
+                    if not home_odds or not away_odds:
+                        continue
+
+                    # Get match start time
+                    start_ts = None
+                    start_time = fixture.get('startTime')
+                    if start_time:
+                        try:
+                            dt = parser.parse(start_time)
+                            start_ts = int(dt.timestamp())
+                        except:
+                            pass
+
+                    event_id = str(fixture.get('id', f"{home_team}_{away_team}"))
+
+                    matches.append({
+                        'bookmaker': 'Betfox Ghana',
+                        'event_id': event_id,
+                        'home_team': home_team,
+                        'away_team': away_team,
+                        'home_odds': home_odds,
+                        'draw_odds': draw_odds if draw_odds else 0,
+                        'away_odds': away_odds,
+                        'league': league,
+                        'start_time': start_ts,
+                    })
 
         print(f"  Total: {len(matches)} matches from Betfox")
 
