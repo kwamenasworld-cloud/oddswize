@@ -8,20 +8,28 @@ function ShareButton({ home_team, away_team, league, time, bestHome, bestDraw, b
 
   // Format match details for sharing
   const formatShareText = () => {
+    // Extract values and bookmakers (handle both old and new format)
+    const homeValue = bestHome?.value || bestHome || 0;
+    const homeBookie = bestHome?.bookmaker || '';
+    const drawValue = bestDraw?.value || bestDraw || 0;
+    const drawBookie = bestDraw?.bookmaker || '';
+    const awayValue = bestAway?.value || bestAway || 0;
+    const awayBookie = bestAway?.bookmaker || '';
+
     return `⚽ *${home_team} vs ${away_team}*
 
 📅 ${time}
 🏆 ${league}
 
 💰 *Best Odds*
-${home_team}: ${bestHome.toFixed(2)}
-Draw: ${bestDraw.toFixed(2)}
-${away_team}: ${bestAway.toFixed(2)}
+${home_team}: *${homeValue.toFixed(2)}* (${homeBookie})
+Draw: *${drawValue.toFixed(2)}* (${drawBookie})
+${away_team}: *${awayValue.toFixed(2)}* (${awayBookie})
 
-🔗 Compare all bookmakers on OddsWize:
+🔗 Compare all odds on OddsWize:
 ${shareLink}
 
-_Ghana's #1 Odds Comparison Site_`;
+_Find the best betting odds in Ghana 🇬🇭_`;
   };
 
   const handleWhatsAppShare = () => {

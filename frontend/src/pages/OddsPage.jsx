@@ -891,9 +891,9 @@ function OddsPage() {
                       away_team={match.away_team}
                       league={match.league}
                       time={formatTime(match.start_time)}
-                      bestHome={best1x2Home.value || 0}
-                      bestDraw={best1x2Draw.value || 0}
-                      bestAway={best1x2Away.value || 0}
+                      bestHome={best1x2Home}
+                      bestDraw={best1x2Draw}
+                      bestAway={best1x2Away}
                       shareLink={shareLink}
                     />
                   </div>
