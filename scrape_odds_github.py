@@ -273,47 +273,29 @@ def scrape_1xbet() -> List[Dict]:
 
 
 # ============================================================================
-# 22Bet Ghana Scraper - PLAYWRIGHT VERSION
+# 22Bet Ghana Scraper - DIRECT API (Same structure as 1xBet)
+# NOTE: Currently blocked by Cloudflare protection
+# TODO: Implement Cloudflare bypass or use proxy service
 # ============================================================================
 
-def scrape_22bet() -> List[Dict]:
-    """Scrape 22Bet Ghana using Playwright to bypass SPA loading."""
-    print("Scraping 22Bet Ghana (Playwright)...")
+TWENTYTWOBET_API = "https://22bet.com.gh/LineFeed"
+
+def fetch_22bet_games(session, champ_id, champ_name):
+    """Fetch games for a single championship."""
     matches = []
-    api_data = []
-
     try:
-        from playwright.sync_api import sync_playwright
+        resp = session.get(f"{TWENTYTWOBET_API}/GetChampZip?champ={champ_id}&lng=en", headers=HEADERS, timeout=TIMEOUT)
+        value = resp.json().get("Value", {})
+        games = value.get("G", []) if isinstance(value, dict) else []
 
-        def handle_response(response):
-            """Capture API responses."""
-            url = response.url
-            if 'GetChampsZip' in url or 'GetGamesZip' in url or 'GetChampZip' in url:
-                try:
-                    data = response.json()
-                    api_data.append(('champs' if 'GetChampsZip' in url else 'games', data))
-                except:
-                    pass
+        game_ids = [g.get("I") for g in games if g.get("I")]
+        if not game_ids:
+            return []
 
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            )
-            page = context.new_page()
-            page.on('response', handle_response)
-
-            # Navigate to football page
-            page.goto('https://22bet.com.gh/en/line/football', timeout=30000)
-            page.wait_for_timeout(5000)  # Wait for API calls
-
-            browser.close()
-
-        # Parse captured data
-        games_data = []
-        for dtype, data in api_data:
-            if dtype == 'games' and isinstance(data.get('Value'), list):
-                games_data.extend(data['Value'])
+        # Fetch all games in one batch
+        ids_str = ",".join(str(i) for i in game_ids[:BATCH_SIZE])
+        resp = session.get(f"{TWENTYTWOBET_API}/GetGamesZip?ids={ids_str}&lng=en", headers=HEADERS, timeout=TIMEOUT)
+        games_data = resp.json().get("Value", [])
 
         for game in games_data:
             event_id = game.get("I")
@@ -342,7 +324,7 @@ def scrape_22bet() -> List[Dict]:
                 home_odds = float(home_odds)
                 away_odds = float(away_odds)
                 draw_odds = float(draw_odds) if draw_odds else 0.0
-                if home_odds < 1.01 or home_odds > 100:
+                if home_odds < 1.01 or home_odds > 100 or away_odds < 1.01 or away_odds > 100:
                     continue
             except:
                 continue
@@ -355,15 +337,69 @@ def scrape_22bet() -> List[Dict]:
                 'home_odds': home_odds,
                 'draw_odds': draw_odds,
                 'away_odds': away_odds,
-                'league': game.get("L", ""),
+                'league': game.get("L", champ_name),
                 'start_time': game.get("S", 0),
             })
+    except:
+        pass
+    return matches
 
+def scrape_22bet() -> List[Dict]:
+    """Scrape 22Bet Ghana (Direct API - same structure as 1xBet)."""
+    print("Scraping 22Bet Ghana (Direct API)...")
+    session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
+    session.mount('https://', adapter)
+
+    # First, load the main page to get cookies
+    try:
+        page_headers = {
+            'User-Agent': HEADERS['User-Agent'],
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        session.get('https://22bet.com.gh/', headers=page_headers, timeout=TIMEOUT)
+        time.sleep(1)
+    except:
+        pass
+
+    try:
+        resp = session.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", headers=HEADERS, timeout=TIMEOUT)
+        if resp.status_code != 200:
+            print(f"  22Bet API returned status {resp.status_code}")
+            return []
+        champs = resp.json().get("Value", [])
+        champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)[:MAX_CHAMPIONSHIPS]
     except Exception as e:
-        print(f"  22Bet error: {e}")
+        print(f"  22Bet error getting champs: {e}")
+        return []
 
-    print(f"  Total: {len(matches)} matches from 22Bet")
-    return matches[:MAX_MATCHES]
+    skip_patterns = ["alternative", "team vs player", "specials", "fantasy", "esports"]
+    valid_champs = [(c.get("LI"), c.get("L", "")) for c in champs
+                    if not any(p in c.get("L", "").lower() for p in skip_patterns)]
+
+    # Parallel championship fetching
+    all_matches = []
+    with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
+        futures = {executor.submit(fetch_22bet_games, session, cid, cname): cid
+                   for cid, cname in valid_champs}
+        for future in as_completed(futures):
+            matches = future.result()
+            all_matches.extend(matches)
+            if len(all_matches) >= MAX_MATCHES:
+                break
+
+    # Dedupe
+    seen = set()
+    unique = []
+    for m in all_matches:
+        eid = m['event_id']
+        if eid not in seen:
+            seen.add(eid)
+            unique.append(m)
+
+    print(f"  Total: {len(unique)} matches from 22Bet")
+    return unique[:MAX_MATCHES]
 
 
 # ============================================================================
@@ -656,6 +692,8 @@ def scrape_soccabet() -> List[Dict]:
 
 # ============================================================================
 # Betfox Ghana Scraper - LIGHTWEIGHT VERSION (no Playwright)
+# NOTE: API returns 403 - requires authentication or different approach
+# TODO: Investigate API authentication requirements or use Selenium/Playwright
 # ============================================================================
 
 def scrape_betfox() -> List[Dict]:
@@ -667,13 +705,31 @@ def scrape_betfox() -> List[Dict]:
     adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10)
     session.mount('https://', adapter)
 
+    # First, load the main page to get cookies
+    try:
+        page_headers = {
+            'User-Agent': HEADERS['User-Agent'],
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        session.get('https://www.betfox.com.gh/', headers=page_headers, timeout=TIMEOUT)
+        time.sleep(2)  # Give time for cookies to settle
+    except:
+        pass
+
     headers = {
         **HEADERS,
         'Accept': 'application/json',
         'Origin': 'https://www.betfox.com.gh',
-        'Referer': 'https://www.betfox.com.gh/',
+        'Referer': 'https://www.betfox.com.gh/sports/football',
         'x-betr-brand': 'betfox.com.gh',
         'x-locale': 'en',
+        'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
     }
 
     try:
@@ -924,10 +980,10 @@ def main():
     scrapers = {
         'SportyBet Ghana': scrape_sportybet,
         '1xBet Ghana': scrape_1xbet,
-        # '22Bet Ghana': scrape_22bet,  # Disabled - requires Playwright (slow)
         'Betway Ghana': scrape_betway,
         'SoccaBet Ghana': scrape_soccabet,
-        'Betfox Ghana': scrape_betfox,
+        # '22Bet Ghana': scrape_22bet,  # Cloudflare protected - needs bypass
+        # 'Betfox Ghana': scrape_betfox,  # API returns 403 - needs auth
     }
 
     print("\nRunning ALL scrapers in parallel...")
