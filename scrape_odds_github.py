@@ -876,28 +876,31 @@ def normalize_league(league: str) -> str:
     league = league.replace('2 Bundesliga', '2nd Bundesliga')
     league = league.replace('3 Bundesliga', '3rd Bundesliga')
 
-    # Remove country prefixes (e.g., "England Premier League" -> "Premier League")
-    # But keep full name for less common leagues
-    country_prefixes = [
-        'England ', 'Spain ', 'Germany ', 'Italy ', 'France ',
-        'Portugal ', 'Netherlands ', 'Scotland ', 'Belgium ',
-        'Turkey ', 'Greece ', 'Russia ', 'Ukraine ', 'Poland ',
-        'Austria ', 'Switzerland ', 'Denmark ', 'Norway ', 'Sweden ',
-    ]
+    # Remove country prefixes for specific major leagues only
+    # Important: "Premier League" without country means English Premier League
+    # Other countries keep their prefix (e.g., "Kenya Premier League" stays as is)
 
-    for prefix in country_prefixes:
-        if league.startswith(prefix):
-            # Remove country prefix for major leagues
-            potential = league[len(prefix):]
-            # Only remove prefix for well-known league names
-            if any(known in potential for known in [
-                'Premier League', 'Championship', 'League One', 'League Two',
-                'La Liga', 'Serie A', 'Serie B', 'Bundesliga', '2nd Bundesliga',
-                'Ligue 1', 'Ligue 2', 'Primeira Liga', 'Eredivisie',
-                'Super League', 'First Division'
-            ]):
-                league = potential
-            break
+    major_league_mappings = {
+        'England Premier League': 'Premier League',  # English PL gets bare name
+        'England Championship': 'Championship',
+        'England League One': 'League One',
+        'England League Two': 'League Two',
+        'Spain La Liga': 'La Liga',
+        'Spain La Liga 2': 'La Liga 2',
+        'Italy Serie A': 'Serie A',
+        'Italy Serie B': 'Serie B',
+        'Germany Bundesliga': 'Bundesliga',
+        'Germany 2nd Bundesliga': '2nd Bundesliga',
+        'France Ligue 1': 'Ligue 1',
+        'France Ligue 2': 'Ligue 2',
+        'Portugal Primeira Liga': 'Primeira Liga',
+        'Netherlands Eredivisie': 'Eredivisie',
+        'Scotland Premiership': 'Scottish Premiership',
+    }
+
+    # Check for exact matches in major leagues
+    if league in major_league_mappings:
+        league = major_league_mappings[league]
 
     return league
 
