@@ -965,12 +965,12 @@ export const COUNTRIES = {
 export const POPULAR_LEAGUE_IDS = [
   'premier',
   'laliga',
-  'ghana',
-  'ucl',
+  'ligue1',
   'seriea',
   'bundesliga',
-  'ligue1',
+  'ucl',
   'europa',
+  'ghana',
 ];
 
 // Get popular leagues config

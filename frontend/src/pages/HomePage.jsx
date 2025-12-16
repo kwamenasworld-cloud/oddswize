@@ -79,7 +79,7 @@ const BETTING_TIPS = [
 const POPULAR_LEAGUES = [
   LEAGUES.premier,
   LEAGUES.laliga,
-  LEAGUES.ghana,
+  LEAGUES.ligue1,
   LEAGUES.ucl,
   LEAGUES.seriea,
   LEAGUES.bundesliga,
