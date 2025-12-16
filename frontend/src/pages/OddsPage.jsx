@@ -358,8 +358,15 @@ function OddsPage() {
       x: e.clientX,
       y: e.clientY,
     });
-    setTimeout(() => setSelectedOdd(null), 3000);
   };
+
+  // Cleanup timeout for probability tooltip
+  useEffect(() => {
+    if (selectedOdd) {
+      const timer = setTimeout(() => setSelectedOdd(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedOdd]);
 
   // Filter matches based on search, league, country, and date
   const filteredMatches = useMemo(() => {

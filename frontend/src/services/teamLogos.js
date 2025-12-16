@@ -537,14 +537,12 @@ const fetchTeamLogo = async (teamName) => {
 
   // Check memory cache first
   if (logoCache[cacheKey]) {
-    console.log(`[TeamLogos] Cache hit for ${teamName}:`, logoCache[cacheKey]);
     return logoCache[cacheKey];
   }
 
   // Check static logos - these are reliable and don't need API calls
   const staticLogo = getStaticLogo(teamName);
   if (staticLogo) {
-    console.log(`[TeamLogos] Static logo found for ${teamName}:`, staticLogo);
     logoCache[cacheKey] = staticLogo;
     saveCache(logoCache);
     return staticLogo;
@@ -555,7 +553,6 @@ const fetchTeamLogo = async (teamName) => {
   const timeoutId = setTimeout(() => controller.abort(), 5000);
 
   try {
-    console.log(`[TeamLogos] Fetching from API for ${teamName} (search: ${searchName})`);
 
     const response = await fetch(
       `${SPORTSDB_API}/searchteams.php?t=${encodeURIComponent(searchName)}`,
@@ -569,7 +566,6 @@ const fetchTeamLogo = async (teamName) => {
     }
 
     const data = await response.json();
-    console.log(`[TeamLogos] API response for ${teamName}:`, data.teams ? `${data.teams.length} teams found` : 'no teams');
 
     if (data.teams && data.teams.length > 0) {
       // Get the first matching team
@@ -578,7 +574,6 @@ const fetchTeamLogo = async (teamName) => {
       const logoUrl = team.strBadge || team.strLogo || team.strTeamBadge || null;
 
       if (logoUrl) {
-        console.log(`[TeamLogos] Found logo for ${teamName}:`, logoUrl);
         // Cache the result
         logoCache[cacheKey] = logoUrl;
         saveCache(logoCache);
@@ -587,15 +582,14 @@ const fetchTeamLogo = async (teamName) => {
     }
 
     // Don't cache null for API failures - allow retry
-    console.log(`[TeamLogos] No logo found for ${teamName}`);
     return null;
 
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.log(`[TeamLogos] Request timeout for ${teamName}`);
+      // Request timeout
     } else {
-      console.log(`[TeamLogos] Failed to fetch logo for ${teamName}:`, error.message);
+      console.error(`[TeamLogos] Failed to fetch logo for ${teamName}:`, error.message);
     }
     return null;
   }

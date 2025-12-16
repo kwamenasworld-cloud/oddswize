@@ -106,34 +106,29 @@ const fetchBookmakerLogo = async (bookmakerName) => {
 
   // Check memory cache first
   if (logoCache[cacheKey]) {
-    console.log(`[BookmakerLogos] Cache hit for ${bookmakerName}:`, logoCache[cacheKey]);
     return logoCache[cacheKey];
   }
 
   if (!domain) {
-    console.log(`[BookmakerLogos] No domain mapping for ${bookmakerName}`);
     return null;
   }
 
   // Try DuckDuckGo Icons API first (good quality, always works)
   const duckduckgoUrl = `${DUCKDUCKGO_ICON_API}/${domain}.ico`;
-  console.log(`[BookmakerLogos] Trying DuckDuckGo for ${bookmakerName}: ${duckduckgoUrl}`);
 
   try {
     const isValid = await testLogoUrl(duckduckgoUrl);
     if (isValid) {
-      console.log(`[BookmakerLogos] DuckDuckGo logo found for ${bookmakerName}`);
       logoCache[cacheKey] = duckduckgoUrl;
       saveCache(logoCache);
       return duckduckgoUrl;
     }
   } catch (e) {
-    console.log(`[BookmakerLogos] DuckDuckGo failed for ${bookmakerName}:`, e.message);
+    // DuckDuckGo failed, fallback to Google
   }
 
   // Fall back to Google Favicon API
   const googleUrl = `${GOOGLE_FAVICON_API}?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=128`;
-  console.log(`[BookmakerLogos] Falling back to Google Favicon for ${bookmakerName}`);
 
   logoCache[cacheKey] = googleUrl;
   saveCache(logoCache);

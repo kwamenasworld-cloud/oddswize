@@ -51,48 +51,57 @@ export const getMatches = async (limit = 100, offset = 0, minBookmakers = 2) => 
     // Try Cloudflare API first
     const data = await fetchApi('/api/odds');
 
-    if (data.success && data.data) {
-      // Flatten matches from all leagues
-      const allMatches = data.data.flatMap(league =>
-        league.matches.map(match => ({
+    // Validate response structure
+    if (data.success && data.data && Array.isArray(data.data)) {
+      // Flatten matches from all leagues with validation
+      const allMatches = data.data.flatMap(league => {
+        if (!league || !Array.isArray(league.matches)) {
+          return [];
+        }
+        return league.matches.map(match => ({
           ...match,
-          league: league.league,
-        }))
-      );
+          league: league.league || 'Unknown',
+        }));
+      });
 
       // Filter by minimum bookmakers
       const filtered = allMatches.filter(
-        match => match.odds && match.odds.length >= minBookmakers
+        match => match.odds && Array.isArray(match.odds) && match.odds.length >= minBookmakers
       );
 
       return {
         matches: filtered.slice(offset, offset + limit),
         total: filtered.length,
-        meta: data.meta,
+        meta: data.meta || {},
       };
     }
 
-    throw new Error('Invalid API response');
+    throw new Error('Invalid API response structure');
   } catch (error) {
     // Fallback to static data
-    console.log('Cloudflare API unavailable, trying static data...');
-    const staticData = await fetchStaticData();
+    console.warn('Cloudflare API unavailable, using static data:', error.message);
 
-    if (staticData && staticData.matches) {
-      const filtered = staticData.matches.filter(
-        match => match.odds && match.odds.length >= minBookmakers
-      );
-      return {
-        matches: filtered.slice(offset, offset + limit),
-        total: filtered.length,
-        meta: {
-          last_updated: staticData.last_updated,
-          total_matches: filtered.length,
-        },
-      };
+    try {
+      const staticData = await fetchStaticData();
+
+      if (staticData && Array.isArray(staticData.matches)) {
+        const filtered = staticData.matches.filter(
+          match => match.odds && Array.isArray(match.odds) && match.odds.length >= minBookmakers
+        );
+        return {
+          matches: filtered.slice(offset, offset + limit),
+          total: filtered.length,
+          meta: {
+            last_updated: staticData.last_updated || new Date().toISOString(),
+            total_matches: filtered.length,
+          },
+        };
+      }
+    } catch (staticError) {
+      console.error('Failed to load static data:', staticError);
     }
 
-    throw error;
+    throw new Error('Unable to load odds data from any source');
   }
 };
 

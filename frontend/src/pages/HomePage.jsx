@@ -181,11 +181,11 @@ function HomePage() {
           </p>
           <div className="hero-stats">
             <div className="stat">
-              <span className="stat-value">6</span>
+              <span className="stat-value">{BOOKMAKER_ORDER.length}</span>
               <span className="stat-label">Bookmakers</span>
             </div>
             <div className="stat">
-              <span className="stat-value">{matches.length || '100'}+</span>
+              <span className="stat-value">{matches.length > 0 ? `${matches.length}+` : 'Loading...'}</span>
               <span className="stat-label">Matches</span>
             </div>
             <div className="stat">
@@ -370,7 +370,7 @@ function HomePage() {
           <details className="faq-item">
             <summary>Which bookmakers are available in Ghana?</summary>
             <p>
-              OddsWize compares odds from 6 bookmakers operating in Ghana: Betway, Sportybet,
+              OddsWize compares odds from {BOOKMAKER_ORDER.length} bookmakers operating in Ghana: Betway, Sportybet,
               1xBet, 22Bet, SoccaBet, and Betfox. All featured bookmakers are licensed to operate in Ghana
               and offer mobile money deposits.
             </p>

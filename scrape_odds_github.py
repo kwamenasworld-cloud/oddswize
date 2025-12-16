@@ -686,12 +686,12 @@ def scrape_soccabet() -> List[Dict]:
 
 
 # ============================================================================
-# Betfox Ghana Scraper - Using v3 fixtures (boosted + live endpoints)
+# Betfox Ghana Scraper - Using V4 API (upcoming + live endpoints)
 # ============================================================================
 
 def scrape_betfox() -> List[Dict]:
-    """Scrape Betfox Ghana via v3 fixtures API."""
-    print("Scraping Betfox Ghana (v3 fixtures API)...")
+    """Scrape Betfox Ghana via V4 fixtures API."""
+    print("Scraping Betfox Ghana (V4 API)...")
     matches = []
 
     # Use cloudscraper to bypass Cloudflare
@@ -712,29 +712,31 @@ def scrape_betfox() -> List[Dict]:
     })
 
     try:
-        # Get football fixtures from boosted endpoint AND live matches
+        # Get football fixtures from V4 API (upcoming + live)
         all_fixtures = []
 
-        # Get boosted/featured matches
+        # Get upcoming matches (V4 API returns 100 fixtures max)
         resp = scraper.get(
-            'https://www.betfox.com.gh/api/offer/v3/fixtures/home/boosted?first=500&sport=Football',
+            'https://www.betfox.com.gh/api/offer/v4/fixtures/home/upcoming?first=1000&sport=Football',
             timeout=TIMEOUT
         )
         if resp.status_code == 200:
             data = resp.json()
-            boosted_fixtures = data.get('data', [])
-            all_fixtures.extend(boosted_fixtures)
+            upcoming_fixtures = data.get('data', [])
+            all_fixtures.extend(upcoming_fixtures)
+            print(f"  Upcoming fixtures: {len(upcoming_fixtures)}")
 
         # Also get live matches for additional coverage
         try:
             resp_live = scraper.get(
-                'https://www.betfox.com.gh/api/offer/v3/fixtures/live?sport=Football',
+                'https://www.betfox.com.gh/api/offer/v4/fixtures/home/live?first=100&sport=Football',
                 timeout=TIMEOUT
             )
             if resp_live.status_code == 200:
                 live_data = resp_live.json()
                 live_fixtures = live_data.get('data', [])
                 all_fixtures.extend(live_fixtures)
+                print(f"  Live fixtures: {len(live_fixtures)}")
         except:
             pass  # Live matches optional
 
@@ -742,7 +744,7 @@ def scrape_betfox() -> List[Dict]:
             print("  No fixtures found")
             return []
 
-        print(f"  Found {len(all_fixtures)} fixtures (boosted + live)")
+        print(f"  Total fetched: {len(all_fixtures)} fixtures (upcoming + live)")
 
         # Deduplicate fixtures by ID
         seen_ids = set()
@@ -780,9 +782,19 @@ def scrape_betfox() -> List[Dict]:
                 if not home or not away:
                     continue
 
-                # Get odds from market outcomes
-                market = fixture.get('market', {})
-                outcomes = market.get('outcomes', [])
+                # Get odds from markets array (V4 API)
+                # Find FOOTBALL_WINNER market (1X2 odds)
+                markets = fixture.get('markets', [])
+                winner_market = None
+                for market in markets:
+                    if market.get('type') == 'FOOTBALL_WINNER':
+                        winner_market = market
+                        break
+
+                if not winner_market:
+                    continue
+
+                outcomes = winner_market.get('outcomes', [])
 
                 home_odds = draw_odds = away_odds = None
                 for outcome in outcomes:
@@ -961,7 +973,7 @@ def main():
         'Betway Ghana': scrape_betway,
         'SoccaBet Ghana': scrape_soccabet,
         '22Bet Ghana': scrape_22bet,  # WORKING - Using cloudscraper with correct API endpoint
-        'Betfox Ghana': scrape_betfox,  # WORKING - Using v3 fixtures (boosted + live)
+        'Betfox Ghana': scrape_betfox,  # WORKING - Using V4 API (100+ fixtures from upcoming + live)
     }
 
     print("\nRunning ALL scrapers in parallel...")
