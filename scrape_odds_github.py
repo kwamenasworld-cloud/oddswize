@@ -92,10 +92,10 @@ def scrape_sportybet() -> List[Dict]:
         'Referer': 'https://www.sportybet.com/gh/',
     }
 
-    # Fetch pages in parallel - increase to 50 pages for more coverage
+    # Fetch pages in parallel - increase to 80 pages for maximum coverage
     all_tournaments = []
     with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
-        futures = {executor.submit(fetch_sportybet_page, session, headers, p): p for p in range(1, 51)}
+        futures = {executor.submit(fetch_sportybet_page, session, headers, p): p for p in range(1, 81)}
         for future in as_completed(futures):
             tournaments = future.result()
             all_tournaments.extend(tournaments)
@@ -436,11 +436,11 @@ def scrape_betway() -> List[Dict]:
 
     page_size = 1000  # Push it higher
 
-    # Fetch pages in parallel - increase range to 20000 for more coverage
+    # Fetch pages in parallel - increase range to 30000 for more coverage
     all_data = []
     with ThreadPoolExecutor(max_workers=8) as executor:
         futures = {executor.submit(fetch_betway_page, session, headers, skip, page_size): skip
-                   for skip in range(0, 20000, page_size)}
+                   for skip in range(0, 30000, page_size)}
         for future in as_completed(futures):
             data = future.result()
             if data:
@@ -686,7 +686,7 @@ def scrape_soccabet() -> List[Dict]:
 
 
 # ============================================================================
-# Betfox Ghana Scraper - Using v3 fixtures/home/boosted API
+# Betfox Ghana Scraper - Using v3 fixtures (boosted + live endpoints)
 # ============================================================================
 
 def scrape_betfox() -> List[Dict]:
@@ -712,27 +712,50 @@ def scrape_betfox() -> List[Dict]:
     })
 
     try:
-        # Get football fixtures from boosted endpoint
-        # Note: This endpoint returns limited matches (~100 max) but it's the only working one
+        # Get football fixtures from boosted endpoint AND live matches
+        all_fixtures = []
+
+        # Get boosted/featured matches
         resp = scraper.get(
             'https://www.betfox.com.gh/api/offer/v3/fixtures/home/boosted?first=500&sport=Football',
             timeout=TIMEOUT
         )
+        if resp.status_code == 200:
+            data = resp.json()
+            boosted_fixtures = data.get('data', [])
+            all_fixtures.extend(boosted_fixtures)
 
-        if resp.status_code != 200:
-            print(f"  Betfox API returned status {resp.status_code}")
-            return []
+        # Also get live matches for additional coverage
+        try:
+            resp_live = scraper.get(
+                'https://www.betfox.com.gh/api/offer/v3/fixtures/live?sport=Football',
+                timeout=TIMEOUT
+            )
+            if resp_live.status_code == 200:
+                live_data = resp_live.json()
+                live_fixtures = live_data.get('data', [])
+                all_fixtures.extend(live_fixtures)
+        except:
+            pass  # Live matches optional
 
-        data = resp.json()
-        fixtures = data.get('data', [])
-
-        if not fixtures:
+        if not all_fixtures:
             print("  No fixtures found")
             return []
 
-        print(f"  Found {len(fixtures)} fixtures")
+        print(f"  Found {len(all_fixtures)} fixtures (boosted + live)")
 
-        for fixture in fixtures:
+        # Deduplicate fixtures by ID
+        seen_ids = set()
+        unique_fixtures = []
+        for fixture in all_fixtures:
+            fid = fixture.get('id')
+            if fid and fid not in seen_ids:
+                seen_ids.add(fid)
+                unique_fixtures.append(fixture)
+
+        print(f"  Unique fixtures: {len(unique_fixtures)}")
+
+        for fixture in unique_fixtures:
             if len(matches) >= MAX_MATCHES:
                 break
 
@@ -938,7 +961,7 @@ def main():
         'Betway Ghana': scrape_betway,
         'SoccaBet Ghana': scrape_soccabet,
         '22Bet Ghana': scrape_22bet,  # WORKING - Using cloudscraper with correct API endpoint
-        'Betfox Ghana': scrape_betfox,  # WORKING - Using v3 fixtures/home/boosted API (limited to ~32 matches)
+        'Betfox Ghana': scrape_betfox,  # WORKING - Using v3 fixtures (boosted + live)
     }
 
     print("\nRunning ALL scrapers in parallel...")
