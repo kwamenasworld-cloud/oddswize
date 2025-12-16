@@ -21,11 +21,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Configuration - AGGRESSIVE MODE
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
-MAX_MATCHES = 5000  # Push the limits even higher
-MAX_CHAMPIONSHIPS = 300  # Even more leagues
-TIMEOUT = 10  # Slightly longer timeout for reliability
-BATCH_SIZE = 300  # Even larger batches
-PARALLEL_PAGES = 10  # More concurrent page fetches
+MAX_MATCHES = 2000  # Enough coverage, faster runtime
+MAX_CHAMPIONSHIPS = 150  # Limit heavy leagues to speed up
+TIMEOUT = 10
+BATCH_SIZE = 200  # Trim batch size to reduce payload/latency
+PARALLEL_PAGES = 8  # Balanced parallelism for I/O
 
 # Top leagues to prioritize (keywords to search for in league names)
 TOP_LEAGUE_KEYWORDS = [
@@ -92,10 +92,10 @@ def scrape_sportybet() -> List[Dict]:
         'Referer': 'https://www.sportybet.com/gh/',
     }
 
-    # Fetch pages in parallel - increase to 80 pages for maximum coverage
+    # Fetch pages in parallel - trimmed to 30 pages for speed
     all_tournaments = []
     with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
-        futures = {executor.submit(fetch_sportybet_page, session, headers, p): p for p in range(1, 81)}
+        futures = {executor.submit(fetch_sportybet_page, session, headers, p): p for p in range(1, 31)}
         for future in as_completed(futures):
             tournaments = future.result()
             all_tournaments.extend(tournaments)
@@ -274,127 +274,9 @@ def scrape_1xbet() -> List[Dict]:
 
 
 # ============================================================================
-# 22Bet Ghana Scraper - DIRECT API (Same structure as 1xBet)
-# Using cloudscraper to bypass Cloudflare protection
+# 22Bet Ghana Scraper - Platform API (fast, prematch with odds)
 # ============================================================================
-
-TWENTYTWOBET_API = "https://22bet.com/gh/LineFeed"  # Note: .com/gh not .com.gh
-
-def fetch_22bet_games(scraper, champ_id, champ_name):
-    """Fetch games for a single championship."""
-    matches = []
-    try:
-        resp = scraper.get(f"{TWENTYTWOBET_API}/GetChampZip?champ={champ_id}&lng=en", timeout=20)
-        value = resp.json().get("Value", {})
-        games = value.get("G", []) if isinstance(value, dict) else []
-
-        game_ids = [g.get("I") for g in games if g.get("I")]
-        if not game_ids:
-            return []
-
-        # Fetch all games in one batch
-        ids_str = ",".join(str(i) for i in game_ids[:BATCH_SIZE])
-        resp = scraper.get(f"{TWENTYTWOBET_API}/GetGamesZip?ids={ids_str}&lng=en", timeout=20)
-        games_data = resp.json().get("Value", [])
-
-        for game in games_data:
-            event_id = game.get("I")
-            if not event_id:
-                continue
-
-            home = game.get("O1") or game.get("O1E")
-            away = game.get("O2") or game.get("O2E")
-
-            home_odds = draw_odds = away_odds = None
-            for o in game.get("E", []):
-                if o.get("G") != 1:
-                    continue
-                ot = o.get("T")
-                if ot == 1:
-                    home_odds = o.get("C")
-                elif ot == 2:
-                    draw_odds = o.get("C")
-                elif ot == 3:
-                    away_odds = o.get("C")
-
-            if not (home and away and home_odds and away_odds):
-                continue
-
-            try:
-                home_odds = float(home_odds)
-                away_odds = float(away_odds)
-                draw_odds = float(draw_odds) if draw_odds else 0.0
-                if home_odds < 1.01 or home_odds > 100 or away_odds < 1.01 or away_odds > 100:
-                    continue
-            except:
-                continue
-
-            matches.append({
-                'bookmaker': '22Bet Ghana',
-                'event_id': str(event_id),
-                'home_team': home,
-                'away_team': away,
-                'home_odds': home_odds,
-                'draw_odds': draw_odds,
-                'away_odds': away_odds,
-                'league': game.get("L", champ_name),
-                'start_time': game.get("S", 0),
-            })
-    except:
-        pass
-    return matches
-
-def scrape_22bet() -> List[Dict]:
-    """Scrape 22Bet Ghana (Direct API with Cloudflare bypass)."""
-    print("Scraping 22Bet Ghana (with Cloudflare bypass)...")
-
-    # Use cloudscraper to bypass Cloudflare
-    scraper = cloudscraper.create_scraper(
-        browser={
-            'browser': 'chrome',
-            'platform': 'windows',
-            'desktop': True
-        }
-    )
-
-    try:
-        # Use longer timeout for 22Bet (they may be slower)
-        resp = scraper.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", timeout=20)
-        if resp.status_code != 200:
-            print(f"  22Bet API returned status {resp.status_code}")
-            return []
-        champs = resp.json().get("Value", [])
-        champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)[:MAX_CHAMPIONSHIPS]
-    except Exception as e:
-        print(f"  22Bet error getting champs: {e}")
-        return []
-
-    skip_patterns = ["alternative", "team vs player", "specials", "fantasy", "esports"]
-    valid_champs = [(c.get("LI"), c.get("L", "")) for c in champs
-                    if not any(p in c.get("L", "").lower() for p in skip_patterns)]
-
-    # Parallel championship fetching
-    all_matches = []
-    with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
-        futures = {executor.submit(fetch_22bet_games, scraper, cid, cname): cid
-                   for cid, cname in valid_champs}
-        for future in as_completed(futures):
-            matches = future.result()
-            all_matches.extend(matches)
-            if len(all_matches) >= MAX_MATCHES:
-                break
-
-    # Dedupe
-    seen = set()
-    unique = []
-    for m in all_matches:
-        eid = m['event_id']
-        if eid not in seen:
-            seen.add(eid)
-            unique.append(m)
-
-    print(f"  Total: {len(unique)} matches from 22Bet")
-    return unique[:MAX_MATCHES]
+from backend.scrapers.twentytwobet_ghana import scrape_22bet_ghana  # uses platform.22bet.com.gh/api
 
 
 # ============================================================================
@@ -434,13 +316,13 @@ def scrape_betway() -> List[Dict]:
         'Referer': 'https://www.betway.com.gh/sport/soccer/upcoming',
     }
 
-    page_size = 1000  # Push it higher
+    page_size = 1000  # Large page size reduces page count
 
-    # Fetch pages in parallel - increase range to 30000 for more coverage
+    # Fetch pages in parallel - trimmed range for speed
     all_data = []
     with ThreadPoolExecutor(max_workers=8) as executor:
         futures = {executor.submit(fetch_betway_page, session, headers, skip, page_size): skip
-                   for skip in range(0, 30000, page_size)}
+                   for skip in range(0, 15000, page_size)}
         for future in as_completed(futures):
             data = future.result()
             if data:
@@ -506,12 +388,18 @@ def scrape_betway() -> List[Dict]:
                 price = price_by_outcome.get(oid)
                 if not price:
                     continue
+
                 # Betway uses team names, not Home/Away
-                if name == home or name == 'Home':
+                # Use fuzzy matching: normalize both and check if they match
+                name_normalized = normalize_name(name)
+                home_normalized = normalize_name(home)
+                away_normalized = normalize_name(away)
+
+                if name == home or name == 'Home' or name_normalized == home_normalized:
                     home_odds = price
                 elif name.lower() == 'draw':
                     draw_odds = price
-                elif name == away or name == 'Away':
+                elif name == away or name == 'Away' or name_normalized == away_normalized:
                     away_odds = price
 
             if not home_odds or not away_odds:
@@ -707,7 +595,7 @@ def scrape_soccabet() -> List[Dict]:
 # ============================================================================
 
 def scrape_betfox() -> List[Dict]:
-    """Scrape Betfox Ghana via V4 fixtures API."""
+    """Scrape Betfox Ghana via V4 competitions API."""
     print("Scraping Betfox Ghana (V4 API)...")
     matches = []
 
@@ -729,19 +617,26 @@ def scrape_betfox() -> List[Dict]:
     })
 
     try:
-        # Get football fixtures from V4 API (upcoming + live)
+        # Get all fixtures from competitions endpoint (includes all major leagues)
         all_fixtures = []
 
-        # Get upcoming matches (V4 API returns 100 fixtures max)
+        # Get competitions with embedded fixtures
         resp = scraper.get(
-            'https://www.betfox.com.gh/api/offer/v4/fixtures/home/upcoming?first=1000&sport=Football',
+            'https://www.betfox.com.gh/api/offer/v4/competitions?sport=Football',
             timeout=TIMEOUT
         )
+
         if resp.status_code == 200:
             data = resp.json()
-            upcoming_fixtures = data.get('data', [])
-            all_fixtures.extend(upcoming_fixtures)
-            print(f"  Upcoming fixtures: {len(upcoming_fixtures)}")
+            competitions = data.get('enriched', [])
+            print(f"  Competitions: {len(competitions)}")
+
+            # Extract fixtures from each competition
+            for comp in competitions:
+                comp_fixtures = comp.get('fixtures', [])
+                all_fixtures.extend(comp_fixtures)
+
+            print(f"  Fixtures from competitions: {len(all_fixtures)}")
 
         # Also get live matches for additional coverage
         try:
@@ -761,7 +656,7 @@ def scrape_betfox() -> List[Dict]:
             print("  No fixtures found")
             return []
 
-        print(f"  Total fetched: {len(all_fixtures)} fixtures (upcoming + live)")
+        print(f"  Total fetched: {len(all_fixtures)} fixtures")
 
         # Deduplicate fixtures by ID
         seen_ids = set()
@@ -1067,12 +962,12 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
     # Show top matches with 6 bookmakers
     six_bookie_matches = [g for g in matched if len(g) == 6]
     if six_bookie_matches:
-        print(f"\n  ✓ {len(six_bookie_matches)} matches with all 6 bookmakers")
+        print(f"\n  [OK] {len(six_bookie_matches)} matches with all 6 bookmakers")
         for match_group in six_bookie_matches[:5]:
             first = match_group[0]
             print(f"    - {first['home_team']} vs {first['away_team']} ({first.get('league', 'Unknown')})")
     else:
-        print("\n  ⚠ NO matches with all 6 bookmakers!")
+        print("\n  [WARNING] NO matches with all 6 bookmakers!")
 
     return matched
 
@@ -1214,7 +1109,7 @@ def main():
         '1xBet Ghana': scrape_1xbet,
         'Betway Ghana': scrape_betway,
         'SoccaBet Ghana': scrape_soccabet,
-        '22Bet Ghana': scrape_22bet,  # WORKING - Using cloudscraper with correct API endpoint
+        '22Bet Ghana': scrape_22bet_ghana,  # Updated platform API scraper
         'Betfox Ghana': scrape_betfox,  # WORKING - Using V4 API (100+ fixtures from upcoming + live)
     }
 
@@ -1245,6 +1140,16 @@ def main():
     if not all_matches:
         print("No matches scraped - exiting")
         return
+
+    # Save raw scraped data BEFORE matching (for debugging)
+    raw_data_file = 'raw_scraped_data.json'
+    print(f"\nSaving raw scraped data to {raw_data_file}...")
+    try:
+        with open(raw_data_file, 'w', encoding='utf-8') as f:
+            json.dump(all_matches, f, indent=2, ensure_ascii=False)
+        print(f"  [OK] Saved {total} matches from {len(all_matches)} bookmakers")
+    except Exception as e:
+        print(f"  [WARNING] Failed to save raw data: {e}")
 
     matched = match_events(all_matches)
 

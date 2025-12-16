@@ -1,176 +1,183 @@
 #!/usr/bin/env python3
-"""22Bet Ghana Odds Scraper (API-based)
+"""22Bet Ghana Odds Scraper (platform API).
 
-Uses curl subprocess to bypass TLS fingerprinting.
-Fetches events by championship to get 800+ matches.
+Fetch prematch football events and odds from platform.22bet.com.gh.
 """
 
-import json
 import os
-import subprocess
-import time
-from typing import Dict, List, Set
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Set
 
-BASE_URL = os.getenv("TWENTYTWOBET_API_URL", "https://22bet.ng/LineFeed")
+import requests
+
+# API and scraping controls
+API_BASE = os.getenv("TWENTYTWOBET_API_URL", "https://platform.22bet.com.gh/api")
 DEFAULT_MAX_MATCHES = 800
+PAGE_SIZE = 100  # max observed per request
+
+SESSION = requests.Session()
+SESSION.headers.update(
+    {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json",
+    }
+)
 
 
-def _curl_fetch(endpoint: str, params: str) -> dict:
-    """Fetch from API using curl."""
-    url = f"{BASE_URL}/{endpoint}?{params}"
-    cmd = [
-        "curl", "-s", "--compressed",
-        "-H", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "-H", "Accept: application/json, text/plain, */*",
-        url
-    ]
-    result = subprocess.run(cmd, capture_output=True, timeout=60)
-    if result.returncode != 0 or not result.stdout:
-        return {}
-    return json.loads(result.stdout.decode('utf-8', errors='ignore'))
+def _parse_start_time(time_str: Optional[str]) -> int:
+    """Convert 'YYYY-MM-DD HH:MM:SS' to epoch seconds."""
+    if not time_str:
+        return 0
+    try:
+        dt = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
+        return int(dt.replace(tzinfo=timezone.utc).timestamp())
+    except Exception:
+        return 0
 
 
-def _get_championships() -> List[Dict]:
-    """Get list of football championships."""
-    data = _curl_fetch("GetChampsZip", "sport=1&lng=en")
-    return data.get("Value", [])
-
-
-def _get_championship_games(champ_id: int) -> List[Dict]:
-    """Get games for a championship (without odds)."""
-    data = _curl_fetch("GetChampZip", f"champ={champ_id}&lng=en")
-    value = data.get("Value", {})
-    return value.get("G", []) if isinstance(value, dict) else []
-
-
-def _get_games_with_odds(game_ids: List[int]) -> List[Dict]:
-    """Fetch multiple games with odds."""
-    if not game_ids:
-        return []
-    ids_str = ",".join(str(i) for i in game_ids[:50])  # Max 50 per request
-    data = _curl_fetch("GetGamesZip", f"ids={ids_str}&lng=en")
-    return data.get("Value", []) if isinstance(data.get("Value"), list) else []
-
-
-def _parse_game(game: Dict, seen_ids: Set[int]) -> Dict:
-    """Parse a game with odds into our match format."""
-    event_id = game.get("I")
-    if not event_id or event_id in seen_ids:
-        return None
-
-    home = game.get("O1") or game.get("O1E")
-    away = game.get("O2") or game.get("O2E")
-    odds = game.get("E", [])
-
-    home_odds = draw_odds = away_odds = None
-    for o in odds:
-        ot = o.get("T")
-        g = o.get("G")
-        if g != 1:  # Only main 1X2 market (G=1)
+def _find_main_market(odds_list: List[Dict]) -> Optional[Dict]:
+    """Pick the main 1X2 market (vendorMarketId=1, 3 outcomes, no specifiers)."""
+    for market in odds_list:
+        if market.get("vendorMarketId") != 1:
             continue
-        # T=1: Home (P1), T=2: Draw (X), T=3: Away (P2)
-        if ot == 1:
-            home_odds = o.get("C")
-        elif ot == 2:
-            draw_odds = o.get("C")  # T=2 is Draw, not Away!
-        elif ot == 3:
-            away_odds = o.get("C")  # T=3 is Away, not Draw!
+        outcomes = market.get("outcomes", [])
+        if len(outcomes) != 3:
+            continue
+        if market.get("specifiers"):
+            continue
+        return market
+    return None
 
-    if not (home and away and home_odds and away_odds):
+
+def _extract_odds(market: Dict) -> Optional[Dict]:
+    """Extract home/draw/away odds from a market."""
+    outcomes = market.get("outcomes", [])
+    if len(outcomes) != 3:
         return None
 
-    # Validate odds are reasonable (detect malformed data)
-    # Real 1X2 odds: home/draw/away should each be >= 1.01 and <= 50
-    # Draw odds specifically should be >= 2.0 for real football matches
-    home_odds = float(home_odds)
-    away_odds = float(away_odds)
-    draw_odds = float(draw_odds) if draw_odds else 0.0
+    by_vendor = {str(o.get("vendorOutcomeId")): o for o in outcomes}
+    home = by_vendor.get("1") or outcomes[0]
+    draw = by_vendor.get("2") or outcomes[1]
+    away = by_vendor.get("3") or outcomes[2]
 
-    if home_odds < 1.01 or home_odds > 100:
-        return None
-    if away_odds < 1.01 or away_odds > 100:
-        return None
-    if draw_odds > 0 and (draw_odds < 2.0 or draw_odds > 50):
-        # Draw odds < 2.0 indicates malformed data (not a real 1X2 market)
+    try:
+        home_odds = float(home.get("odds"))
+        draw_odds = float(draw.get("odds"))
+        away_odds = float(away.get("odds"))
+    except Exception:
         return None
 
-    seen_ids.add(event_id)
+    if min(home_odds, draw_odds, away_odds) < 1.01 or max(home_odds, draw_odds, away_odds) > 100:
+        return None
+
     return {
-        "bookmaker": "22Bet Ghana",
-        "event_id": event_id,
-        "home_team": home,
-        "away_team": away,
-        "teams": f"{home} vs {away}",
         "home_odds": home_odds,
         "draw_odds": draw_odds,
         "away_odds": away_odds,
-        "league": game.get("L", ""),
-        "start_time": game.get("S", 0),
     }
+
+
+def _fetch_page(page: int, limit: int) -> Dict:
+    """Fetch a single page of football prematch events with odds."""
+    params = [
+        ("lang", "en"),
+        ("oddsExists_eq", 1),
+        ("main", 1),
+        ("period", 0),  # prematch
+        ("sportId_eq", 1),  # football
+        ("limit", limit),
+        ("status_in", 0),
+        ("oddsBooster", 0),
+        ("isFavorite", 0),
+        ("isLive", "false"),
+        ("page", page),
+    ]
+    for rel in ["odds", "withMarketsCount", "league", "competitors"]:
+        params.append(("relations", rel))
+
+    resp = SESSION.get(f"{API_BASE}/event/list", params=params, timeout=30)
+    resp.raise_for_status()
+    return resp.json().get("data", {})
+
+
+def _parse_events(data: Dict, seen_ids: Set[int]) -> List[Dict]:
+    """Parse events block into our match format."""
+    items = data.get("items", [])
+    relations = data.get("relations", {})
+    competitors = {c["id"]: c for c in relations.get("competitors", []) if "id" in c}
+    leagues = {l["id"]: l.get("name", "") for l in relations.get("league", []) if "id" in l}
+    odds_map = relations.get("odds", {}) or {}
+
+    parsed: List[Dict] = []
+    for event in items:
+        event_id = event.get("id")
+        if not event_id or event_id in seen_ids:
+            continue
+
+        odds_list = odds_map.get(str(event_id)) or odds_map.get(event_id) or []
+        main_market = _find_main_market(odds_list)
+        if not main_market:
+            continue
+
+        odds = _extract_odds(main_market)
+        if not odds:
+            continue
+
+        home = competitors.get(event.get("competitor1Id"), {}).get("name") or event.get("team1") or ""
+        away = competitors.get(event.get("competitor2Id"), {}).get("name") or event.get("team2") or ""
+        if not home or not away:
+            continue
+
+        start_time = _parse_start_time(event.get("time"))
+        match = {
+            "bookmaker": "22Bet Ghana",
+            "event_id": event_id,
+            "home_team": home,
+            "away_team": away,
+            "teams": f"{home} vs {away}",
+            "league": leagues.get(event.get("leagueId"), ""),
+            "start_time": start_time,
+            **odds,
+        }
+        seen_ids.add(event_id)
+        parsed.append(match)
+
+    return parsed
 
 
 def scrape_22bet_ghana(max_matches: int = DEFAULT_MAX_MATCHES) -> List[Dict]:
     max_matches = int(os.getenv("TWENTYTWOBET_MAX_MATCHES", max_matches))
-
-    print("Fetching championships...")
-    champs = _get_championships()
-    # Sort by game count descending
-    champs = sorted(champs, key=lambda x: x.get("GC", 0), reverse=True)
-    print(f"Found {len(champs)} championships")
-
     matches: List[Dict] = []
     seen_ids: Set[int] = set()
 
-    # Patterns that indicate fake/alternative matches (not real games)
-    skip_patterns = ["alternative", "team vs player", "specials", "fantasy", "esports"]
+    page = 1
+    total_pages = None
 
-    for champ in champs:
-        if len(matches) >= max_matches:
+    while len(matches) < max_matches:
+        data = _fetch_page(page, min(PAGE_SIZE, max_matches))
+        items = data.get("items", [])
+        if not items:
             break
 
-        champ_id = champ.get("LI")
-        champ_name = champ.get("L", "Unknown")
-        game_count = champ.get("GC", 0)
+        matches.extend(_parse_events(data, seen_ids))
 
-        if game_count == 0:
-            continue
+        total = data.get("totalCount")
+        limit = data.get("limit") or PAGE_SIZE
+        if total and limit:
+            total_pages = max(total_pages or 0, (total + limit - 1) // limit)
 
-        # Skip fake/alternative championships
-        if any(pattern in champ_name.lower() for pattern in skip_patterns):
-            continue
+        page += 1
+        if total_pages and page > total_pages:
+            break
 
-        # Get games for this championship
-        games = _get_championship_games(champ_id)
-        if not games:
-            continue
-
-        # Get game IDs
-        game_ids = [g.get("I") for g in games if g.get("I") and g.get("I") not in seen_ids]
-
-        # Fetch games with odds in batches of 50
-        for i in range(0, len(game_ids), 50):
-            if len(matches) >= max_matches:
-                break
-
-            batch_ids = game_ids[i:i+50]
-            games_with_odds = _get_games_with_odds(batch_ids)
-
-            for game in games_with_odds:
-                match = _parse_game(game, seen_ids)
-                if match:
-                    matches.append(match)
-
-            time.sleep(0.02)  # Small delay between batches
-
-        print(f"  {champ_name}: +{len([g for g in game_ids if g in seen_ids])} (total {len(matches)})")
-        time.sleep(0.01)
-
-    matches = matches[:max_matches]
-    print(f"Found {len(matches)} matches on 22Bet")
-    return matches
+    return matches[:max_matches]
 
 
 if __name__ == "__main__":
-    data = scrape_22bet_ghana()
-    for m in data[:5]:
+    results = scrape_22bet_ghana()
+    print(f"Fetched {len(results)} matches from 22Bet Ghana")
+    for m in results[:5]:
         print(f"{m['teams']}: {m['home_odds']} / {m['draw_odds']} / {m['away_odds']}")
