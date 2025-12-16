@@ -483,8 +483,17 @@ def scrape_betway() -> List[Dict]:
             if not home or not away:
                 continue
 
+            # Debug for Newcastle/Chelsea
+            is_target_match = any(team in home.lower() or team in away.lower() for team in ['newcastle', 'chelsea'])
+            if is_target_match and any(team in home.lower() for team in ['newcastle', 'chelsea']) and \
+               any(team in away.lower() for team in ['newcastle', 'chelsea']):
+                print(f"  [BETWAY] Processing {home} vs {away}")
+
             market = market_by_event.get(event_id)
             if not market:
+                if is_target_match and any(team in home.lower() for team in ['newcastle', 'chelsea']) and \
+                   any(team in away.lower() for team in ['newcastle', 'chelsea']):
+                    print(f"    -> No 1X2 market found, SKIPPING")
                 continue
 
             market_id = market.get('marketId')
@@ -506,6 +515,9 @@ def scrape_betway() -> List[Dict]:
                     away_odds = price
 
             if not home_odds or not away_odds:
+                if is_target_match and any(team in home.lower() for team in ['newcastle', 'chelsea']) and \
+                   any(team in away.lower() for team in ['newcastle', 'chelsea']):
+                    print(f"    -> Incomplete odds (H:{home_odds}, D:{draw_odds}, A:{away_odds}), SKIPPING")
                 continue
 
             league = event.get('league', event.get('competition', {}).get('name', ''))
