@@ -1010,6 +1010,7 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
 
     # Group matches by league (Worker expects LeagueGroup[] format)
     league_groups = {}
+    filtered_count = 0
 
     for event_group in matched_events[:1500]:  # Limit to 1500 matches
         if not event_group:
@@ -1028,8 +1029,13 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
             away_team = first.get('away_team', '')
 
             # Check if either team is a known English Premier League team
-            if not (is_english_premier_league_team(home_team) or is_english_premier_league_team(away_team)):
+            is_home_english = is_english_premier_league_team(home_team)
+            is_away_english = is_english_premier_league_team(away_team)
+
+            if not (is_home_english or is_away_english):
                 # This is not an English Premier League match - skip it
+                print(f"  [FILTER] Skipping non-English Premier League match: {home_team} vs {away_team}")
+                filtered_count += 1
                 continue
 
         # Initialize league group if not exists
@@ -1058,6 +1064,10 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
             })
 
         league_groups[league]['matches'].append(match_data)
+
+    # Print filtering stats
+    if filtered_count > 0:
+        print(f"  [FILTER] Filtered out {filtered_count} non-English matches from Premier League")
 
     # Convert to array format expected by Worker
     output = list(league_groups.values())
