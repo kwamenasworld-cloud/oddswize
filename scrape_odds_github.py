@@ -974,6 +974,9 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
 
     groups = {}
 
+    # Debug: Track specific matches to see why they don't match
+    debug_teams = ['newcastle', 'chelsea']
+
     # Generic team names to filter out (these cause false matches)
     generic_names = {'home', 'away', 'team 1', 'team 2', 'team1', 'team2', 'home team', 'away team'}
 
@@ -981,6 +984,11 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
         for match in matches:
             home = normalize_name(match['home_team'])
             away = normalize_name(match['away_team'])
+
+            # Debug logging for specific matches
+            if any(team in home.lower() or team in away.lower() for team in debug_teams):
+                if any(team in home.lower() for team in debug_teams) and any(team in away.lower() for team in debug_teams):
+                    print(f"  [DEBUG] {bookie}: '{match['home_team']}' vs '{match['away_team']}' -> '{home}' vs '{away}'")
 
             # Skip matches with generic placeholder team names
             # Check for exact match or if name starts with/contains generic terms
@@ -1017,6 +1025,24 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
     matched.sort(key=lambda x: len(x), reverse=True)
 
     print(f"  Matched {len(matched)} events across bookmakers")
+
+    # Show distribution of bookmaker counts
+    from collections import Counter
+    bookmaker_counts = Counter(len(g) for g in matched)
+    print("  Bookmaker coverage distribution:")
+    for count in sorted(bookmaker_counts.keys(), reverse=True):
+        print(f"    {count} bookmakers: {bookmaker_counts[count]} matches")
+
+    # Show top matches with 6 bookmakers
+    six_bookie_matches = [g for g in matched if len(g) == 6]
+    if six_bookie_matches:
+        print(f"\n  ✓ {len(six_bookie_matches)} matches with all 6 bookmakers")
+        for match_group in six_bookie_matches[:5]:
+            first = match_group[0]
+            print(f"    - {first['home_team']} vs {first['away_team']} ({first.get('league', 'Unknown')})")
+    else:
+        print("\n  ⚠ NO matches with all 6 bookmakers!")
+
     return matched
 
 
