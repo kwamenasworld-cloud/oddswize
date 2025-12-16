@@ -997,6 +997,20 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
     # Generic team names to filter out (these cause false matches)
     generic_names = {'home', 'away', 'team 1', 'team 2', 'team1', 'team2', 'home team', 'away team'}
 
+    # Debug: Count Newcastle/Chelsea matches per bookmaker before matching
+    newcastle_chelsea_count = {}
+    for bookie, matches in all_matches.items():
+        count = sum(1 for m in matches if ('newcastle' in m['home_team'].lower() and 'chelsea' in m['away_team'].lower()) or
+                                          ('chelsea' in m['home_team'].lower() and 'newcastle' in m['away_team'].lower()))
+        if count > 0:
+            newcastle_chelsea_count[bookie] = count
+
+    if newcastle_chelsea_count:
+        print(f"\n  Newcastle vs Chelsea by bookmaker (before matching):")
+        for bookie, count in newcastle_chelsea_count.items():
+            print(f"    {bookie}: {count}")
+        print()
+
     for bookie, matches in all_matches.items():
         for match in matches:
             home = normalize_name(match['home_team'])
