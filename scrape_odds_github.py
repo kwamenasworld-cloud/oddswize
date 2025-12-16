@@ -284,7 +284,7 @@ def fetch_22bet_games(scraper, champ_id, champ_name):
     """Fetch games for a single championship."""
     matches = []
     try:
-        resp = scraper.get(f"{TWENTYTWOBET_API}/GetChampZip?champ={champ_id}&lng=en", timeout=TIMEOUT)
+        resp = scraper.get(f"{TWENTYTWOBET_API}/GetChampZip?champ={champ_id}&lng=en", timeout=20)
         value = resp.json().get("Value", {})
         games = value.get("G", []) if isinstance(value, dict) else []
 
@@ -294,7 +294,7 @@ def fetch_22bet_games(scraper, champ_id, champ_name):
 
         # Fetch all games in one batch
         ids_str = ",".join(str(i) for i in game_ids[:BATCH_SIZE])
-        resp = scraper.get(f"{TWENTYTWOBET_API}/GetGamesZip?ids={ids_str}&lng=en", timeout=TIMEOUT)
+        resp = scraper.get(f"{TWENTYTWOBET_API}/GetGamesZip?ids={ids_str}&lng=en", timeout=20)
         games_data = resp.json().get("Value", [])
 
         for game in games_data:
@@ -358,7 +358,8 @@ def scrape_22bet() -> List[Dict]:
     )
 
     try:
-        resp = scraper.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", timeout=TIMEOUT)
+        # Use longer timeout for 22Bet (they may be slower)
+        resp = scraper.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", timeout=20)
         if resp.status_code != 200:
             print(f"  22Bet API returned status {resp.status_code}")
             return []
@@ -685,15 +686,15 @@ def scrape_soccabet() -> List[Dict]:
 
 
 # ============================================================================
-# Betfox Ghana Scraper - Using cloudscraper for Cloudflare bypass
+# Betfox Ghana Scraper - Using v3 fixtures/home/boosted API
 # ============================================================================
 
 def scrape_betfox() -> List[Dict]:
-    """Scrape Betfox Ghana via direct API with Cloudflare bypass."""
-    print("Scraping Betfox Ghana (with Cloudflare bypass)...")
+    """Scrape Betfox Ghana via v3 fixtures API."""
+    print("Scraping Betfox Ghana (v3 fixtures API)...")
     matches = []
 
-    # Use cloudscraper to bypass Cloudflare and handle cookies
+    # Use cloudscraper to bypass Cloudflare
     scraper = cloudscraper.create_scraper(
         browser={
             'browser': 'chrome',
@@ -702,19 +703,19 @@ def scrape_betfox() -> List[Dict]:
         }
     )
 
-    # Set additional headers for Betfox API
+    # Set required headers for Betfox API
     scraper.headers.update({
         'Accept': 'application/json',
-        'Origin': 'https://www.betfox.com.gh',
-        'Referer': 'https://www.betfox.com.gh/sports/football',
+        'Referer': 'https://www.betfox.com.gh/sportsbook',
         'x-betr-brand': 'betfox.com.gh',
         'x-locale': 'en',
     })
 
     try:
-        # Get all football competitions
+        # Get football fixtures from boosted endpoint
+        # Note: This endpoint returns limited matches (~100 max) but it's the only working one
         resp = scraper.get(
-            'https://www.betfox.com.gh/api/offer/v2/sports?sport=Football',
+            'https://www.betfox.com.gh/api/offer/v3/fixtures/home/boosted?first=500&sport=Football',
             timeout=TIMEOUT
         )
 
@@ -722,107 +723,84 @@ def scrape_betfox() -> List[Dict]:
             print(f"  Betfox API returned status {resp.status_code}")
             return []
 
-        try:
-            data = resp.json()
-        except Exception as e:
-            print(f"  Betfox API returned invalid JSON: {e}")
+        data = resp.json()
+        fixtures = data.get('data', [])
+
+        if not fixtures:
+            print("  No fixtures found")
             return []
 
-        competition_ids = []
-        for country in data.get('countries', []):
-            for comp in country.get('competitions', []):
-                if comp.get('id'):
-                    competition_ids.append(comp.get('id'))
+        print(f"  Found {len(fixtures)} fixtures")
 
-        if not competition_ids:
-            print("  No competitions found")
-            return []
+        for fixture in fixtures:
+            if len(matches) >= MAX_MATCHES:
+                break
 
-        print(f"  Found {len(competition_ids)} competitions")
-
-        # Fetch competitions in parallel batches
-        def fetch_batch(batch_ids):
             try:
-                ids_param = ','.join(batch_ids)
-                resp = scraper.get(
-                    f'https://www.betfox.com.gh/api/offer/v4/competitions?ids={ids_param}&enriched=2&sport=Football',
-                    timeout=15
-                )
-                return resp.json()
-            except:
-                return {}
+                event_id = fixture.get('id', '')
+                if not event_id:
+                    continue
 
-        batch_size = 30
-        all_data = []
-        batches = [competition_ids[i:i+batch_size] for i in range(0, len(competition_ids), batch_size)]
-
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            futures = {executor.submit(fetch_batch, batch): i for i, batch in enumerate(batches)}
-            for future in as_completed(futures):
-                result = future.result()
-                if result:
-                    all_data.append(result)
-
-        # Parse all data
-        seen_ids = set()
-        for data in all_data:
-            for comp in data.get('competitions', []):
-                league_name = comp.get('name', '')
-                country_name = comp.get('countryName', '')
+                # Get competition and country info
+                competition = fixture.get('competition', {})
+                category = fixture.get('category', {})
+                league_name = competition.get('name', '')
+                country_name = category.get('name', '')
                 league = f"{country_name}. {league_name}" if country_name else league_name
 
-                for event in comp.get('events', []):
-                    if len(matches) >= MAX_MATCHES:
-                        break
+                # Get competitors (teams)
+                competitors = fixture.get('competitors', [])
+                if len(competitors) < 2:
+                    continue
+                home = competitors[0].get('name', '')
+                away = competitors[1].get('name', '')
+                if not home or not away:
+                    continue
 
-                    event_id = str(event.get('id', ''))
-                    if not event_id or event_id in seen_ids:
-                        continue
+                # Get odds from market outcomes
+                market = fixture.get('market', {})
+                outcomes = market.get('outcomes', [])
 
-                    home = event.get('homeTeamName', '')
-                    away = event.get('awayTeamName', '')
-                    if not home or not away:
-                        continue
+                home_odds = draw_odds = away_odds = None
+                for outcome in outcomes:
+                    odds_value = outcome.get('odds')
+                    outcome_type = outcome.get('value', '').upper()
 
-                    # Find 1X2 market
-                    home_odds = draw_odds = away_odds = None
-                    for market in event.get('markets', []):
-                        if market.get('name') in ['1X2', '1x2', 'Match Result']:
-                            for outcome in market.get('outcomes', []):
-                                name = outcome.get('name', '')
-                                odds = outcome.get('odds')
-                                if odds:
-                                    if name == '1':
-                                        home_odds = float(odds)
-                                    elif name == 'X':
-                                        draw_odds = float(odds)
-                                    elif name == '2':
-                                        away_odds = float(odds)
-                            break
+                    if odds_value:
+                        if outcome_type == 'HOME':
+                            home_odds = float(odds_value)
+                        elif outcome_type == 'DRAW':
+                            draw_odds = float(odds_value)
+                        elif outcome_type == 'AWAY':
+                            away_odds = float(odds_value)
 
-                    if not home_odds or not away_odds:
-                        continue
+                if not home_odds or not away_odds:
+                    continue
 
-                    start_time = event.get('startTime', 0)
-                    if isinstance(start_time, str):
-                        try:
-                            dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                            start_time = int(dt.timestamp())
-                        except:
-                            start_time = 0
+                # Parse start time
+                start_time_str = fixture.get('startTime', '')
+                start_time = 0
+                if start_time_str:
+                    try:
+                        dt = datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                        start_time = int(dt.timestamp())
+                    except:
+                        pass
 
-                    seen_ids.add(event_id)
-                    matches.append({
-                        'bookmaker': 'Betfox Ghana',
-                        'event_id': event_id,
-                        'home_team': home,
-                        'away_team': away,
-                        'home_odds': home_odds,
-                        'draw_odds': draw_odds or 0.0,
-                        'away_odds': away_odds,
-                        'league': league,
-                        'start_time': start_time,
-                    })
+                matches.append({
+                    'bookmaker': 'Betfox Ghana',
+                    'event_id': event_id,
+                    'home_team': home,
+                    'away_team': away,
+                    'home_odds': home_odds,
+                    'draw_odds': draw_odds or 0.0,
+                    'away_odds': away_odds,
+                    'league': league,
+                    'start_time': start_time,
+                })
+
+            except Exception as e:
+                continue
 
     except Exception as e:
         print(f"  Betfox error: {e}")
@@ -960,7 +938,7 @@ def main():
         'Betway Ghana': scrape_betway,
         'SoccaBet Ghana': scrape_soccabet,
         '22Bet Ghana': scrape_22bet,  # WORKING - Using cloudscraper with correct API endpoint
-        # 'Betfox Ghana': scrape_betfox,  # DISABLED - API returns empty data (may have changed)
+        'Betfox Ghana': scrape_betfox,  # WORKING - Using v3 fixtures/home/boosted API (limited to ~32 matches)
     }
 
     print("\nRunning ALL scrapers in parallel...")
