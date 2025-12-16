@@ -512,6 +512,11 @@ def scrape_betway() -> List[Dict]:
             start_time = event.get('expectedStartEpoch', 0)
 
             seen_ids.add(event_id)
+
+            # Debug logging for Newcastle or Chelsea matches
+            if any(team in home.lower() or team in away.lower() for team in ['newcastle', 'chelsea']):
+                print(f"  [BETWAY DEBUG] Scraped: {home} vs {away} ({league})")
+
             matches.append({
                 'bookmaker': 'Betway Ghana',
                 'event_id': str(event_id),
