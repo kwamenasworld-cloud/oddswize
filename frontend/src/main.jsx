@@ -1,6 +1,7 @@
 import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './mobile-performance.css'
 import App from './App.jsx'
 
 // Error boundary to catch and display runtime errors

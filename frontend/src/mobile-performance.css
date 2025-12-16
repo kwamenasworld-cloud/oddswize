@@ -1,0 +1,284 @@
+/**
+ * Mobile Performance Optimizations
+ * Fixes laggy scrolling, jumping, and improves overall mobile UX
+ */
+
+/* ===== PERFORMANCE OPTIMIZATIONS ===== */
+
+/* Enable hardware acceleration for smooth scrolling */
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none; /* Prevent bounce effect that causes jumping */
+}
+
+/* Optimize header for mobile - prevent repaints */
+.header {
+  will-change: transform;
+  contain: layout style paint;
+}
+
+/* Reduce transitions on mobile for better performance */
+@media (max-width: 768px) {
+  * {
+    transition-duration: 0.15s !important; /* Shorter transitions */
+  }
+
+  /* Disable expensive transitions on mobile */
+  .match-card:hover,
+  .nav a:hover {
+    transition: none;
+  }
+}
+
+/* ===== LAYOUT SHIFT PREVENTION ===== */
+
+/* Prevent images from causing layout shifts */
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Reserve space for team logos */
+.team-logo,
+.bookmaker-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  contain: strict; /* Isolate from rest of page */
+}
+
+/* Reserve space for match cards */
+.match-card {
+  min-height: 100px;
+  contain: content; /* Optimize rendering */
+}
+
+/* ===== SCROLL PERFORMANCE ===== */
+
+/* Use passive event listeners (handled in JS but supported by CSS) */
+@media (max-width: 768px) {
+  /* Optimize scrollable containers */
+  .matches-container,
+  .odds-grid,
+  .match-list {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain; /* Prevent scroll chaining */
+    will-change: scroll-position;
+  }
+
+  /* Reduce box-shadows on mobile (expensive to render) */
+  .match-card,
+  .filter-section,
+  .header {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+  }
+
+  /* Disable backdrop-filter on mobile (very expensive) */
+  *[style*="backdrop-filter"],
+  *[style*="-webkit-backdrop-filter"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(0,0,0,0.8) !important;
+  }
+}
+
+/* ===== RENDERING OPTIMIZATIONS ===== */
+
+/* Hardware-accelerate animated elements */
+@media (max-width: 768px) {
+  .hamburger,
+  .mobile-menu,
+  .modal,
+  .dropdown {
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Optimize filters container */
+  .filters-bar,
+  .filter-section {
+    contain: layout style;
+  }
+
+  /* Optimize match card rendering */
+  .match-card {
+    transform: translate3d(0, 0, 0); /* GPU acceleration */
+    backface-visibility: hidden;
+  }
+}
+
+/* ===== TOUCH IMPROVEMENTS ===== */
+
+/* Larger touch targets for mobile */
+@media (max-width: 768px) {
+  button,
+  a,
+  .filter-btn,
+  .odds-cell {
+    min-height: 44px; /* iOS recommended touch target */
+    min-width: 44px;
+  }
+
+  /* Prevent text selection during scrolling */
+  .matches-container,
+  .match-list {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Allow text selection in specific areas */
+  .match-details,
+  .team-names {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* ===== FIX MOBILE MENU JUMPING ===== */
+
+@media (max-width: 768px) {
+  /* Prevent body scroll when menu is open */
+  body.menu-open {
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  /* Mobile menu optimizations */
+  .mobile-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    will-change: transform, opacity;
+    contain: strict;
+  }
+
+  .mobile-menu.open {
+    transform: translateX(0);
+  }
+
+  .mobile-menu.closed {
+    transform: translateX(100%);
+  }
+}
+
+/* ===== MOMENTUM SCROLLING ===== */
+
+/* Smooth momentum scrolling for iOS */
+.scrollable,
+.matches-container,
+.odds-table-container {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* ===== REDUCE REFLOWS ON MOBILE ===== */
+
+@media (max-width: 768px) {
+  /* Use transforms instead of top/left for animations */
+  .modal,
+  .dropdown-menu,
+  .mobile-menu {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  /* Avoid expensive calc() operations on mobile */
+  .match-card,
+  .odds-row {
+    width: 100%;
+  }
+
+  /* Simplify filters on mobile */
+  .filters-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE */
+  }
+
+  .filters-bar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+}
+
+/* ===== LAZY LOADING OPTIMIZATION ===== */
+
+/* Add loading state to prevent layout shift */
+img[loading="lazy"] {
+  min-height: 32px;
+  background: #f0f0f0;
+}
+
+/* Skeleton loading for better perceived performance */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ===== FONT OPTIMIZATION ===== */
+
+/* Use system fonts for faster rendering */
+@media (max-width: 768px) {
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeSpeed; /* Prioritize speed over precision */
+  }
+}
+
+/* ===== CRITICAL CSS FOR ABOVE-THE-FOLD ===== */
+
+/* Optimize header rendering (always visible) */
+.header-top {
+  contain: layout style;
+}
+
+.logo {
+  contain: layout;
+}
+
+/* ===== ACCESSIBILITY + PERFORMANCE ===== */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== PREVENT DOUBLE-TAP ZOOM (iOS) ===== */
+
+@media (max-width: 768px) {
+  button,
+  a,
+  .odds-cell,
+  .filter-btn {
+    touch-action: manipulation; /* Prevents 300ms delay */
+  }
+}
