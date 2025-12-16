@@ -891,8 +891,12 @@ def normalize_league(league: str) -> str:
             break
 
     # Additional normalization
-    league = league.replace('2 Bundesliga', '2nd Bundesliga')
+    # First normalize periods and spaces
     league = league.replace('. ', ' ').strip()  # "2. Bundesliga" -> "2 Bundesliga"
+
+    # Then normalize specific league names
+    league = league.replace('2 Bundesliga', '2nd Bundesliga')
+    league = league.replace('3 Bundesliga', '3rd Bundesliga')
 
     return league
 
