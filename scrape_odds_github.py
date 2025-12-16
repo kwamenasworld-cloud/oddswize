@@ -860,6 +860,27 @@ def normalize_name(name: str) -> str:
     words = [w for w in words if w not in removals]
     return ' '.join(words) if words else name
 
+# Known English Premier League teams for validation
+ENGLISH_PREMIER_LEAGUE_TEAMS = {
+    'arsenal', 'aston villa', 'bournemouth', 'brentford', 'brighton',
+    'chelsea', 'crystal palace', 'everton', 'fulham', 'ipswich', 'ipswich town',
+    'leicester', 'leicester city', 'liverpool', 'manchester city', 'manchester united',
+    'newcastle', 'newcastle united', 'nottingham forest', 'southampton',
+    'tottenham', 'west ham', 'wolves', 'wolverhampton'
+}
+
+def is_english_premier_league_team(team_name: str) -> bool:
+    """Check if a team belongs to the English Premier League."""
+    normalized = normalize_name(team_name).lower()
+    # Check if normalized name is in the known teams set
+    if normalized in ENGLISH_PREMIER_LEAGUE_TEAMS:
+        return True
+    # Also check if any known team name is contained in the team name
+    for known_team in ENGLISH_PREMIER_LEAGUE_TEAMS:
+        if known_team in normalized or normalized in known_team:
+            return True
+    return False
+
 def normalize_league(league: str) -> str:
     """Normalize league name to prevent duplicates across bookmakers."""
     if not league:
@@ -999,6 +1020,17 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
 
         # Normalize league name to prevent duplicates (e.g., "England. Premier League" -> "Premier League")
         league = normalize_league(league)
+
+        # Validate teams for specific leagues to prevent mismatching
+        # If league is "Premier League" (bare name = English), ensure teams are actually English
+        if league == 'Premier League':
+            home_team = first.get('home_team', '')
+            away_team = first.get('away_team', '')
+
+            # Check if either team is a known English Premier League team
+            if not (is_english_premier_league_team(home_team) or is_english_premier_league_team(away_team)):
+                # This is not an English Premier League match - skip it
+                continue
 
         # Initialize league group if not exists
         if league not in league_groups:
