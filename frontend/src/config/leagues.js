@@ -11,11 +11,16 @@ export const LEAGUES = {
     tier: 1,
     keywords: [
       'England. Premier League',
+      'England Premier League',
       'English Premier League',
       'EPL',
       'England Premier',
+      'England Premiership',
       'Barclays Premier League',
       'England 1. Premier League',
+      'England PL',
+      'England - Premier League',
+      'Premier League', // Bare "Premier League" defaults to England (most common usage)
     ],
   },
 
@@ -27,12 +32,16 @@ export const LEAGUES = {
     tier: 1,
     keywords: [
       'Spain. La Liga',
+      'Spain La Liga',
       'Spain. LaLiga',
+      'Spain LaLiga',
       'Spanish La Liga',
       'LaLiga Santander',
       'LaLiga EA Sports',
       'Spain Primera',
       'Spain 1. La Liga',
+      'Spain - La Liga',
+      'Spain - LaLiga',
     ],
   },
 
@@ -172,16 +181,309 @@ export const LEAGUES = {
   // Ghana Premier League
   ghana: {
     id: 'ghana',
-    name: 'Ghana Premier',
+    name: 'Premier League',
     country: 'ghana',
     tier: 2,
     keywords: [
       'Ghana. Premier League',
       'Ghana Premier League',
+      'Ghana. Premier',
       'Ghana Premier',
-      'Ghana.',
+      'Ghana PL',
+      'Ghana - Premier League',
+      'Ghana - Premier',
       'GPL',
       'Ghanaian Premier League',
+      'Ghanaian Premier',
+      'Ghana.',
+    ],
+  },
+
+  // Kenya Premier League
+  kenya: {
+    id: 'kenya',
+    name: 'Premier League',
+    country: 'kenya',
+    tier: 3,
+    keywords: [
+      'Kenya. Premier League',
+      'Kenya Premier League',
+      'Kenya. Premier',
+      'Kenya Premier',
+      'Kenya PL',
+      'Kenya - Premier League',
+      'Kenya - Premier',
+      'Kenyan Premier League',
+      'Kenyan Premier',
+      'FKF Premier League',
+      'FKF PL',
+    ],
+  },
+
+  // Uganda Premier League
+  uganda: {
+    id: 'uganda',
+    name: 'Premier League',
+    country: 'uganda',
+    tier: 3,
+    keywords: [
+      'Uganda. Premier League',
+      'Uganda Premier League',
+      'Uganda. Premier',
+      'Uganda Premier',
+      'Uganda PL',
+      'Uganda - Premier League',
+      'Uganda - Premier',
+      'Ugandan Premier League',
+      'Ugandan Premier',
+    ],
+  },
+
+  // Tanzania Premier League
+  tanzania: {
+    id: 'tanzania',
+    name: 'Premier League',
+    country: 'tanzania',
+    tier: 3,
+    keywords: [
+      'Tanzania. Premier League',
+      'Tanzania Premier League',
+      'Tanzania. Premier',
+      'Tanzania Premier',
+      'Tanzania PL',
+      'Tanzania - Premier League',
+      'Tanzania - Premier',
+      'Tanzanian Premier League',
+      'Tanzanian Premier',
+    ],
+  },
+
+  // Nigeria Premier League
+  nigeria: {
+    id: 'nigeria',
+    name: 'Premier League',
+    country: 'nigeria',
+    tier: 3,
+    keywords: [
+      'Nigeria. Premier League',
+      'Nigeria Premier League',
+      'Nigeria. Premier',
+      'Nigeria Premier',
+      'Nigeria PL',
+      'Nigeria - Premier League',
+      'Nigeria - Premier',
+      'Nigerian Premier League',
+      'Nigerian Premier',
+      'Nigeria. NPFL',
+      'Nigeria NPFL',
+      'NPFL',
+    ],
+  },
+
+  // South Africa Premier League
+  southafrica: {
+    id: 'southafrica',
+    name: 'Premier League',
+    country: 'southafrica',
+    tier: 3,
+    keywords: [
+      'South Africa. Premier League',
+      'South Africa Premier League',
+      'South Africa. Premier',
+      'South Africa Premier',
+      'South Africa PL',
+      'South Africa - Premier League',
+      'South Africa - Premier',
+      'South African Premier League',
+      'South African Premier',
+      'South Africa. PSL',
+      'South Africa PSL',
+      'DStv Premiership',
+      'PSL South Africa',
+    ],
+  },
+
+  // Egypt Premier League
+  egypt: {
+    id: 'egypt',
+    name: 'Premier League',
+    country: 'egypt',
+    tier: 3,
+    keywords: [
+      'Egypt. Premier League',
+      'Egypt Premier League',
+      'Egypt. Premier',
+      'Egypt Premier',
+      'Egypt PL',
+      'Egypt - Premier League',
+      'Egypt - Premier',
+      'Egyptian Premier League',
+      'Egyptian Premier',
+      'Egyptian League',
+    ],
+  },
+
+  // Morocco Botola
+  morocco: {
+    id: 'morocco',
+    name: 'Botola Pro',
+    country: 'morocco',
+    tier: 3,
+    keywords: [
+      'Morocco. Botola',
+      'Morocco Premier',
+      'Moroccan Botola',
+      'Botola Pro',
+    ],
+  },
+
+  // Algeria Ligue 1
+  algeria: {
+    id: 'algeria',
+    name: 'Ligue 1',
+    country: 'algeria',
+    tier: 3,
+    keywords: [
+      'Algeria. Ligue 1',
+      'Algerian Ligue 1',
+      'Algeria Premier',
+    ],
+  },
+
+  // Tunisia Ligue 1
+  tunisia: {
+    id: 'tunisia',
+    name: 'Ligue 1',
+    country: 'tunisia',
+    tier: 3,
+    keywords: [
+      'Tunisia. Ligue 1',
+      'Tunisian Ligue 1',
+      'Tunisia Premier',
+    ],
+  },
+
+  // Zambia Super League
+  zambia: {
+    id: 'zambia',
+    name: 'Super League',
+    country: 'zambia',
+    tier: 3,
+    keywords: [
+      'Zambia. Super League',
+      'Zambian Super League',
+      'Zambia Premier',
+    ],
+  },
+
+  // Zimbabwe Premier League
+  zimbabwe: {
+    id: 'zimbabwe',
+    name: 'Premier League',
+    country: 'zimbabwe',
+    tier: 3,
+    keywords: [
+      'Zimbabwe. Premier League',
+      'Zimbabwe Premier League',
+      'Zimbabwe. Premier',
+      'Zimbabwe Premier',
+      'Zimbabwe - Premier League',
+      'Zimbabwe - Premier',
+      'Zimbabwean Premier League',
+      'Zimbabwean Premier',
+    ],
+  },
+
+  // Rwanda Premier League
+  rwanda: {
+    id: 'rwanda',
+    name: 'Premier League',
+    country: 'rwanda',
+    tier: 4,
+    keywords: [
+      'Rwanda. Premier League',
+      'Rwanda Premier League',
+      'Rwanda. Premier',
+      'Rwanda Premier',
+      'Rwanda - Premier League',
+      'Rwandan Premier League',
+    ],
+  },
+
+  // Botswana Premier League
+  botswana: {
+    id: 'botswana',
+    name: 'Premier League',
+    country: 'botswana',
+    tier: 4,
+    keywords: [
+      'Botswana. Premier League',
+      'Botswana Premier League',
+      'Botswana. Premier',
+      'Botswana Premier',
+      'Botswana - Premier League',
+    ],
+  },
+
+  // Ethiopia Premier League
+  ethiopia: {
+    id: 'ethiopia',
+    name: 'Premier League',
+    country: 'ethiopia',
+    tier: 4,
+    keywords: [
+      'Ethiopia. Premier League',
+      'Ethiopia Premier League',
+      'Ethiopia. Premier',
+      'Ethiopia Premier',
+      'Ethiopia - Premier League',
+      'Ethiopian Premier League',
+    ],
+  },
+
+  // Ivory Coast (Cote d'Ivoire) Ligue 1
+  ivorycoast: {
+    id: 'ivorycoast',
+    name: 'Ligue 1',
+    country: 'ivorycoast',
+    tier: 3,
+    keywords: [
+      "Ivory Coast. Ligue 1",
+      "Ivory Coast Ligue 1",
+      "Cote d'Ivoire. Ligue 1",
+      "Cote d'Ivoire Ligue 1",
+      "Ivory Coast - Ligue 1",
+    ],
+  },
+
+  // Senegal Ligue 1
+  senegal: {
+    id: 'senegal',
+    name: 'Ligue 1',
+    country: 'senegal',
+    tier: 3,
+    keywords: [
+      'Senegal. Ligue 1',
+      'Senegal Ligue 1',
+      'Senegal. Premier',
+      'Senegal Premier',
+      'Senegal - Ligue 1',
+      'Senegalese Ligue 1',
+    ],
+  },
+
+  // Cameroon Elite One
+  cameroon: {
+    id: 'cameroon',
+    name: 'Elite One',
+    country: 'cameroon',
+    tier: 3,
+    keywords: [
+      'Cameroon. Elite One',
+      'Cameroon Elite One',
+      'Cameroon. Premier',
+      'Cameroon Premier',
+      'Cameroon - Elite One',
     ],
   },
 
@@ -222,10 +524,14 @@ export const LEAGUES = {
     tier: 2,
     keywords: [
       'England. Championship',
+      'England Championship',
+      'England. EFL Championship',
+      'England EFL Championship',
       'English Championship',
       'Championship',
       'EFL Championship',
       'Sky Bet Championship',
+      'England - Championship',
     ],
   },
 
@@ -429,6 +735,113 @@ export const LEAGUES = {
     ],
   },
 
+  // Japanese J-League
+  japan: {
+    id: 'japan',
+    name: 'J-League',
+    country: 'japan',
+    tier: 2,
+    keywords: [
+      'Japan. J-League',
+      'Japan. J1 League',
+      'Japanese J-League',
+      'J1 League',
+      'J-League',
+    ],
+  },
+
+  // Chinese Super League
+  china: {
+    id: 'china',
+    name: 'Super League',
+    country: 'china',
+    tier: 3,
+    keywords: [
+      'China. Super League',
+      'Chinese Super League',
+      'CSL',
+    ],
+  },
+
+  // South Korean K-League
+  korea: {
+    id: 'korea',
+    name: 'K-League',
+    country: 'korea',
+    tier: 3,
+    keywords: [
+      'South Korea. K-League',
+      'Korea. K-League',
+      'Korean K-League',
+      'K League 1',
+    ],
+  },
+
+  // Australian A-League
+  australia: {
+    id: 'australia',
+    name: 'A-League',
+    country: 'australia',
+    tier: 3,
+    keywords: [
+      'Australia. A-League',
+      'Australian A-League',
+      'A-League',
+    ],
+  },
+
+  // Indian Super League
+  india: {
+    id: 'india',
+    name: 'Super League',
+    country: 'india',
+    tier: 3,
+    keywords: [
+      'India. Super League',
+      'Indian Super League',
+      'ISL',
+    ],
+  },
+
+  // Colombian Primera A
+  colombia: {
+    id: 'colombia',
+    name: 'Primera A',
+    country: 'colombia',
+    tier: 3,
+    keywords: [
+      'Colombia. Primera A',
+      'Colombian Primera A',
+      'Liga BetPlay',
+    ],
+  },
+
+  // Chilean Primera Division
+  chile: {
+    id: 'chile',
+    name: 'Primera Division',
+    country: 'chile',
+    tier: 3,
+    keywords: [
+      'Chile. Primera',
+      'Chilean Primera',
+      'Primera Division Chile',
+    ],
+  },
+
+  // Mexican Liga MX
+  mexico: {
+    id: 'mexico',
+    name: 'Liga MX',
+    country: 'mexico',
+    tier: 2,
+    keywords: [
+      'Mexico. Liga MX',
+      'Mexican Liga MX',
+      'Liga MX',
+    ],
+  },
+
   // World Cup
   worldcup: {
     id: 'worldcup',
@@ -488,6 +901,7 @@ export const LEAGUES = {
 
 // Countries for filtering
 export const COUNTRIES = {
+  // Europe
   england: { id: 'england', name: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
   spain: { id: 'spain', name: 'Spain', flag: '🇪🇸' },
   italy: { id: 'italy', name: 'Italy', flag: '🇮🇹' },
@@ -498,11 +912,46 @@ export const COUNTRIES = {
   scotland: { id: 'scotland', name: 'Scotland', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
   belgium: { id: 'belgium', name: 'Belgium', flag: '🇧🇪' },
   turkey: { id: 'turkey', name: 'Turkey', flag: '🇹🇷' },
+
+  // Africa
   ghana: { id: 'ghana', name: 'Ghana', flag: '🇬🇭' },
+  kenya: { id: 'kenya', name: 'Kenya', flag: '🇰🇪' },
+  uganda: { id: 'uganda', name: 'Uganda', flag: '🇺🇬' },
+  tanzania: { id: 'tanzania', name: 'Tanzania', flag: '🇹🇿' },
+  nigeria: { id: 'nigeria', name: 'Nigeria', flag: '🇳🇬' },
+  southafrica: { id: 'southafrica', name: 'South Africa', flag: '🇿🇦' },
+  egypt: { id: 'egypt', name: 'Egypt', flag: '🇪🇬' },
+  morocco: { id: 'morocco', name: 'Morocco', flag: '🇲🇦' },
+  algeria: { id: 'algeria', name: 'Algeria', flag: '🇩🇿' },
+  tunisia: { id: 'tunisia', name: 'Tunisia', flag: '🇹🇳' },
+  zambia: { id: 'zambia', name: 'Zambia', flag: '🇿🇲' },
+  zimbabwe: { id: 'zimbabwe', name: 'Zimbabwe', flag: '🇿🇼' },
+  rwanda: { id: 'rwanda', name: 'Rwanda', flag: '🇷🇼' },
+  botswana: { id: 'botswana', name: 'Botswana', flag: '🇧🇼' },
+  ethiopia: { id: 'ethiopia', name: 'Ethiopia', flag: '🇪🇹' },
+  ivorycoast: { id: 'ivorycoast', name: 'Ivory Coast', flag: '🇨🇮' },
+  senegal: { id: 'senegal', name: 'Senegal', flag: '🇸🇳' },
+  cameroon: { id: 'cameroon', name: 'Cameroon', flag: '🇨🇲' },
+
+  // Americas
   usa: { id: 'usa', name: 'USA', flag: '🇺🇸' },
-  saudi: { id: 'saudi', name: 'Saudi Arabia', flag: '🇸🇦' },
   brazil: { id: 'brazil', name: 'Brazil', flag: '🇧🇷' },
   argentina: { id: 'argentina', name: 'Argentina', flag: '🇦🇷' },
+  mexico: { id: 'mexico', name: 'Mexico', flag: '🇲🇽' },
+  colombia: { id: 'colombia', name: 'Colombia', flag: '🇨🇴' },
+  chile: { id: 'chile', name: 'Chile', flag: '🇨🇱' },
+
+  // Asia & Oceania
+  japan: { id: 'japan', name: 'Japan', flag: '🇯🇵' },
+  china: { id: 'china', name: 'China', flag: '🇨🇳' },
+  korea: { id: 'korea', name: 'South Korea', flag: '🇰🇷' },
+  australia: { id: 'australia', name: 'Australia', flag: '🇦🇺' },
+  india: { id: 'india', name: 'India', flag: '🇮🇳' },
+
+  // Middle East
+  saudi: { id: 'saudi', name: 'Saudi Arabia', flag: '🇸🇦' },
+
+  // Regions
   europe: { id: 'europe', name: 'Europe', flag: '🇪🇺' },
   international: { id: 'international', name: 'International', flag: '🌍' },
   africa: { id: 'africa', name: 'Africa', flag: '🌍' },
@@ -529,6 +978,7 @@ export const getPopularLeagues = () => {
 // Country name variations mapping to our country IDs
 // Used for parsing "Country. League" format from APIs
 const COUNTRY_NAME_TO_ID = {
+  // Europe
   'england': 'england',
   'english': 'england',
   'spain': 'spain',
@@ -550,15 +1000,78 @@ const COUNTRY_NAME_TO_ID = {
   'belgian': 'belgium',
   'turkey': 'turkey',
   'turkish': 'turkey',
+
+  // Africa
   'ghana': 'ghana',
   'ghanaian': 'ghana',
+  'kenya': 'kenya',
+  'kenyan': 'kenya',
+  'uganda': 'uganda',
+  'ugandan': 'uganda',
+  'tanzania': 'tanzania',
+  'tanzanian': 'tanzania',
+  'nigeria': 'nigeria',
+  'nigerian': 'nigeria',
+  'south africa': 'southafrica',
+  'southafrica': 'southafrica',
+  'south african': 'southafrica',
+  'egypt': 'egypt',
+  'egyptian': 'egypt',
+  'morocco': 'morocco',
+  'moroccan': 'morocco',
+  'algeria': 'algeria',
+  'algerian': 'algeria',
+  'tunisia': 'tunisia',
+  'tunisian': 'tunisia',
+  'zambia': 'zambia',
+  'zambian': 'zambia',
+  'zimbabwe': 'zimbabwe',
+  'zimbabwean': 'zimbabwe',
+  'rwanda': 'rwanda',
+  'rwandan': 'rwanda',
+  'botswana': 'botswana',
+  'ethiopia': 'ethiopia',
+  'ethiopian': 'ethiopia',
+  'ivory coast': 'ivorycoast',
+  'ivorycoast': 'ivorycoast',
+  "cote d'ivoire": 'ivorycoast',
+  'senegal': 'senegal',
+  'senegalese': 'senegal',
+  'cameroon': 'cameroon',
+  'cameroonian': 'cameroon',
+
+  // Americas
   'usa': 'usa',
   'united states': 'usa',
-  'saudi arabia': 'saudi',
   'brazil': 'brazil',
   'brazilian': 'brazil',
   'argentina': 'argentina',
   'argentine': 'argentina',
+  'mexico': 'mexico',
+  'mexican': 'mexico',
+  'colombia': 'colombia',
+  'colombian': 'colombia',
+  'chile': 'chile',
+  'chilean': 'chile',
+
+  // Asia & Oceania
+  'japan': 'japan',
+  'japanese': 'japan',
+  'china': 'china',
+  'chinese': 'china',
+  'south korea': 'korea',
+  'korea': 'korea',
+  'korean': 'korea',
+  'australia': 'australia',
+  'australian': 'australia',
+  'india': 'india',
+  'indian': 'india',
+
+  // Middle East
+  'saudi arabia': 'saudi',
+  'saudi': 'saudi',
+
+  // Regions
   'europe': 'europe',
   'european': 'europe',
   'uefa': 'europe',

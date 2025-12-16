@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getMatches, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
-import { LEAGUES, COUNTRIES, matchesAnyLeague, isCountryMatch, getLeagueTier } from '../config/leagues';
+import { LEAGUES, COUNTRIES, matchesAnyLeague, isCountryMatch, getLeagueTier, matchLeague } from '../config/leagues';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
@@ -455,13 +455,43 @@ function OddsPage() {
       return { 'All Matches': sorted };
     }
 
-    // For league sort, group by league and sort league names
+    // For league sort, group by country + league name to ensure complete separation
     const groups = {};
     filteredMatches.forEach(match => {
-      if (!groups[match.league]) {
-        groups[match.league] = [];
+      // Use matched league for grouping to normalize variants
+      const matchedLeague = matchLeague(match.league);
+
+      let groupKey;
+      if (matchedLeague) {
+        // Get country name for display
+        const country = COUNTRIES[matchedLeague.country];
+        const countryName = country ? country.name : matchedLeague.country;
+
+        // Format: "Country - League Name" for clear separation
+        // Special cases: International competitions don't need country prefix
+        if (['europe', 'international', 'africa', 'southamerica'].includes(matchedLeague.country)) {
+          groupKey = matchedLeague.name;
+        } else {
+          groupKey = `${countryName} - ${matchedLeague.name}`;
+        }
+      } else {
+        // Unmatched leagues: extract country from "Country. League" format if present
+        const countryMatch = match.league.match(/^([^.]+)\.\s*(.+)$/);
+        if (countryMatch) {
+          const countryPart = countryMatch[1].trim();
+          const leaguePart = countryMatch[2].trim();
+          // Use format "Country - League" for consistency, even for unknown leagues
+          groupKey = `${countryPart} - ${leaguePart}`;
+        } else {
+          // No country prefix found - use original name
+          groupKey = match.league;
+        }
       }
-      groups[match.league].push(match);
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(match);
     });
 
     // Sort matches within each league by time
