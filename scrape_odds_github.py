@@ -866,10 +866,22 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
 
     groups = {}
 
+    # Generic team names to filter out (these cause false matches)
+    generic_names = {'home', 'away', 'team 1', 'team 2', 'team1', 'team2', 'home team', 'away team'}
+
     for bookie, matches in all_matches.items():
         for match in matches:
             home = normalize_name(match['home_team'])
             away = normalize_name(match['away_team'])
+
+            # Skip matches with generic placeholder team names
+            # Check for exact match or if name starts with/contains generic terms
+            if (home in generic_names or away in generic_names or
+                not home or not away or
+                home.startswith('home') or away.startswith('away') or
+                home.startswith('team') or away.startswith('team') or
+                'special' in home.lower() or 'special' in away.lower()):
+                continue
 
             # Try exact match first
             key = f"{home}|{away}"
