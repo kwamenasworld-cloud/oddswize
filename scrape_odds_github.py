@@ -860,6 +860,42 @@ def normalize_name(name: str) -> str:
     words = [w for w in words if w not in removals]
     return ' '.join(words) if words else name
 
+def normalize_league(league: str) -> str:
+    """Normalize league name to prevent duplicates across bookmakers."""
+    if not league:
+        return ''
+
+    league = league.strip()
+
+    # Remove country prefixes (e.g., "England. Premier League" -> "Premier League")
+    # But keep full name for less common leagues
+    country_prefixes = [
+        'England. ', 'Spain. ', 'Germany. ', 'Italy. ', 'France. ',
+        'Portugal. ', 'Netherlands. ', 'Scotland. ', 'Belgium. ',
+        'Turkey. ', 'Greece. ', 'Russia. ', 'Ukraine. ', 'Poland. ',
+        'Austria. ', 'Switzerland. ', 'Denmark. ', 'Norway. ', 'Sweden. ',
+    ]
+
+    for prefix in country_prefixes:
+        if league.startswith(prefix):
+            # Remove country prefix for major leagues
+            potential = league[len(prefix):]
+            # Only remove prefix for well-known league names
+            if any(known in potential for known in [
+                'Premier League', 'Championship', 'League One', 'League Two',
+                'La Liga', 'Serie A', 'Serie B', 'Bundesliga', '2nd Bundesliga',
+                'Ligue 1', 'Ligue 2', 'Primeira Liga', 'Eredivisie',
+                'Super League', 'First Division'
+            ]):
+                league = potential
+            break
+
+    # Additional normalization
+    league = league.replace('2 Bundesliga', '2nd Bundesliga')
+    league = league.replace('. ', ' ').strip()  # "2. Bundesliga" -> "2 Bundesliga"
+
+    return league
+
 def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
     """Match events across bookmakers."""
     print("\nMatching events...")
@@ -952,6 +988,9 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
 
         first = event_group[0]
         league = first.get('league', 'Unknown League')
+
+        # Normalize league name to prevent duplicates (e.g., "England. Premier League" -> "Premier League")
+        league = normalize_league(league)
 
         # Initialize league group if not exists
         if league not in league_groups:
