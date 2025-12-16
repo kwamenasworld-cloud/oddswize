@@ -907,10 +907,24 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
 def push_to_cloudflare(matched_events: List[List[Dict]]):
     """Push matched events to Cloudflare Worker."""
     if not CLOUDFLARE_WORKER_URL or not CLOUDFLARE_API_KEY:
-        print("  Cloudflare credentials not set - skipping push")
+        print("\n" + "="*60)
+        print("⚠️  WARNING: Cloudflare credentials not set")
+        print("="*60)
+        print("  CLOUDFLARE_WORKER_URL:", "✓ Set" if CLOUDFLARE_WORKER_URL else "✗ Missing")
+        print("  CLOUDFLARE_API_KEY:", "✓ Set" if CLOUDFLARE_API_KEY else "✗ Missing")
+        print("\n  Data saved locally to odds_data.json but NOT pushed to Cloudflare.")
+        print("  Website will NOT update with new odds.")
+        print("\n  To fix: Set environment variables in GitHub Actions secrets:")
+        print("    - CLOUDFLARE_WORKER_URL")
+        print("    - CLOUDFLARE_API_KEY")
+        print("="*60)
         return
 
-    print(f"\nPushing {len(matched_events)} events to Cloudflare...")
+    print(f"\n{'='*60}")
+    print(f"📤 Pushing {len(matched_events)} events to Cloudflare...")
+    print(f"{'='*60}")
+    print(f"  Target URL: {CLOUDFLARE_WORKER_URL}")
+    print(f"  Events to push: {len(matched_events)}")
 
     output = {
         'last_updated': datetime.now().isoformat(),
@@ -941,6 +955,7 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
         output['matches'].append(match_data)
 
     try:
+        print(f"  Sending POST request...")
         resp = requests.post(
             CLOUDFLARE_WORKER_URL,
             json=output,
@@ -950,9 +965,16 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
             },
             timeout=30
         )
-        print(f"  Cloudflare response: {resp.status_code}")
+        print(f"  ✅ Cloudflare response: {resp.status_code}")
+        if resp.status_code == 200:
+            print(f"  ✅ Successfully pushed {len(output['matches'])} matches to Cloudflare!")
+            print(f"  ✅ Website will update with new odds")
+        else:
+            print(f"  ⚠️  Unexpected status code: {resp.status_code}")
+            print(f"  Response: {resp.text[:200]}")
     except Exception as e:
-        print(f"  Cloudflare push error: {e}")
+        print(f"  ❌ Cloudflare push error: {e}")
+        print(f"  ❌ Website will NOT update with new odds")
 
 
 # ============================================================================
