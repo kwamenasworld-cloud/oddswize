@@ -42,6 +42,7 @@ export const LEAGUES = {
       'Spain 1. La Liga',
       'Spain - La Liga',
       'Spain - LaLiga',
+      'La Liga', // Bare name after normalization removes country prefix
     ],
   },
 
@@ -57,6 +58,7 @@ export const LEAGUES = {
       'Serie A TIM',
       'Italy Serie A',
       'Italy 1. Serie A',
+      'Serie A', // Bare name after normalization removes country prefix
     ],
   },
 
@@ -575,6 +577,7 @@ export const LEAGUES = {
       'Germany. 2nd Bundesliga',
       'Germany. 2. Bundesliga',
       '2. Bundesliga',
+      '2nd Bundesliga',
       'Bundesliga 2',
       'German 2. Bundesliga',
     ],
