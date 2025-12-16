@@ -14,7 +14,6 @@ body {
 /* Optimize header for mobile - prevent repaints */
 .header {
   will-change: transform;
-  contain: layout style paint;
 }
 
 /* Reduce transitions on mobile for better performance */
@@ -45,13 +44,11 @@ img {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  contain: strict; /* Isolate from rest of page */
 }
 
 /* Reserve space for match cards */
 .match-card {
   min-height: 100px;
-  contain: content; /* Optimize rendering */
 }
 
 /* ===== SCROLL PERFORMANCE ===== */
@@ -98,16 +95,10 @@ img {
   }
 
   /* Optimize filters container */
-  .filters-bar,
-  .filter-section {
-    contain: layout style;
-  }
+  /* Removed contain property - was interfering with layout */
 
-  /* Optimize match card rendering */
-  .match-card {
-    transform: translate3d(0, 0, 0); /* GPU acceleration */
-    backface-visibility: hidden;
-  }
+  /* IMPORTANT: Don't optimize match-row - it breaks the grid layout */
+  /* Let the main CSS handle match-row layout */
 }
 
 /* ===== TOUCH IMPROVEMENTS ===== */
@@ -116,11 +107,13 @@ img {
 @media (max-width: 768px) {
   button,
   a,
-  .filter-btn,
-  .odds-cell {
+  .filter-btn {
     min-height: 44px; /* iOS recommended touch target */
     min-width: 44px;
   }
+
+  /* Don't force min-height on odds cells - they need to fit in grid layout */
+  /* The grid layout in index.css handles their sizing correctly */
 
   /* Prevent text selection during scrolling */
   .matches-container,
@@ -155,7 +148,6 @@ img {
     bottom: 0;
     left: 0;
     will-change: transform, opacity;
-    contain: strict;
   }
 
   .mobile-menu.open {
@@ -185,12 +177,6 @@ img {
   .dropdown-menu,
   .mobile-menu {
     transition: transform 0.2s ease, opacity 0.2s ease;
-  }
-
-  /* Avoid expensive calc() operations on mobile */
-  .match-card,
-  .odds-row {
-    width: 100%;
   }
 
   /* Simplify filters on mobile */
@@ -250,13 +236,7 @@ img[loading="lazy"] {
 /* ===== CRITICAL CSS FOR ABOVE-THE-FOLD ===== */
 
 /* Optimize header rendering (always visible) */
-.header-top {
-  contain: layout style;
-}
-
-.logo {
-  contain: layout;
-}
+/* Removed contain properties - was interfering with layout */
 
 /* ===== ACCESSIBILITY + PERFORMANCE ===== */
 
