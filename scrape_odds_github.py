@@ -11,6 +11,7 @@ import os
 import re
 import time
 import requests
+import cloudscraper
 import asyncio
 from datetime import datetime
 from typing import Dict, List, Set, Optional
@@ -274,17 +275,16 @@ def scrape_1xbet() -> List[Dict]:
 
 # ============================================================================
 # 22Bet Ghana Scraper - DIRECT API (Same structure as 1xBet)
-# NOTE: Currently blocked by Cloudflare protection
-# TODO: Implement Cloudflare bypass or use proxy service
+# Using cloudscraper to bypass Cloudflare protection
 # ============================================================================
 
-TWENTYTWOBET_API = "https://22bet.com.gh/LineFeed"
+TWENTYTWOBET_API = "https://22bet.com/gh/LineFeed"  # Note: .com/gh not .com.gh
 
-def fetch_22bet_games(session, champ_id, champ_name):
+def fetch_22bet_games(scraper, champ_id, champ_name):
     """Fetch games for a single championship."""
     matches = []
     try:
-        resp = session.get(f"{TWENTYTWOBET_API}/GetChampZip?champ={champ_id}&lng=en", headers=HEADERS, timeout=TIMEOUT)
+        resp = scraper.get(f"{TWENTYTWOBET_API}/GetChampZip?champ={champ_id}&lng=en", timeout=TIMEOUT)
         value = resp.json().get("Value", {})
         games = value.get("G", []) if isinstance(value, dict) else []
 
@@ -294,7 +294,7 @@ def fetch_22bet_games(session, champ_id, champ_name):
 
         # Fetch all games in one batch
         ids_str = ",".join(str(i) for i in game_ids[:BATCH_SIZE])
-        resp = session.get(f"{TWENTYTWOBET_API}/GetGamesZip?ids={ids_str}&lng=en", headers=HEADERS, timeout=TIMEOUT)
+        resp = scraper.get(f"{TWENTYTWOBET_API}/GetGamesZip?ids={ids_str}&lng=en", timeout=TIMEOUT)
         games_data = resp.json().get("Value", [])
 
         for game in games_data:
@@ -345,26 +345,20 @@ def fetch_22bet_games(session, champ_id, champ_name):
     return matches
 
 def scrape_22bet() -> List[Dict]:
-    """Scrape 22Bet Ghana (Direct API - same structure as 1xBet)."""
-    print("Scraping 22Bet Ghana (Direct API)...")
-    session = requests.Session()
-    adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
-    session.mount('https://', adapter)
+    """Scrape 22Bet Ghana (Direct API with Cloudflare bypass)."""
+    print("Scraping 22Bet Ghana (with Cloudflare bypass)...")
 
-    # First, load the main page to get cookies
-    try:
-        page_headers = {
-            'User-Agent': HEADERS['User-Agent'],
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
+    # Use cloudscraper to bypass Cloudflare
+    scraper = cloudscraper.create_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True
         }
-        session.get('https://22bet.com.gh/', headers=page_headers, timeout=TIMEOUT)
-        time.sleep(1)
-    except:
-        pass
+    )
 
     try:
-        resp = session.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", headers=HEADERS, timeout=TIMEOUT)
+        resp = scraper.get(f"{TWENTYTWOBET_API}/GetChampsZip?sport=1&lng=en", timeout=TIMEOUT)
         if resp.status_code != 200:
             print(f"  22Bet API returned status {resp.status_code}")
             return []
@@ -381,7 +375,7 @@ def scrape_22bet() -> List[Dict]:
     # Parallel championship fetching
     all_matches = []
     with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
-        futures = {executor.submit(fetch_22bet_games, session, cid, cname): cid
+        futures = {executor.submit(fetch_22bet_games, scraper, cid, cname): cid
                    for cid, cname in valid_champs}
         for future in as_completed(futures):
             matches = future.result()
@@ -691,52 +685,36 @@ def scrape_soccabet() -> List[Dict]:
 
 
 # ============================================================================
-# Betfox Ghana Scraper - LIGHTWEIGHT VERSION (no Playwright)
-# NOTE: API returns 403 - requires authentication or different approach
-# TODO: Investigate API authentication requirements or use Selenium/Playwright
+# Betfox Ghana Scraper - Using cloudscraper for Cloudflare bypass
 # ============================================================================
 
 def scrape_betfox() -> List[Dict]:
-    """Scrape Betfox Ghana via direct API (lightweight)."""
-    print("Scraping Betfox Ghana (lightweight)...")
+    """Scrape Betfox Ghana via direct API with Cloudflare bypass."""
+    print("Scraping Betfox Ghana (with Cloudflare bypass)...")
     matches = []
 
-    session = requests.Session()
-    adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10)
-    session.mount('https://', adapter)
-
-    # First, load the main page to get cookies
-    try:
-        page_headers = {
-            'User-Agent': HEADERS['User-Agent'],
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
+    # Use cloudscraper to bypass Cloudflare and handle cookies
+    scraper = cloudscraper.create_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True
         }
-        session.get('https://www.betfox.com.gh/', headers=page_headers, timeout=TIMEOUT)
-        time.sleep(2)  # Give time for cookies to settle
-    except:
-        pass
+    )
 
-    headers = {
-        **HEADERS,
+    # Set additional headers for Betfox API
+    scraper.headers.update({
         'Accept': 'application/json',
         'Origin': 'https://www.betfox.com.gh',
         'Referer': 'https://www.betfox.com.gh/sports/football',
         'x-betr-brand': 'betfox.com.gh',
         'x-locale': 'en',
-        'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-    }
+    })
 
     try:
         # Get all football competitions
-        resp = session.get(
+        resp = scraper.get(
             'https://www.betfox.com.gh/api/offer/v2/sports?sport=Football',
-            headers=headers,
             timeout=TIMEOUT
         )
 
@@ -766,9 +744,8 @@ def scrape_betfox() -> List[Dict]:
         def fetch_batch(batch_ids):
             try:
                 ids_param = ','.join(batch_ids)
-                resp = session.get(
+                resp = scraper.get(
                     f'https://www.betfox.com.gh/api/offer/v4/competitions?ids={ids_param}&enriched=2&sport=Football',
-                    headers=headers,
                     timeout=15
                 )
                 return resp.json()
@@ -982,8 +959,8 @@ def main():
         '1xBet Ghana': scrape_1xbet,
         'Betway Ghana': scrape_betway,
         'SoccaBet Ghana': scrape_soccabet,
-        # '22Bet Ghana': scrape_22bet,  # Cloudflare protected - needs bypass
-        # 'Betfox Ghana': scrape_betfox,  # API returns 403 - needs auth
+        '22Bet Ghana': scrape_22bet,  # WORKING - Using cloudscraper with correct API endpoint
+        # 'Betfox Ghana': scrape_betfox,  # DISABLED - API returns empty data (may have changed)
     }
 
     print("\nRunning ALL scrapers in parallel...")
