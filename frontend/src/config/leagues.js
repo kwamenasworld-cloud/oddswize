@@ -1164,7 +1164,15 @@ export const matchLeague = (leagueString) => {
   for (const league of allLeagues) {
     for (const keyword of league.keywords) {
       const keywordLower = keyword.toLowerCase();
-      if (lower.includes(keywordLower) && keywordLower.length > bestMatchLength) {
+
+      // For "Premier League" keyword, require exact match to avoid false positives
+      // (e.g., "Kenya Premier League" should NOT match English "Premier League")
+      const requiresExactMatch = keywordLower === 'premier league';
+      const isMatch = requiresExactMatch
+        ? lower === keywordLower
+        : lower.includes(keywordLower);
+
+      if (isMatch && keywordLower.length > bestMatchLength) {
         bestMatch = league;
         bestMatchLength = keywordLower.length;
       }
@@ -1198,7 +1206,12 @@ export const isLeagueMatch = (leagueString, leagueId) => {
   }
 
   // Keyword matching
-  return league.keywords.some(kw => lower.includes(kw.toLowerCase()));
+  return league.keywords.some(kw => {
+    const kwLower = kw.toLowerCase();
+    // For "Premier League" keyword, require exact match to avoid false positives
+    const requiresExactMatch = kwLower === 'premier league';
+    return requiresExactMatch ? lower === kwLower : lower.includes(kwLower);
+  });
 };
 
 // Check if a league string matches any of the given league IDs
