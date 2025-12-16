@@ -860,25 +860,68 @@ def normalize_name(name: str) -> str:
     words = [w for w in words if w not in removals]
     return ' '.join(words) if words else name
 
-# Known English Premier League teams for validation
-ENGLISH_PREMIER_LEAGUE_TEAMS = {
-    'arsenal', 'aston villa', 'bournemouth', 'brentford', 'brighton',
-    'chelsea', 'crystal palace', 'everton', 'fulham', 'ipswich', 'ipswich town',
-    'leicester', 'leicester city', 'liverpool', 'manchester city', 'manchester united',
-    'newcastle', 'newcastle united', 'nottingham forest', 'southampton',
-    'tottenham', 'west ham', 'wolves', 'wolverhampton'
+# Known teams for major leagues (for validation to prevent cross-contamination)
+LEAGUE_TEAMS = {
+    'Premier League': {
+        'arsenal', 'aston villa', 'bournemouth', 'brentford', 'brighton',
+        'chelsea', 'crystal palace', 'everton', 'fulham', 'ipswich', 'ipswich town',
+        'leicester', 'leicester city', 'liverpool', 'manchester city', 'manchester united',
+        'newcastle', 'newcastle united', 'nottingham forest', 'southampton',
+        'tottenham', 'west ham', 'wolves', 'wolverhampton'
+    },
+    'La Liga': {
+        'athletic bilbao', 'athletic club', 'atletico madrid', 'barcelona', 'celta vigo',
+        'espanyol', 'getafe', 'girona', 'las palmas', 'leganes',
+        'mallorca', 'osasuna', 'rayo vallecano', 'real betis', 'real madrid',
+        'real sociedad', 'real valladolid', 'sevilla', 'valencia', 'villarreal'
+    },
+    'Serie A': {
+        'atalanta', 'bologna', 'cagliari', 'como', 'empoli',
+        'fiorentina', 'genoa', 'inter', 'inter milan', 'internazionale',
+        'juventus', 'lazio', 'lecce', 'milan', 'ac milan',
+        'monza', 'napoli', 'parma', 'roma', 'torino',
+        'udinese', 'venezia', 'verona', 'hellas verona'
+    },
+    'Bundesliga': {
+        'augsburg', 'bayer leverkusen', 'leverkusen', 'bayern', 'bayern munich',
+        'bochum', 'borussia dortmund', 'dortmund', 'eintracht frankfurt', 'frankfurt',
+        'freiburg', 'heidenheim', 'hoffenheim', 'holstein kiel',
+        'mainz', 'rb leipzig', 'leipzig', 'st pauli', 'union berlin',
+        'werder bremen', 'bremen', 'wolfsburg'
+    },
+    'Ligue 1': {
+        'angers', 'auxerre', 'brest', 'le havre', 'lens',
+        'lille', 'lyon', 'marseille', 'monaco', 'montpellier',
+        'nantes', 'nice', 'psg', 'paris', 'paris saint germain',
+        'reims', 'rennes', 'saint etienne', 'strasbourg', 'toulouse'
+    },
+    'Championship': {
+        'barnsley', 'birmingham', 'blackburn', 'bristol city', 'burnley',
+        'cardiff', 'coventry', 'derby', 'derby county', 'hull', 'hull city',
+        'leeds', 'leeds united', 'luton', 'luton town', 'middlesbrough',
+        'millwall', 'norwich', 'norwich city', 'plymouth', 'portsmouth',
+        'preston', 'qpr', 'queens park rangers', 'sheffield united', 'sheffield wednesday',
+        'stoke', 'stoke city', 'sunderland', 'swansea', 'watford', 'west brom'
+    }
 }
 
-def is_english_premier_league_team(team_name: str) -> bool:
-    """Check if a team belongs to the English Premier League."""
+def is_team_in_league(team_name: str, league: str) -> bool:
+    """Check if a team belongs to a specific league."""
+    if league not in LEAGUE_TEAMS:
+        return True  # No validation data for this league, allow it
+
+    known_teams = LEAGUE_TEAMS[league]
     normalized = normalize_name(team_name).lower()
+
     # Check if normalized name is in the known teams set
-    if normalized in ENGLISH_PREMIER_LEAGUE_TEAMS:
+    if normalized in known_teams:
         return True
+
     # Also check if any known team name is contained in the team name
-    for known_team in ENGLISH_PREMIER_LEAGUE_TEAMS:
+    for known_team in known_teams:
         if known_team in normalized or normalized in known_team:
             return True
+
     return False
 
 def normalize_league(league: str) -> str:
@@ -1022,19 +1065,19 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
         # Normalize league name to prevent duplicates (e.g., "England. Premier League" -> "Premier League")
         league = normalize_league(league)
 
-        # Validate teams for specific leagues to prevent mismatching
-        # If league is "Premier League" (bare name = English), ensure teams are actually English
-        if league == 'Premier League':
+        # Validate teams for specific leagues to prevent cross-contamination
+        # Check if this league has validation data (Premier League, La Liga, Serie A, etc.)
+        if league in LEAGUE_TEAMS:
             home_team = first.get('home_team', '')
             away_team = first.get('away_team', '')
 
-            # Check if either team is a known English Premier League team
-            is_home_english = is_english_premier_league_team(home_team)
-            is_away_english = is_english_premier_league_team(away_team)
+            # Check if either team belongs to this league
+            is_home_valid = is_team_in_league(home_team, league)
+            is_away_valid = is_team_in_league(away_team, league)
 
-            if not (is_home_english or is_away_english):
-                # This is not an English Premier League match - skip it
-                print(f"  [FILTER] Skipping non-English Premier League match: {home_team} vs {away_team}")
+            if not (is_home_valid or is_away_valid):
+                # This match doesn't belong to this league - skip it
+                print(f"  [FILTER] Skipping non-{league} match: {home_team} vs {away_team}")
                 filtered_count += 1
                 continue
 
@@ -1067,7 +1110,7 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
 
     # Print filtering stats
     if filtered_count > 0:
-        print(f"  [FILTER] Filtered out {filtered_count} non-English matches from Premier League")
+        print(f"  [FILTER] Filtered out {filtered_count} mismatched matches from major leagues")
 
     # Convert to array format expected by Worker
     output = list(league_groups.values())
