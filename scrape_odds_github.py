@@ -920,26 +920,40 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
         print("="*60)
         return
 
+    # Ensure URL ends with /api/odds/update
+    api_url = CLOUDFLARE_WORKER_URL.rstrip('/')
+    if not api_url.endswith('/api/odds/update'):
+        api_url += '/api/odds/update'
+
     print(f"\n{'='*60}")
     print(f"Pushing {len(matched_events)} events to Cloudflare...")
     print(f"{'='*60}")
-    print(f"  Target URL: {CLOUDFLARE_WORKER_URL}")
+    print(f"  Target URL: {api_url}")
     print(f"  Events to push: {len(matched_events)}")
 
-    output = {
-        'last_updated': datetime.now().isoformat(),
-        'matches': []
-    }
+    # Group matches by league (Worker expects LeagueGroup[] format)
+    league_groups = {}
 
-    for event_group in matched_events[:1500]:  # More matches to CF
+    for event_group in matched_events[:1500]:  # Limit to 1500 matches
         if not event_group:
             continue
 
         first = event_group[0]
+        league = first.get('league', 'Unknown League')
+
+        # Initialize league group if not exists
+        if league not in league_groups:
+            league_groups[league] = {
+                'league': league,
+                'matches': []
+            }
+
+        # Build match data
         match_data = {
+            'id': f"{first['home_team']}-{first['away_team']}-{first.get('start_time', 0)}".replace(' ', '-').lower(),
             'home_team': first['home_team'],
             'away_team': first['away_team'],
-            'league': first.get('league', ''),
+            'league': league,
             'start_time': first.get('start_time', 0),
             'odds': []
         }
@@ -952,12 +966,15 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
                 'away_odds': m['away_odds']
             })
 
-        output['matches'].append(match_data)
+        league_groups[league]['matches'].append(match_data)
+
+    # Convert to array format expected by Worker
+    output = list(league_groups.values())
 
     try:
-        print(f"  Sending POST request...")
+        print(f"  Sending POST request with {len(output)} leagues...")
         resp = requests.post(
-            CLOUDFLARE_WORKER_URL,
+            api_url,
             json=output,
             headers={
                 'Content-Type': 'application/json',
@@ -966,12 +983,14 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
             timeout=30
         )
         print(f"  [OK] Cloudflare response: {resp.status_code}")
+
         if resp.status_code == 200:
-            print(f"  [SUCCESS] Pushed {len(output['matches'])} matches to Cloudflare!")
+            total_matches = sum(len(lg['matches']) for lg in output)
+            print(f"  [SUCCESS] Pushed {total_matches} matches in {len(output)} leagues to Cloudflare!")
             print(f"  [SUCCESS] Website will update with new odds")
         else:
             print(f"  [WARNING] Unexpected status code: {resp.status_code}")
-            print(f"  Response: {resp.text[:200]}")
+            print(f"  Response: {resp.text[:500]}")
     except Exception as e:
         print(f"  [ERROR] Cloudflare push error: {e}")
         print(f"  [ERROR] Website will NOT update with new odds")
