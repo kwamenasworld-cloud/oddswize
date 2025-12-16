@@ -867,13 +867,22 @@ def normalize_league(league: str) -> str:
 
     league = league.strip()
 
-    # Remove country prefixes (e.g., "England. Premier League" -> "Premier League")
+    # First normalize periods and spaces
+    league = league.replace('. ', ' ').strip()  # "2. Bundesliga" -> "2 Bundesliga"
+
+    # Normalize specific league name variations BEFORE country prefix removal
+    # This ensures "Spain LaLiga" and "Spain La Liga" both become "Spain La Liga"
+    league = league.replace('LaLiga', 'La Liga')  # "LaLiga" -> "La Liga"
+    league = league.replace('2 Bundesliga', '2nd Bundesliga')
+    league = league.replace('3 Bundesliga', '3rd Bundesliga')
+
+    # Remove country prefixes (e.g., "England Premier League" -> "Premier League")
     # But keep full name for less common leagues
     country_prefixes = [
-        'England. ', 'Spain. ', 'Germany. ', 'Italy. ', 'France. ',
-        'Portugal. ', 'Netherlands. ', 'Scotland. ', 'Belgium. ',
-        'Turkey. ', 'Greece. ', 'Russia. ', 'Ukraine. ', 'Poland. ',
-        'Austria. ', 'Switzerland. ', 'Denmark. ', 'Norway. ', 'Sweden. ',
+        'England ', 'Spain ', 'Germany ', 'Italy ', 'France ',
+        'Portugal ', 'Netherlands ', 'Scotland ', 'Belgium ',
+        'Turkey ', 'Greece ', 'Russia ', 'Ukraine ', 'Poland ',
+        'Austria ', 'Switzerland ', 'Denmark ', 'Norway ', 'Sweden ',
     ]
 
     for prefix in country_prefixes:
@@ -889,14 +898,6 @@ def normalize_league(league: str) -> str:
             ]):
                 league = potential
             break
-
-    # Additional normalization
-    # First normalize periods and spaces
-    league = league.replace('. ', ' ').strip()  # "2. Bundesliga" -> "2 Bundesliga"
-
-    # Then normalize specific league names
-    league = league.replace('2 Bundesliga', '2nd Bundesliga')
-    league = league.replace('3 Bundesliga', '3rd Bundesliga')
 
     return league
 
