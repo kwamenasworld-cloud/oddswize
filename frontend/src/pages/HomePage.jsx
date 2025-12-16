@@ -5,7 +5,7 @@ import { BookmakerLogo } from '../components/BookmakerLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 import { LEAGUES, matchLeague } from '../config/leagues';
-import { getMatches } from '../services/api';
+import { getMatchesByLeague } from '../services/api';
 
 // News articles for homepage (links to full articles)
 const NEWS_ARTICLES = [
@@ -87,6 +87,7 @@ const POPULAR_LEAGUES = [
 
 function HomePage() {
   const [matches, setMatches] = useState([]);
+  const [leagueData, setLeagueData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -95,12 +96,23 @@ function HomePage() {
 
   const loadMatches = async () => {
     try {
-      // Load more matches to get accurate league counts
-      const data = await getMatches(500, 0, 2);
-      setMatches(data.matches || []);
+      // Load grouped league data for accurate counts
+      const data = await getMatchesByLeague();
+
+      // Flatten matches for featured matches section
+      const allMatches = data.leagues.flatMap(league =>
+        league.matches.map(match => ({
+          ...match,
+          league: league.league
+        }))
+      );
+
+      setLeagueData(data.leagues);
+      setMatches(allMatches);
     } catch (error) {
       console.error('Failed to load matches:', error);
       setMatches([]);
+      setLeagueData([]);
     } finally {
       setLoading(false);
     }
@@ -141,17 +153,26 @@ function HomePage() {
       .slice(0, 6);
   }, [matches]);
 
-  // Count matches per league for display (using centralized matching)
+  // Count matches per league for display (using API's grouped data directly)
   const leagueMatchCounts = useMemo(() => {
     const counts = {};
-    POPULAR_LEAGUES.forEach(league => {
-      counts[league.id] = matches.filter(m => {
-        const matchedLeague = matchLeague(m.league);
-        return matchedLeague && matchedLeague.id === league.id;
-      }).length;
+
+    POPULAR_LEAGUES.forEach(popularLeague => {
+      // Find all API leagues that match this popular league
+      const matchingApiLeagues = leagueData.filter(apiLeague => {
+        const matched = matchLeague(apiLeague.league);
+        return matched && matched.id === popularLeague.id;
+      });
+
+      // Sum up matches from all matching leagues
+      counts[popularLeague.id] = matchingApiLeagues.reduce(
+        (sum, league) => sum + (league.matches?.length || 0),
+        0
+      );
     });
+
     return counts;
-  }, [matches]);
+  }, [leagueData]);
 
   // Format kickoff time
   const formatTime = (timestamp) => {
