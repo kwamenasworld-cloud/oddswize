@@ -1165,9 +1165,10 @@ export const matchLeague = (leagueString) => {
     for (const keyword of league.keywords) {
       const keywordLower = keyword.toLowerCase();
 
-      // For "Premier League" keyword, require exact match to avoid false positives
-      // (e.g., "Kenya Premier League" should NOT match English "Premier League")
-      const requiresExactMatch = keywordLower === 'premier league';
+      // For certain keywords, require exact match to avoid false positives
+      // "Premier League": prevents "Kenya Premier League" from matching
+      // "La Liga": prevents "Argentina Trofeo De Campeones De La Liga Profesional" from matching
+      const requiresExactMatch = keywordLower === 'premier league' || keywordLower === 'la liga';
       const isMatch = requiresExactMatch
         ? lower === keywordLower
         : lower.includes(keywordLower);
@@ -1208,8 +1209,8 @@ export const isLeagueMatch = (leagueString, leagueId) => {
   // Keyword matching
   return league.keywords.some(kw => {
     const kwLower = kw.toLowerCase();
-    // For "Premier League" keyword, require exact match to avoid false positives
-    const requiresExactMatch = kwLower === 'premier league';
+    // For certain keywords, require exact match to avoid false positives
+    const requiresExactMatch = kwLower === 'premier league' || kwLower === 'la liga';
     return requiresExactMatch ? lower === kwLower : lower.includes(kwLower);
   });
 };
