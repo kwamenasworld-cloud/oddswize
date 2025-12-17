@@ -817,16 +817,9 @@ a {
 
 .league-query-tiles {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 6px;
-  align-items: flex-start;
-  max-width: 260px;
-}
-
-.league-query-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #555;
+  min-width: 0;
 }
 
 .league-query-grid {
@@ -836,6 +829,7 @@ a {
   max-height: 140px;
   overflow-y: auto;
   padding: 4px 0;
+  flex: 1;
 }
 
 .league-query-grid::-webkit-scrollbar {
@@ -853,7 +847,7 @@ a {
 }
 
 .country-select {
-  padding: 6px 28px 6px 10px;
+  padding: 6px 24px 6px 10px;
   border: 1px solid #e0e0e0;
   border-radius: 16px;
   background: #fafafa;
@@ -866,7 +860,21 @@ a {
   background-repeat: no-repeat;
   background-position: right 8px center;
   min-width: 120px;
-  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.league-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.league-keyword-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .country-select:hover {

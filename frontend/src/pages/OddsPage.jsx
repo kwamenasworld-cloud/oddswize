@@ -764,76 +764,79 @@ function OddsPage() {
         </div>
 
         <div className="toolbar-center">
-          <div className="league-filters">
-            {visibleLeagues.map((league) => (
-              <button
-                key={league.id}
-                className={`league-btn ${
-                  league.id === 'all'
-                    ? selectedLeagues.length === 0 ? 'active' : ''
-                    : selectedLeagues.includes(league.id) ? 'active' : ''
-                }`}
-                onClick={() => {
-                  if (league.id === 'all') {
-                    setSelectedLeagues([]);
-                  } else {
-                    setSelectedLeagues(prev =>
-                      prev.includes(league.id)
-                        ? prev.filter(id => id !== league.id)
-                        : [...prev, league.id]
-                    );
-                  }
+          <div className="league-filter-panel">
+            <div className="league-filters">
+              {visibleLeagues.map((league) => (
+                <button
+                  key={league.id}
+                  className={`league-btn ${
+                    league.id === 'all'
+                      ? selectedLeagues.length === 0 ? 'active' : ''
+                      : selectedLeagues.includes(league.id) ? 'active' : ''
+                  }`}
+                  onClick={() => {
+                    if (league.id === 'all') {
+                      setSelectedLeagues([]);
+                    } else {
+                      setSelectedLeagues(prev =>
+                        prev.includes(league.id)
+                          ? prev.filter(id => id !== league.id)
+                          : [...prev, league.id]
+                      );
+                    }
+                  }}
+                >
+                  <LeagueLogo leagueId={league.id} size={14} />
+                  <span className="league-name">{league.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="league-keyword-row">
+              <select
+                className="country-select"
+                value={selectedCountry}
+                onChange={(e) => {
+                  setSelectedCountry(e.target.value);
+                  if (e.target.value !== 'all') setSelectedLeagues([]); // Reset leagues when selecting country
                 }}
               >
-                <LeagueLogo leagueId={league.id} size={14} />
-                <span className="league-name">{league.name}</span>
-              </button>
-            ))}
+                {COUNTRY_FILTERS.map((country) => (
+                  <option key={country.id} value={country.id}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+              <div className="league-query-tiles">
+                <div className="league-query-grid">
+                  {LEAGUE_QUERY_TILES.map(tile => (
+                    <button
+                      key={tile.id}
+                      className={`league-btn ${leagueQuery === tile.value ? 'active' : ''}`}
+                      onClick={() => setLeagueQuery(prev => prev === tile.value ? '' : tile.value)}
+                    >
+                      {tile.logoId ? (
+                        <LeagueLogo leagueId={tile.logoId} size={14} className="league-query-logo" />
+                      ) : (
+                        <span className="league-query-logo league-logo-fallback">
+                          {(tile.label || '•').slice(0, 2)}
+                        </span>
+                      )}
+                      <span className="league-name">{tile.label}</span>
+                    </button>
+                  ))}
+                  <button
+                    className={`league-btn ${leagueQuery === '' ? 'active' : ''}`}
+                    onClick={() => setLeagueQuery('')}
+                  >
+                    <span className="league-name">All</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <select
-            className="country-select"
-            value={selectedCountry}
-            onChange={(e) => {
-              setSelectedCountry(e.target.value);
-              if (e.target.value !== 'all') setSelectedLeagues([]); // Reset leagues when selecting country
-            }}
-          >
-            {COUNTRY_FILTERS.map((country) => (
-              <option key={country.id} value={country.id}>
-                {country.name}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="toolbar-right">
-          <div className="league-query-tiles">
-            <label className="league-query-label">League keywords</label>
-            <div className="league-query-grid">
-              {LEAGUE_QUERY_TILES.map(tile => (
-                <button
-                  key={tile.id}
-                  className={`league-btn ${leagueQuery === tile.value ? 'active' : ''}`}
-                  onClick={() => setLeagueQuery(prev => prev === tile.value ? '' : tile.value)}
-                >
-                  {tile.logoId ? (
-                    <LeagueLogo leagueId={tile.logoId} size={14} className="league-query-logo" />
-                  ) : (
-                    <span className="league-query-logo league-logo-fallback">
-                      {(tile.label || '•').slice(0, 2)}
-                    </span>
-                  )}
-                  <span className="league-name">{tile.label}</span>
-                </button>
-              ))}
-              <button
-                className={`league-btn ${leagueQuery === '' ? 'active' : ''}`}
-                onClick={() => setLeagueQuery('')}
-              >
-                <span className="league-name">All</span>
-              </button>
-            </div>
-          </div>
           <div className="sort-selector">
             <label className="sort-label">Sort:</label>
             <select
