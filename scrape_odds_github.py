@@ -13,14 +13,27 @@ import time
 import requests
 import cloudscraper
 import asyncio
+from collections import Counter
 from datetime import datetime
 from typing import Dict, List, Set, Optional
 from difflib import SequenceMatcher
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Optional Postgres ingestion for canonical leagues
+POSTGRES_DSN = os.getenv('POSTGRES_DSN')
+if POSTGRES_DSN:
+    try:
+        import psycopg2
+        from backend.core.canonical_leagues import LeagueMatcher
+        from backend.core.ingest_canonical import fetch_leagues_and_aliases, ingest_matched_events
+    except Exception as e:
+        print(f"[WARN] POSTGRES_DSN set but failed to import DB modules: {e}")
+        POSTGRES_DSN = None
+
 # Configuration - AGGRESSIVE MODE
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
+D1_CANONICAL_INGEST = os.getenv('D1_CANONICAL_INGEST')  # optional override; defaults to CLOUDFLARE_WORKER_URL/api/canonical/ingest
 MAX_MATCHES = 2000  # Enough coverage, faster runtime
 MAX_CHAMPIONSHIPS = 150  # Limit heavy leagues to speed up
 TIMEOUT = 10
@@ -634,7 +647,13 @@ def scrape_betfox() -> List[Dict]:
             # Extract fixtures from each competition
             for comp in competitions:
                 comp_fixtures = comp.get('fixtures', [])
-                all_fixtures.extend(comp_fixtures)
+                for fx in comp_fixtures:
+                    # Ensure competition/category populated on fixture
+                    if not fx.get('competition'):
+                        fx['competition'] = {'name': comp.get('name', '')}
+                    if not fx.get('category'):
+                        fx['category'] = comp.get('category', {})
+                    all_fixtures.append(fx)
 
             print(f"  Fixtures from competitions: {len(all_fixtures)}")
 
@@ -684,6 +703,10 @@ def scrape_betfox() -> List[Dict]:
                 league_name = competition.get('name', '')
                 country_name = category.get('name', '')
                 league = f"{country_name}. {league_name}" if country_name else league_name
+                if not league:
+                    # Infer Premier League if both teams are PL clubs
+                    if is_team_in_league(home, 'Premier League') and is_team_in_league(away, 'Premier League'):
+                        league = 'Premier League'
 
                 # Get competitors (teams)
                 competitors = fixture.get('competitors', [])
@@ -767,10 +790,45 @@ def normalize_name(name: str) -> str:
     name = re.sub(r'\s+', ' ', name)
 
     removals = ['fc', 'cf', 'sc', 'ac', 'afc', 'ssc', 'bc', 'fk', 'sk', 'nk',
-                'united', 'utd', 'city', 'town', 'athletic', 'sporting']
-    words = name.split()
-    words = [w for w in words if w not in removals]
+                'united', 'utd', 'city', 'town', 'athletic', 'sporting', 'hotspur', 'club']
+    replacements = {
+        'nott': 'nottingham',
+        'nottm': 'nottingham',
+        'notts': 'nottingham',
+        'forest': 'nottingham',
+        'spurs': 'tottenham',
+        'wolves': 'wolverhampton',
+        'wolverhampton wanderers': 'wolverhampton',
+        'whu': 'west ham',
+        'hammers': 'west ham',
+        'man': 'manchester',
+        'man utd': 'manchester united',
+        'man united': 'manchester united',
+        'manchester utd': 'manchester united',
+        'man city': 'manchester city',
+        'saint': 'st',
+        'st.': 'st',
+        'madrid': 'real',
+        'eindhoven': 'psv',
+        'brighton': 'brighton hove',
+        'hove': 'brighton hove',
+    }
+    words = []
+    for w in name.split():
+        w = replacements.get(w, w)
+        if w in removals:
+            continue
+        words.append(w)
     return ' '.join(words) if words else name
+
+
+def token_similarity(a: str, b: str) -> float:
+    """Token Jaccard similarity."""
+    ta = set(a.split())
+    tb = set(b.split())
+    if not ta or not tb:
+        return 0.0
+    return len(ta & tb) / len(ta | tb)
 
 # Known teams for major leagues (for validation to prevent cross-contamination)
 LEAGUE_TEAMS = {
@@ -835,6 +893,36 @@ def is_team_in_league(team_name: str, league: str) -> bool:
             return True
 
     return False
+
+def infer_league_from_teams(home_team: str, away_team: str) -> str:
+    """
+    Infer league when scraped league is empty by checking if both teams belong
+    to the same known league (e.g., Premier League).
+    """
+    home = normalize_name(home_team).lower()
+    away = normalize_name(away_team).lower()
+
+    for league, teams in LEAGUE_TEAMS.items():
+        if home in teams and away in teams:
+            return league
+
+    return ''
+
+def pick_league_for_group(event_group: List[Dict]) -> str:
+    """Choose the best league label for a matched event group."""
+    leagues_in_group = [
+        normalize_league(m.get('league', ''))
+        for m in event_group
+        if m.get('league')
+    ]
+    league = ''
+    if leagues_in_group:
+        league = Counter(leagues_in_group).most_common(1)[0][0]
+    if not league:
+        league = normalize_league(event_group[0].get('league', ''))
+    if not league:
+        league = infer_league_from_teams(event_group[0].get('home_team', ''), event_group[0].get('away_team', ''))
+    return league
 
 def normalize_league(league: str) -> str:
     """Normalize league name to prevent duplicates across bookmakers."""
@@ -937,8 +1025,10 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
                 eh, ea = existing_key.split('|')
                 home_sim = SequenceMatcher(None, home, eh).ratio()
                 away_sim = SequenceMatcher(None, away, ea).ratio()
+                home_tok = token_similarity(home, eh)
+                away_tok = token_similarity(away, ea)
 
-                if home_sim > 0.8 and away_sim > 0.8:
+                if (home_sim > 0.75 and away_sim > 0.75) or (home_tok >= 0.55 and away_tok >= 0.55):
                     groups[existing_key].append(match)
                     matched = True
                     break
@@ -970,6 +1060,93 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
         print("\n  [WARNING] NO matches with all 6 bookmakers!")
 
     return matched
+
+
+def push_to_postgres(all_matches: Dict[str, List[Dict]]):
+    """Optional: persist fixtures with canonical leagues if POSTGRES_DSN is set."""
+    if not POSTGRES_DSN:
+        return
+    try:
+        conn = psycopg2.connect(POSTGRES_DSN)
+    except Exception as e:
+        print(f"[WARN] Could not connect to Postgres: {e}")
+        return
+
+    try:
+        leagues, aliases = fetch_leagues_and_aliases(conn)
+        from backend.core.ingest_canonical import fetch_league_clubs
+        league_clubs = fetch_league_clubs(conn)
+        matcher = LeagueMatcher(leagues, aliases, league_clubs=league_clubs)
+
+        # Map bookmaker names to provider slugs
+        provider_map = {
+            'Betway Ghana': 'betway',
+            'SportyBet Ghana': 'sportybet',
+            '1xBet Ghana': '1xbet',
+            '22Bet Ghana': '22bet',
+            'SoccaBet Ghana': 'soccabet',
+            'Betfox Ghana': 'betfox',
+        }
+
+        for bookie, fixtures in all_matches.items():
+            provider = provider_map.get(bookie)
+            if not provider:
+                continue
+            ingest_matched_events(
+                conn,
+                matcher,
+                provider=provider,
+                fixtures=fixtures,
+                default_sport="soccer",
+                default_country=None,
+                season=None,
+            )
+        print("[OK] Pushed fixtures to Postgres with canonical league matching")
+    except Exception as e:
+        print(f"[WARN] Postgres ingestion failed: {e}")
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
+
+
+def push_to_d1(matched_events: List[List[Dict]]):
+    """Push fixtures to Cloudflare Worker D1 canonical ingest."""
+    if not CLOUDFLARE_API_KEY:
+        return
+    api_url = D1_CANONICAL_INGEST or CLOUDFLARE_WORKER_URL
+    if not api_url:
+        return
+    api_url = api_url.rstrip('/')
+    if not api_url.endswith('/api/canonical/ingest'):
+        api_url += '/api/canonical/ingest'
+
+    fixtures = []
+    for e in matched_events:
+        first = e[0]
+        fixtures.append({
+            'fixture_id': f"{first['home_team']}-{first['away_team']}-{first.get('start_time', 0)}".replace(' ', '-').lower(),
+            'league_id': None,
+            'provider': 'github-scraper',
+            'provider_fixture_id': f"{first.get('start_time', 0)}-{first['home_team']}-{first['away_team']}",
+            'home_team': first['home_team'],
+            'away_team': first['away_team'],
+            'kickoff_time': first.get('start_time', 0),
+            'country_code': None,
+            'sport': 'soccer',
+            'raw_league_name': first.get('league', ''),
+            'raw_league_id': first.get('league', ''),
+            'confidence': None
+        })
+
+    try:
+        resp = requests.post(api_url, json=fixtures, headers={'X-API-Key': CLOUDFLARE_API_KEY, 'Content-Type': 'application/json'}, timeout=30)
+        print(f"[D1] Ingest response: {resp.status_code}")
+        if resp.status_code != 200:
+            print(resp.text[:300])
+    except Exception as e:
+        print(f"[D1] Ingest error: {e}")
 
 
 # ============================================================================
@@ -1012,10 +1189,7 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
             continue
 
         first = event_group[0]
-        league = first.get('league', 'Unknown League')
-
-        # Normalize league name to prevent duplicates (e.g., "England. Premier League" -> "Premier League")
-        league = normalize_league(league)
+        league = pick_league_for_group(event_group)
 
         # Validate teams for specific leagues to prevent cross-contamination
         # Check if this league has validation data (Premier League, La Liga, Serie A, etc.)
@@ -1170,7 +1344,7 @@ def main():
             {
                 'home_team': e[0]['home_team'],
                 'away_team': e[0]['away_team'],
-                'league': e[0].get('league', ''),
+                'league': pick_league_for_group(e),
                 'start_time': e[0].get('start_time', 0),
                 'odds': [
                     {
@@ -1190,7 +1364,10 @@ def main():
         json.dump(output, f, indent=2)
     print(f"\nSaved to odds_data.json")
 
+    # Optional pushes
     push_to_cloudflare(matched)
+    push_to_postgres(all_matches)
+    push_to_d1(matched)
 
     total_time = time.time() - start_time
     print(f"\nTOTAL TIME: {total_time:.1f} seconds")

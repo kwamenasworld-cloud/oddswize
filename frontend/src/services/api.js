@@ -7,6 +7,22 @@
 const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://oddswize-api.kwamenahb.workers.dev';
 const STATIC_DATA_URL = '/data/odds_data.json';
 
+// Minimal team list to infer Premier League when league comes back empty
+const PREMIER_TEAMS = new Set([
+  'arsenal', 'aston villa', 'bournemouth', 'brentford', 'brighton', 'brighton & hove albion',
+  'chelsea', 'crystal palace', 'everton', 'fulham', 'ipswich', 'leeds', 'leeds united',
+  'leicester', 'leicester city', 'liverpool', 'man city', 'manchester city', 'man utd',
+  'manchester united', 'newcastle', 'newcastle united', 'nottingham forest', 'forest',
+  'southampton', 'spurs', 'tottenham', 'tottenham hotspur', 'west ham', 'west ham united',
+  'wolves', 'wolverhampton', 'wolverhampton wanderers', 'burnley'
+]);
+
+const isPremierLeagueMatch = (home, away) => {
+  const h = (home || '').toLowerCase();
+  const a = (away || '').toLowerCase();
+  return PREMIER_TEAMS.has(h) && PREMIER_TEAMS.has(a);
+};
+
 // Fetch helper with error handling
 const fetchApi = async (endpoint, options = {}) => {
   const url = `${CLOUDFLARE_API_URL}${endpoint}`;
@@ -60,7 +76,14 @@ export const getMatches = async (limit = 100, offset = 0, minBookmakers = 2) => 
         }
         return league.matches.map(match => ({
           ...match,
-          league: league.league || 'Unknown',
+          // Some scrapers emit empty league for EPL; infer it so frontend filters work
+          league: (() => {
+            const leagueName = league.league || match.league;
+            if (leagueName) return leagueName;
+            return isPremierLeagueMatch(match.home_team, match.away_team)
+              ? 'Premier League'
+              : 'Unknown';
+          })(),
         }));
       });
 

@@ -1217,8 +1217,9 @@ export const isLeagueMatch = (leagueString, leagueId) => {
 
 // Check if a league string matches any of the given league IDs
 export const matchesAnyLeague = (leagueString, leagueIds) => {
-  if (!leagueString || !leagueIds || leagueIds.length === 0) return true;
-  if (leagueIds.includes('all')) return true;
+  if (!leagueIds || leagueIds.length === 0 || leagueIds.includes('all')) return true;
+  // If user picked a specific league, blank/unknown leagues should not match
+  if (!leagueString) return false;
 
   return leagueIds.some(id => isLeagueMatch(leagueString, id));
 };

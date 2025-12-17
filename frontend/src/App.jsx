@@ -5,6 +5,7 @@ import OddsPage from './pages/OddsPage';
 import BookmakersPage from './pages/BookmakersPage';
 import NewsPage from './pages/NewsPage';
 import ArticlePage from './pages/ArticlePage';
+import AdminPage from './pages/AdminPage';
 import './index.css';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <Route path="/bookmakers" element={<BookmakersPage />} />
             <Route path="/news" element={<NewsPage />} />
             <Route path="/news/:slug" element={<ArticlePage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
         <Footer />

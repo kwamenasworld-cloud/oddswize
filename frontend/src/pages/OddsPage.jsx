@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getMatches, getStatus, triggerScan } from '../services/api';
+import { getCanonicalLeagues, getCanonicalFixtures } from '../services/canonical';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
 import { LEAGUES, COUNTRIES, matchesAnyLeague, isCountryMatch, getLeagueTier, matchLeague } from '../config/leagues';
 import { BookmakerLogo } from '../components/BookmakerLogo';
@@ -37,6 +38,7 @@ const POPULAR_LEAGUES = [
   { ...LEAGUES.bundesliga2, name: '2. Bundesliga' },
   { ...LEAGUES.serieb, name: 'Serie B' },
   { ...LEAGUES.ligue2, name: 'Ligue 2' },
+  { id: 'unmapped', name: 'Unmapped/Other', country: 'all' },
 ];
 
 // Build country filters from centralized config
@@ -142,11 +144,14 @@ const MARKET_FIELDS = {
 function OddsPage() {
   const [searchParams] = useSearchParams();
   const [matches, setMatches] = useState([]);
+  const [canonicalLeagues, setCanonicalLeagues] = useState([]);
+  const [useCanonical, setUseCanonical] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState(null);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [leagueQuery, setLeagueQuery] = useState('');
   const [selectedLeagues, setSelectedLeagues] = useState(() => {
     // Initialize from URL param if present
     const leagueParam = searchParams.get('league');
@@ -220,13 +225,40 @@ function OddsPage() {
   const loadData = async () => {
     setError(null);
     try {
-      const [matchData, statusData] = await Promise.all([
-        getMatches(500, 0, 2),  // Get up to 500 matches, min 2 bookmakers
-        getStatus(),
-      ]);
+      let statusData = null;
+      let fetchedMatches = null;
+      // Try canonical backend first
+      try {
+        const [canonLeagues, canonFixtures, statusResp] = await Promise.all([
+          getCanonicalLeagues(),
+          getCanonicalFixtures(500, 0),
+          getStatus(),
+        ]);
+        setCanonicalLeagues(canonLeagues || []);
+        // Map canonical fixtures to match shape (no odds available yet, so placeholder)
+        fetchedMatches = (canonFixtures || []).map(f => ({
+          home_team: f.home_team,
+          away_team: f.away_team,
+          league: f.league_id ? (canonLeagues.find(l => l.league_id === f.league_id)?.display_name || 'Unknown') : 'Unmapped/Other',
+          canonical_league_id: f.league_id || null,
+          start_time: f.kickoff_time,
+          odds: [], // odds not stored in canonical fixtures; UI will show empty cells
+        }));
+        setUseCanonical(true);
+        statusData = statusResp;
+      } catch (e) {
+        // Fallback to existing odds worker
+        const [matchData, statusDataResp] = await Promise.all([
+          getMatches(500, 0, 2),  // Get up to 500 matches, min 2 bookmakers
+          getStatus(),
+        ]);
+        fetchedMatches = (matchData.matches || matchData);
+        statusData = statusDataResp;
+        setUseCanonical(false);
+      }
 
       // Enrich matches with synthetic market data if missing
-      const enrichedMatches = (matchData.matches || matchData).map(match => ({
+      const enrichedMatches = (fetchedMatches || []).map(match => ({
         ...match,
         odds: match.odds?.map(odds => ({
           ...odds,
@@ -372,34 +404,56 @@ function OddsPage() {
   const filteredMatches = useMemo(() => {
     return matches.filter((match) => {
       const searchLower = searchQuery.toLowerCase();
+      const leagueLower = (match.league || '').toLowerCase();
+      const leagueQueryLower = leagueQuery.toLowerCase();
 
       const matchesSearch =
         !searchQuery ||
         match.home_team.toLowerCase().includes(searchLower) ||
         match.away_team.toLowerCase().includes(searchLower) ||
-        match.league.toLowerCase().includes(searchLower);
+        leagueLower.includes(searchLower);
+
+      const matchesLeagueText =
+        !leagueQuery || leagueLower.includes(leagueQueryLower);
 
       // League filter using centralized matching
-      const matchesLeague = matchesAnyLeague(match.league, selectedLeagues);
+      let matchesLeague = matchesAnyLeague(match.league, selectedLeagues);
+      if (useCanonical && selectedLeagues.length > 0) {
+        if (selectedLeagues.includes('unmapped')) {
+          matchesLeague = (!match.canonical_league_id || match.league === 'Unmapped/Other');
+        } else {
+          matchesLeague = selectedLeagues.some(id => match.canonical_league_id === id);
+        }
+      }
 
       // Country filter using centralized matching
       const matchesCountry = isCountryMatch(match.league, selectedCountry);
 
       const matchesDate = matchesDateFilter(match.start_time, selectedDate);
 
-      return matchesSearch && matchesLeague && matchesCountry && matchesDate;
+      return matchesSearch && matchesLeagueText && matchesLeague && matchesCountry && matchesDate;
     });
-  }, [matches, searchQuery, selectedLeagues, selectedCountry, selectedDate]);
+  }, [matches, searchQuery, leagueQuery, selectedLeagues, selectedCountry, selectedDate, useCanonical, canonicalLeagues]);
 
   // Filter visible league pills based on selected country
   const visibleLeagues = useMemo(() => {
+    if (useCanonical && canonicalLeagues.length > 0) {
+      const base = [{ id: 'all', name: 'All', country: 'all' }, { id: 'unmapped', name: 'Unmapped/Other', country: 'all' }];
+      const canon = canonicalLeagues.map(l => ({
+        id: l.league_id,
+        name: l.display_name,
+        country: l.country_code || 'all',
+      }));
+      return base.concat(canon);
+    }
+
     if (selectedCountry === 'all') {
       return POPULAR_LEAGUES;
     }
     return POPULAR_LEAGUES.filter(league =>
       league.country === 'all' || league.country === selectedCountry
     );
-  }, [selectedCountry]);
+  }, [selectedCountry, useCanonical, canonicalLeagues]);
 
   // Get featured/top matches (today's matches from top leagues)
   const featuredMatches = useMemo(() => {
@@ -690,14 +744,12 @@ function OddsPage() {
                 }`}
                 onClick={() => {
                   if (league.id === 'all') {
-                    // Clear all selections
                     setSelectedLeagues([]);
                   } else {
-                    // Toggle league selection
                     setSelectedLeagues(prev =>
                       prev.includes(league.id)
-                        ? prev.filter(id => id !== league.id) // Remove if already selected
-                        : [...prev, league.id] // Add if not selected
+                        ? prev.filter(id => id !== league.id)
+                        : [...prev, league.id]
                     );
                   }
                 }}
@@ -724,6 +776,20 @@ function OddsPage() {
         </div>
 
         <div className="toolbar-right">
+          <div className="league-query">
+            <label className="league-query-label">League filter</label>
+            <div className="league-query-input">
+              <input
+                type="text"
+                placeholder="e.g., women, uefa, bundesliga 2"
+                value={leagueQuery}
+                onChange={(e) => setLeagueQuery(e.target.value)}
+              />
+              {leagueQuery && (
+                <button className="clear-btn" onClick={() => setLeagueQuery('')}>A-</button>
+              )}
+            </div>
+          </div>
           <div className="sort-selector">
             <label className="sort-label">Sort:</label>
             <select

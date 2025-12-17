@@ -355,6 +355,170 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// D1 canonical leagues/fixtures
+// ---------------------------------------------------------------------------
+
+async function initD1Schema(env: Env) {
+  // Minimal check: ensure tables exist
+  const schema = `
+    CREATE TABLE IF NOT EXISTS leagues (
+      league_id TEXT PRIMARY KEY,
+      sport TEXT NOT NULL,
+      country_code TEXT NOT NULL,
+      region TEXT,
+      tier INTEGER,
+      gender TEXT,
+      season_start INTEGER,
+      season_end INTEGER,
+      display_name TEXT NOT NULL,
+      normalized_name TEXT NOT NULL,
+      timezone TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS league_aliases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      league_id TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      provider_league_id TEXT,
+      provider_name TEXT,
+      provider_country TEXT,
+      provider_season TEXT,
+      provider_sport TEXT,
+      priority INTEGER DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS fixtures (
+      fixture_id TEXT PRIMARY KEY,
+      league_id TEXT,
+      provider TEXT NOT NULL,
+      provider_fixture_id TEXT NOT NULL,
+      home_team TEXT NOT NULL,
+      away_team TEXT NOT NULL,
+      kickoff_time INTEGER,
+      country_code TEXT,
+      sport TEXT,
+      raw_league_name TEXT,
+      raw_league_id TEXT,
+      confidence REAL,
+      match_status TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS unmapped_candidates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fixture_id TEXT NOT NULL,
+      candidates TEXT,
+      reason TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_leagues_norm ON leagues(sport, country_code, normalized_name, season_start, season_end);
+    CREATE INDEX IF NOT EXISTS idx_league_alias_provider ON league_aliases(provider, provider_league_id);
+    CREATE INDEX IF NOT EXISTS idx_fixtures_league_time ON fixtures(league_id, kickoff_time);
+    CREATE INDEX IF NOT EXISTS idx_fixtures_provider ON fixtures(provider, provider_fixture_id);
+  `;
+  await env.D1.exec(schema);
+}
+
+async function listLeaguesD1(env: Env): Promise<Response> {
+  const res = await env.D1.prepare(
+    'SELECT league_id, display_name, sport, country_code, tier, season_start, season_end FROM leagues ORDER BY sport, country_code, display_name'
+  ).all();
+  return jsonResponse(res.results || [], 200, env);
+}
+
+async function listFixturesD1(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const leagueId = url.searchParams.get('league_id');
+  const country = url.searchParams.get('country');
+  const sport = url.searchParams.get('sport');
+  const dateFrom = url.searchParams.get('date_from');
+  const dateTo = url.searchParams.get('date_to');
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '200', 10), 1000);
+  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+
+  const filters: string[] = [];
+  const params: any[] = [];
+  if (leagueId) { filters.push('league_id = ?'); params.push(leagueId); }
+  if (country) { filters.push('country_code = ?'); params.push(country); }
+  if (sport) { filters.push('sport = ?'); params.push(sport); }
+  if (dateFrom) { filters.push('kickoff_time >= ?'); params.push(parseInt(dateFrom, 10)); }
+  if (dateTo) { filters.push('kickoff_time <= ?'); params.push(parseInt(dateTo, 10)); }
+
+  const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+  const sql = `SELECT fixture_id, league_id, provider, provider_fixture_id, home_team, away_team, kickoff_time, country_code, sport, raw_league_name, confidence
+               FROM fixtures ${where}
+               ORDER BY kickoff_time
+               LIMIT ? OFFSET ?`;
+  params.push(limit, offset);
+
+  const res = await env.D1.prepare(sql).bind(...params).all();
+  return jsonResponse(res.results || [], 200, env);
+}
+
+async function ingestFixturesD1(request: Request, env: Env): Promise<Response> {
+  const apiKey = request.headers.get('X-API-Key');
+  if (!apiKey || apiKey !== env.API_SECRET) {
+    return errorResponse('Unauthorized', 401, env);
+  }
+  const payload = await request.json() as any[];
+  if (!Array.isArray(payload)) return errorResponse('Invalid payload', 400, env);
+
+  try {
+    const stmt = env.D1.prepare(
+      `INSERT OR REPLACE INTO fixtures
+       (fixture_id, league_id, provider, provider_fixture_id, home_team, away_team, kickoff_time, country_code, sport, raw_league_name, raw_league_id, confidence, match_status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+    );
+
+    const batch = env.D1.batch(
+      payload.map(f => {
+        const id = f.fixture_id || crypto.randomUUID();
+        return stmt.bind(
+          id,
+          f.league_id || null,
+          f.provider,
+          f.provider_fixture_id,
+          f.home_team,
+          f.away_team,
+          f.kickoff_time || null,
+          f.country_code || null,
+          f.sport || null,
+          f.raw_league_name || null,
+          f.raw_league_id || null,
+          f.confidence || null,
+          f.match_status || null,
+        );
+      })
+    );
+
+    await batch;
+    return jsonResponse({ success: true, inserted: payload.length }, 200, env);
+  } catch (e) {
+    console.error('D1 ingest error', e);
+    return errorResponse(`D1 ingest failed: ${e}`, 500, env);
+  }
+}
+
+async function handleCanonical(request: Request, env: Env, path: string): Promise<Response> {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders(env) });
+  }
+  if (path === '/api/canonical/leagues' && request.method === 'GET') {
+    return listLeaguesD1(env);
+  }
+  if (path === '/api/canonical/fixtures' && request.method === 'GET') {
+    return listFixturesD1(request, env);
+  }
+  if (path === '/api/canonical/ingest' && request.method === 'POST') {
+    return ingestFixturesD1(request, env);
+  }
+  return errorResponse('Not found', 404, env);
+}
+
 /**
  * Scheduled handler - runs periodically to refresh data
  */
@@ -381,6 +545,10 @@ async function handleScheduled(
 // Export the worker
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/canonical/')) {
+      return handleCanonical(request, env, url.pathname);
+    }
     return handleRequest(request, env);
   },
 

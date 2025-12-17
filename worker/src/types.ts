@@ -2,6 +2,7 @@
 export interface Env {
   ODDS_CACHE: KVNamespace;
   MATCHES_DATA: KVNamespace;
+  D1: D1Database;
   ENVIRONMENT: string;
   CORS_ORIGIN: string;
   API_SECRET: string;

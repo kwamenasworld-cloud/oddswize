@@ -11,6 +11,12 @@ id = "28eda8030f2440689f8837daffdc67e3"
 binding = "MATCHES_DATA"
 id = "8df6916f071d4dab86818d650393e0c2"
 
+# D1 database for canonical leagues/fixtures
+[[d1_databases]]
+binding = "D1"
+database_name = "oddswize-d1"
+database_id = "1aff11f0-6871-4383-a671-170a62953327"
+
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
