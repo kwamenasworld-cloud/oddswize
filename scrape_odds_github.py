@@ -941,6 +941,22 @@ def pick_league_for_group(event_group: List[Dict]) -> str:
         if not (is_team_in_league(home, league) and is_team_in_league(away, league)):
             raw_leagues = [m.get('league') for m in event_group if m.get('league')]
             fallback = raw_leagues[0] if raw_leagues else f'{league} (Other)'
+            # If fallback is still ambiguous Premier League, force non-EPL label
+            if league.lower() == 'premier league' and fallback.lower().strip() == 'premier league':
+                # Try to detect country in any raw league label
+                country_hint = ''
+                for rl in raw_leagues:
+                    rl_low = rl.lower()
+                    for country in ['uganda', 'kenya', 'ghana', 'nigeria', 'tanzania', 'zambia', 'ethiopia']:
+                        if country in rl_low:
+                            country_hint = country.title()
+                            break
+                    if country_hint:
+                        break
+                if country_hint:
+                    fallback = f'{country_hint} Premier League'
+                else:
+                    fallback = 'Premier League (Other)'
             league = fallback
 
     return league
