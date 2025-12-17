@@ -51,29 +51,33 @@ const COUNTRY_FILTERS = [
 
 // Quick league keyword tiles for canonical/text filtering
 const LEAGUE_QUERY_TILES = [
-  { id: 'women', label: 'Women', value: 'women', icon: '🚺' },
-  { id: 'wsl', label: 'FA WSL', value: 'super league women', icon: '🏴' },
-  { id: 'nwsl', label: 'NWSL', value: 'nwsl', icon: '🇺🇸' },
-  { id: 'wcl', label: 'UWCL', value: 'women champions', icon: '⭐' },
-  { id: 'uefa', label: 'UEFA', value: 'uefa', icon: '🏆' },
-  { id: 'ucl', label: 'UCL', value: 'champions league', icon: '✨' },
-  { id: 'uel', label: 'Europa', value: 'europa', icon: '🟠' },
-  { id: 'uecl', label: 'Conference', value: 'conference', icon: '🟢' },
-  { id: 'bundesliga2', label: 'Bundesliga 2', value: 'bundesliga 2', icon: '🇩🇪' },
-  { id: 'laliga2', label: 'La Liga 2', value: 'la liga 2', icon: '🇪🇸' },
-  { id: 'serieb', label: 'Serie B', value: 'serie b', icon: '🇮🇹' },
-  { id: 'ligue2', label: 'Ligue 2', value: 'ligue 2', icon: '🇫🇷' },
-  { id: 'eredivisie', label: 'Eredivisie', value: 'eredivisie', icon: '🇳🇱' },
-  { id: 'mls', label: 'MLS', value: 'mls', icon: '🇺🇸' },
-  { id: 'libertadores', label: 'Libertadores', value: 'libertadores', icon: '🌎' },
-  { id: 'sudamericana', label: 'Sudamericana', value: 'sudamericana', icon: '🌀' },
-  { id: 'brasileirao', label: 'Serie A (BRA)', value: 'brasileirao', icon: '🇧🇷' },
-  { id: 'ligamx', label: 'Liga MX', value: 'liga mx', icon: '🇲🇽' },
-  { id: 'j1', label: 'J1 League', value: 'j1 league', icon: '🇯🇵' },
-  { id: 'k1', label: 'K League', value: 'k league', icon: '🇰🇷' },
-  { id: 'a-league', label: 'A-League', value: 'a-league', icon: '🇦🇺' },
-  { id: 'friendly', label: 'Friendlies', value: 'friendly', icon: '🤝' },
-  { id: 'youth', label: 'U21/Youth', value: 'u21', icon: '🧒' },
+  { id: 'premier', label: 'Premier League', value: 'premier league', logoId: 'premier' },
+  { id: 'ucl', label: 'UCL', value: 'champions league', logoId: 'ucl' },
+  { id: 'uel', label: 'Europa', value: 'europa league', logoId: 'uel' },
+  { id: 'uecl', label: 'Conference', value: 'conference league', logoId: 'conference' },
+  { id: 'laliga', label: 'La Liga', value: 'la liga', logoId: 'laliga' },
+  { id: 'laliga2', label: 'La Liga 2', value: 'la liga 2', logoId: 'laliga2' },
+  { id: 'bundesliga', label: 'Bundesliga', value: 'bundesliga', logoId: 'bundesliga' },
+  { id: 'bundesliga2', label: 'Bundesliga 2', value: 'bundesliga 2', logoId: 'bundesliga2' },
+  { id: 'seriea', label: 'Serie A', value: 'serie a', logoId: 'seriea' },
+  { id: 'serieb', label: 'Serie B', value: 'serie b', logoId: 'serieb' },
+  { id: 'ligue1', label: 'Ligue 1', value: 'ligue 1', logoId: 'ligue1' },
+  { id: 'ligue2', label: 'Ligue 2', value: 'ligue 2', logoId: 'ligue2' },
+  { id: 'eredivisie', label: 'Eredivisie', value: 'eredivisie', logoId: 'eredivisie' },
+  { id: 'primeira', label: 'Primeira Liga', value: 'primeira liga', logoId: 'primeira' },
+  { id: 'mls', label: 'MLS', value: 'mls', logoId: 'mls' },
+  { id: 'libertadores', label: 'Libertadores', value: 'libertadores', logoId: 'libertadores' },
+  { id: 'sudamericana', label: 'Sudamericana', value: 'sudamericana', logoId: 'sudamericana' },
+  { id: 'brasileirao', label: 'Serie A (BRA)', value: 'brasileirao', logoId: 'brasileirao' },
+  { id: 'ligamx', label: 'Liga MX', value: 'liga mx', logoId: 'ligamx' },
+  { id: 'j1', label: 'J1 League', value: 'j1 league', logoId: 'j1' },
+  { id: 'k1', label: 'K League', value: 'k league', logoId: 'k1' },
+  { id: 'a-league', label: 'A-League', value: 'a-league', logoId: 'a-league' },
+  { id: 'wsl', label: 'FA WSL', value: 'women super league', logoId: 'wsl' },
+  { id: 'uwcl', label: 'UWCL', value: 'women champions', logoId: 'uwcl' },
+  { id: 'nwsl', label: 'NWSL', value: 'nwsl', logoId: 'nwsl' },
+  { id: 'friendly', label: 'Friendlies', value: 'friendly' },
+  { id: 'youth', label: 'U21/Youth', value: 'u21' },
 ];
 
 // Date filter options
@@ -812,7 +816,13 @@ function OddsPage() {
                   className={`league-btn ${leagueQuery === tile.value ? 'active' : ''}`}
                   onClick={() => setLeagueQuery(prev => prev === tile.value ? '' : tile.value)}
                 >
-                  {tile.icon && <span className="league-query-icon">{tile.icon}</span>}
+                  {tile.logoId ? (
+                    <LeagueLogo leagueId={tile.logoId} size={14} className="league-query-logo" />
+                  ) : (
+                    <span className="league-query-logo league-logo-fallback">
+                      {(tile.label || '•').slice(0, 2)}
+                    </span>
+                  )}
                   <span className="league-name">{tile.label}</span>
                 </button>
               ))}

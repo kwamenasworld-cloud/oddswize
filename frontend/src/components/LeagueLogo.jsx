@@ -25,6 +25,17 @@ const LEAGUE_LOGOS = {
   ghana: 'https://media.api-sports.io/football/leagues/304.png',
   nigeria: 'https://media.api-sports.io/football/leagues/332.png',
   africa: 'https://media.api-sports.io/football/leagues/6.png',
+  mls: 'https://media.api-sports.io/football/leagues/253.png',
+  libertadores: 'https://media.api-sports.io/football/leagues/13.png',
+  sudamericana: 'https://media.api-sports.io/football/leagues/11.png',
+  brasileirao: 'https://media.api-sports.io/football/leagues/71.png',
+  ligamx: 'https://media.api-sports.io/football/leagues/262.png',
+  j1: 'https://media.api-sports.io/football/leagues/98.png',
+  k1: 'https://media.api-sports.io/football/leagues/292.png',
+  'a-league': 'https://media.api-sports.io/football/leagues/188.png',
+  wsl: 'https://media.api-sports.io/football/leagues/105.png',
+  uwcl: 'https://media.api-sports.io/football/leagues/8.png',
+  nwsl: 'https://media.api-sports.io/football/leagues/260.png',
 };
 
 // Fallback icons (simple SVG paths)
@@ -52,6 +63,17 @@ const FALLBACK_ICONS = {
   ghana: 'GH',
   nigeria: 'NG',
   africa: 'AF',
+  mls: 'MLS',
+  libertadores: 'LIB',
+  sudamericana: 'SUD',
+  brasileirao: 'BRA',
+  ligamx: 'MX',
+  j1: 'J1',
+  k1: 'K1',
+  'a-league': 'AL',
+  wsl: 'WSL',
+  uwcl: 'UWCL',
+  nwsl: 'NWSL',
 };
 
 export function LeagueLogo({ leagueId, size = 16, className = '' }) {
