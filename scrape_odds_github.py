@@ -789,6 +789,16 @@ def normalize_name(name: str) -> str:
     name = re.sub(r'[^\w\s]', '', name)
     name = re.sub(r'\s+', ' ', name)
 
+    # Phrase-level replacements (apply before token-level handling)
+    phrase_replacements = {
+        'wolverhampton wanderers': 'wolverhampton',
+        'wolverhampton wonderers': 'wolverhampton',  # common typo
+        'wolverhampton wolverhampton': 'wolverhampton',
+    }
+    for phrase, repl in phrase_replacements.items():
+        if phrase in name:
+            name = name.replace(phrase, repl)
+
     removals = ['fc', 'cf', 'sc', 'ac', 'afc', 'ssc', 'bc', 'fk', 'sk', 'nk',
                 'united', 'utd', 'city', 'town', 'athletic', 'sporting', 'hotspur', 'club']
     replacements = {
@@ -798,7 +808,7 @@ def normalize_name(name: str) -> str:
         'forest': 'nottingham',
         'spurs': 'tottenham',
         'wolves': 'wolverhampton',
-        'wolverhampton wanderers': 'wolverhampton',
+        'wanderers': 'wanderers',  # keep word but allow phrase normalization above to collapse team
         'whu': 'west ham',
         'hammers': 'west ham',
         'man': 'manchester',
