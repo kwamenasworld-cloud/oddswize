@@ -1083,6 +1083,28 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
     return matched
 
 
+def serialize_matched_events(matched: List[List[Dict]], limit: int = 2000) -> List[Dict]:
+    """Convert matched groups into API/output friendly structure."""
+    serialized = []
+    for e in matched[:limit]:
+        serialized.append({
+            'home_team': e[0]['home_team'],
+            'away_team': e[0]['away_team'],
+            'league': pick_league_for_group(e),
+            'start_time': e[0].get('start_time', 0),
+            'odds': [
+                {
+                    'bookmaker': m['bookmaker'],
+                    'home_odds': m.get('home_odds'),
+                    'draw_odds': m.get('draw_odds'),
+                    'away_odds': m.get('away_odds'),
+                }
+                for m in e
+            ]
+        })
+    return serialized
+
+
 def push_to_postgres(all_matches: Dict[str, List[Dict]]):
     """Optional: persist fixtures with canonical leagues if POSTGRES_DSN is set."""
     if not POSTGRES_DSN:
