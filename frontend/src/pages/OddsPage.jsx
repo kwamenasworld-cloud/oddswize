@@ -486,6 +486,34 @@ function OddsPage() {
     );
   }, [selectedCountry, useCanonical, canonicalLeagues]);
 
+  // Combine primary league pills and keyword pills, deduping to avoid duplicates (e.g., Serie A twice)
+  const combinedPills = useMemo(() => {
+    const seen = new Set();
+    const pills = [];
+
+    visibleLeagues.forEach(l => {
+      const key = `league-${l.id}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      pills.push({ type: 'league', ...l });
+    });
+
+    LEAGUE_QUERY_TILES.forEach(t => {
+      const key = `kw-${(t.logoId || t.id || t.label || t.value).toLowerCase()}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      pills.push({ type: 'keyword', ...t });
+    });
+
+    // Add a single All keyword reset
+    if (!seen.has('kw-all')) {
+      seen.add('kw-all');
+      pills.push({ type: 'keyword', id: 'kw-all', label: 'All', value: '' });
+    }
+
+    return pills;
+  }, [visibleLeagues, leagueQuery]);
+
   // Get featured/top matches (today's matches from top leagues)
   const featuredMatches = useMemo(() => {
     const topLeagues = ['Premier League', 'England', 'La Liga', 'Spain', 'Champions League', 'Serie A', 'Bundesliga'];
@@ -812,52 +840,52 @@ function OddsPage() {
           </div>
         </div>
         <div className="filter-pill-rail">
-          {visibleLeagues.map((league) => (
-            <button
-              key={league.id}
-              className={`league-btn ${
-                league.id === 'all'
-                  ? selectedLeagues.length === 0 ? 'active' : ''
-                  : selectedLeagues.includes(league.id) ? 'active' : ''
-              }`}
-              onClick={() => {
-                if (league.id === 'all') {
-                  setSelectedLeagues([]);
-                } else {
-                  setSelectedLeagues(prev =>
-                    prev.includes(league.id)
-                      ? prev.filter(id => id !== league.id)
-                      : [...prev, league.id]
-                  );
-                }
-              }}
-            >
-              <LeagueLogo leagueId={league.id} size={14} />
-              <span className="league-name">{league.name}</span>
-            </button>
-          ))}
-          {LEAGUE_QUERY_TILES.map(tile => (
-            <button
-              key={tile.id}
-              className={`league-btn keyword ${leagueQuery === tile.value ? 'active' : ''}`}
-              onClick={() => setLeagueQuery(prev => prev === tile.value ? '' : tile.value)}
-            >
-              {tile.logoId ? (
-                <LeagueLogo leagueId={tile.logoId} size={14} className="league-query-logo" />
-              ) : (
-                <span className="league-query-logo league-logo-fallback">
-                  {(tile.label || '•').slice(0, 2)}
-                </span>
-              )}
-              <span className="league-name">{tile.label}</span>
-            </button>
-          ))}
-          <button
-            className={`league-btn keyword ${leagueQuery === '' ? 'active' : ''}`}
-            onClick={() => setLeagueQuery('')}
-          >
-            <span className="league-name">All</span>
-          </button>
+          {combinedPills.map(pill => {
+            if (pill.type === 'league') {
+              return (
+                <button
+                  key={`league-${pill.id}`}
+                  className={`league-btn ${
+                    pill.id === 'all'
+                      ? selectedLeagues.length === 0 ? 'active' : ''
+                      : selectedLeagues.includes(pill.id) ? 'active' : ''
+                  }`}
+                  onClick={() => {
+                    if (pill.id === 'all') {
+                      setSelectedLeagues([]);
+                    } else {
+                      setSelectedLeagues(prev =>
+                        prev.includes(pill.id)
+                          ? prev.filter(id => id !== pill.id)
+                          : [...prev, pill.id]
+                      );
+                    }
+                  }}
+                >
+                  <LeagueLogo leagueId={pill.id} size={14} />
+                  <span className="league-name">{pill.name}</span>
+                </button>
+              );
+            }
+            // keyword pill
+            const isActive = leagueQuery === pill.value;
+            return (
+              <button
+                key={`kw-${pill.id}`}
+                className={`league-btn keyword ${isActive ? 'active' : ''}`}
+                onClick={() => setLeagueQuery(prev => prev === pill.value ? '' : pill.value)}
+              >
+                {pill.logoId ? (
+                  <LeagueLogo leagueId={pill.logoId} size={14} className="league-query-logo" />
+                ) : (
+                  <span className="league-query-logo league-logo-fallback">
+                    {(pill.label || '•').slice(0, 2)}
+                  </span>
+                )}
+                <span className="league-name">{pill.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
