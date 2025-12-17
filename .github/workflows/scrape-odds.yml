@@ -37,6 +37,7 @@ jobs:
           # Cloudflare worker env for odds upload
           CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+          D1_CANONICAL_INGEST: ${{ secrets.D1_CANONICAL_INGEST }}
           DISPLAY: ':99'
         run: |
           # Start Xvfb (virtual display) in background
