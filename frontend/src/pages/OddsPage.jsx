@@ -49,6 +49,22 @@ const COUNTRY_FILTERS = [
     .map(c => ({ id: c.id, name: c.name, flag: c.flag })),
 ];
 
+// Quick league keyword tiles for canonical/text filtering
+const LEAGUE_QUERY_TILES = [
+  { id: 'women', label: 'Women', value: 'women' },
+  { id: 'uefa', label: 'UEFA', value: 'uefa' },
+  { id: 'ucl', label: 'UCL', value: 'champions league' },
+  { id: 'uel', label: 'Europa', value: 'europa' },
+  { id: 'uecl', label: 'Conference', value: 'conference' },
+  { id: 'bundesliga2', label: 'Bundesliga 2', value: 'bundesliga 2' },
+  { id: 'laliga2', label: 'La Liga 2', value: 'la liga 2' },
+  { id: 'serieb', label: 'Serie B', value: 'serie b' },
+  { id: 'ligue2', label: 'Ligue 2', value: 'ligue 2' },
+  { id: 'mls', label: 'MLS', value: 'mls' },
+  { id: 'friendly', label: 'Friendlies', value: 'friendly' },
+  { id: 'youth', label: 'U21/Youth', value: 'u21' },
+];
+
 // Date filter options
 const DATE_FILTERS = [
   { id: 'today', name: 'Today', icon: '📅' },
@@ -776,18 +792,24 @@ function OddsPage() {
         </div>
 
         <div className="toolbar-right">
-          <div className="league-query">
-            <label className="league-query-label">League filter</label>
-            <div className="league-query-input">
-              <input
-                type="text"
-                placeholder="e.g., women, uefa, bundesliga 2"
-                value={leagueQuery}
-                onChange={(e) => setLeagueQuery(e.target.value)}
-              />
-              {leagueQuery && (
-                <button className="clear-btn" onClick={() => setLeagueQuery('')}>A-</button>
-              )}
+          <div className="league-query-tiles">
+            <label className="league-query-label">League keywords</label>
+            <div className="league-query-grid">
+              {LEAGUE_QUERY_TILES.map(tile => (
+                <button
+                  key={tile.id}
+                  className={`league-btn ${leagueQuery === tile.value ? 'active' : ''}`}
+                  onClick={() => setLeagueQuery(prev => prev === tile.value ? '' : tile.value)}
+                >
+                  <span className="league-name">{tile.label}</span>
+                </button>
+              ))}
+              <button
+                className={`league-btn ${leagueQuery === '' ? 'active' : ''}`}
+                onClick={() => setLeagueQuery('')}
+              >
+                <span className="league-name">All</span>
+              </button>
             </div>
           </div>
           <div className="sort-selector">
