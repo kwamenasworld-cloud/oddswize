@@ -13,6 +13,7 @@ import time
 import requests
 import cloudscraper
 import asyncio
+import argparse
 from collections import Counter
 from datetime import datetime
 from typing import Dict, List, Set, Optional
@@ -1291,59 +1292,73 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
 # ============================================================================
 
 def main():
+    parser = argparse.ArgumentParser(description="Odds scraper / matcher")
+    parser.add_argument('--from-file', help='Load raw scraped data JSON instead of scraping')
+    parser.add_argument('--no-push', action='store_true', help='Skip pushing to Cloudflare/D1/Postgres')
+    parser.add_argument('--skip-scrape', action='store_true', help='Skip scraping (use with --from-file)')
+    args = parser.parse_args()
+
     start_time = time.time()
     print("=" * 60)
     print("ODDS SCRAPER - TURBO MODE")
     print("=" * 60)
 
     all_matches = {}
+    elapsed = 0.0
 
-    scrapers = {
-        'SportyBet Ghana': scrape_sportybet,
-        '1xBet Ghana': scrape_1xbet,
-        'Betway Ghana': scrape_betway,
-        'SoccaBet Ghana': scrape_soccabet,
-        '22Bet Ghana': scrape_22bet_ghana,  # Updated platform API scraper
-        'Betfox Ghana': scrape_betfox,  # WORKING - Using V4 API (100+ fixtures from upcoming + live)
-    }
-
-    print("\nRunning ALL scrapers in parallel...")
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        future_to_bookie = {
-            executor.submit(scraper): bookie
-            for bookie, scraper in scrapers.items()
+    if args.from_file:
+        print(f"Loading raw data from {args.from_file} ...")
+        with open(args.from_file, 'r', encoding='utf-8') as f:
+            all_matches = json.load(f)
+    elif not args.skip_scrape:
+        scrapers = {
+            'SportyBet Ghana': scrape_sportybet,
+            '1xBet Ghana': scrape_1xbet,
+            'Betway Ghana': scrape_betway,
+            'SoccaBet Ghana': scrape_soccabet,
+            '22Bet Ghana': scrape_22bet_ghana,  # Updated platform API scraper
+            'Betfox Ghana': scrape_betfox,  # WORKING - Using V4 API (100+ fixtures from upcoming + live)
         }
-        for future in as_completed(future_to_bookie):
-            bookie = future_to_bookie[future]
-            try:
-                matches = future.result()
-                if matches:
-                    all_matches[bookie] = matches
-            except Exception as e:
-                print(f"  {bookie} failed: {e}")
 
-    elapsed = time.time() - start_time
-    total = sum(len(m) for m in all_matches.values())
-    print(f"\n{'=' * 60}")
-    print(f"SCRAPING COMPLETE in {elapsed:.1f} seconds")
-    print(f"Total scraped: {total} matches from {len(all_matches)} bookmakers")
-    for bookie, matches in all_matches.items():
-        print(f"  - {bookie}: {len(matches)} matches")
-    print(f"{'=' * 60}")
+        print("\nRunning ALL scrapers in parallel...")
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            future_to_bookie = {
+                executor.submit(scraper): bookie
+                for bookie, scraper in scrapers.items()
+            }
+            for future in as_completed(future_to_bookie):
+                bookie = future_to_bookie[future]
+                try:
+                    matches = future.result()
+                    if matches:
+                        all_matches[bookie] = matches
+                except Exception as e:
+                    print(f"  {bookie} failed: {e}")
 
-    if not all_matches:
-        print("No matches scraped - exiting")
+        elapsed = time.time() - start_time
+        total = sum(len(m) for m in all_matches.values())
+        print(f"\n{'=' * 60}")
+        print(f"SCRAPING COMPLETE in {elapsed:.1f} seconds")
+        print(f"Total scraped: {total} matches from {len(all_matches)} bookmakers")
+        for bookie, matches in all_matches.items():
+            print(f"  - {bookie}: {len(matches)} matches")
+        print(f"{'=' * 60}")
+
+        if not all_matches:
+            print("No matches scraped - exiting")
+            return
+
+        raw_data_file = 'raw_scraped_data.json'
+        print(f"\nSaving raw scraped data to {raw_data_file}...")
+        try:
+            with open(raw_data_file, 'w', encoding='utf-8') as f:
+                json.dump(all_matches, f, indent=2, ensure_ascii=False)
+            print(f"  [OK] Saved {total} matches from {len(all_matches)} bookmakers")
+        except Exception as e:
+            print(f"  [WARNING] Failed to save raw data: {e}")
+    else:
+        print("No data source provided (use --from-file or run scrape). Exiting.")
         return
-
-    # Save raw scraped data BEFORE matching (for debugging)
-    raw_data_file = 'raw_scraped_data.json'
-    print(f"\nSaving raw scraped data to {raw_data_file}...")
-    try:
-        with open(raw_data_file, 'w', encoding='utf-8') as f:
-            json.dump(all_matches, f, indent=2, ensure_ascii=False)
-        print(f"  [OK] Saved {total} matches from {len(all_matches)} bookmakers")
-    except Exception as e:
-        print(f"  [WARNING] Failed to save raw data: {e}")
 
     matched = match_events(all_matches)
 
@@ -1351,43 +1366,28 @@ def main():
         print("No matched events - exiting")
         return
 
-    # Save to file
+    total = sum(len(m) for m in all_matches.values())
     output = {
         'last_updated': datetime.now().isoformat(),
         'stats': {
             'total_scraped': total,
             'matched_events': len(matched),
             'bookmakers': list(all_matches.keys()),
-            'scrape_time_seconds': elapsed
+            'scrape_time_seconds': elapsed,
         },
-        'matches': [
-            {
-                'home_team': e[0]['home_team'],
-                'away_team': e[0]['away_team'],
-                'league': pick_league_for_group(e),
-                'start_time': e[0].get('start_time', 0),
-                'odds': [
-                    {
-                        'bookmaker': m['bookmaker'],
-                        'home_odds': m['home_odds'],
-                        'draw_odds': m['draw_odds'],
-                        'away_odds': m['away_odds']
-                    }
-                    for m in e
-                ]
-            }
-            for e in matched[:2000]  # Save more matches
-        ]
+        'matches': serialize_matched_events(matched)
     }
 
     with open('odds_data.json', 'w') as f:
         json.dump(output, f, indent=2)
     print(f"\nSaved to odds_data.json")
 
-    # Optional pushes
-    push_to_cloudflare(matched)
-    push_to_postgres(all_matches)
-    push_to_d1(matched)
+    if not args.no_push:
+        push_to_cloudflare(matched)
+        push_to_postgres(all_matches)
+        push_to_d1(matched)
+    else:
+        print("Skipping push (--no-push)")
 
     total_time = time.time() - start_time
     print(f"\nTOTAL TIME: {total_time:.1f} seconds")
