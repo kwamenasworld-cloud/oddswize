@@ -51,18 +51,29 @@ const COUNTRY_FILTERS = [
 
 // Quick league keyword tiles for canonical/text filtering
 const LEAGUE_QUERY_TILES = [
-  { id: 'women', label: 'Women', value: 'women' },
-  { id: 'uefa', label: 'UEFA', value: 'uefa' },
-  { id: 'ucl', label: 'UCL', value: 'champions league' },
-  { id: 'uel', label: 'Europa', value: 'europa' },
-  { id: 'uecl', label: 'Conference', value: 'conference' },
-  { id: 'bundesliga2', label: 'Bundesliga 2', value: 'bundesliga 2' },
-  { id: 'laliga2', label: 'La Liga 2', value: 'la liga 2' },
-  { id: 'serieb', label: 'Serie B', value: 'serie b' },
-  { id: 'ligue2', label: 'Ligue 2', value: 'ligue 2' },
-  { id: 'mls', label: 'MLS', value: 'mls' },
-  { id: 'friendly', label: 'Friendlies', value: 'friendly' },
-  { id: 'youth', label: 'U21/Youth', value: 'u21' },
+  { id: 'women', label: 'Women', value: 'women', icon: '🚺' },
+  { id: 'wsl', label: 'FA WSL', value: 'super league women', icon: '🏴' },
+  { id: 'nwsl', label: 'NWSL', value: 'nwsl', icon: '🇺🇸' },
+  { id: 'wcl', label: 'UWCL', value: 'women champions', icon: '⭐' },
+  { id: 'uefa', label: 'UEFA', value: 'uefa', icon: '🏆' },
+  { id: 'ucl', label: 'UCL', value: 'champions league', icon: '✨' },
+  { id: 'uel', label: 'Europa', value: 'europa', icon: '🟠' },
+  { id: 'uecl', label: 'Conference', value: 'conference', icon: '🟢' },
+  { id: 'bundesliga2', label: 'Bundesliga 2', value: 'bundesliga 2', icon: '🇩🇪' },
+  { id: 'laliga2', label: 'La Liga 2', value: 'la liga 2', icon: '🇪🇸' },
+  { id: 'serieb', label: 'Serie B', value: 'serie b', icon: '🇮🇹' },
+  { id: 'ligue2', label: 'Ligue 2', value: 'ligue 2', icon: '🇫🇷' },
+  { id: 'eredivisie', label: 'Eredivisie', value: 'eredivisie', icon: '🇳🇱' },
+  { id: 'mls', label: 'MLS', value: 'mls', icon: '🇺🇸' },
+  { id: 'libertadores', label: 'Libertadores', value: 'libertadores', icon: '🌎' },
+  { id: 'sudamericana', label: 'Sudamericana', value: 'sudamericana', icon: '🌀' },
+  { id: 'brasileirao', label: 'Serie A (BRA)', value: 'brasileirao', icon: '🇧🇷' },
+  { id: 'ligamx', label: 'Liga MX', value: 'liga mx', icon: '🇲🇽' },
+  { id: 'j1', label: 'J1 League', value: 'j1 league', icon: '🇯🇵' },
+  { id: 'k1', label: 'K League', value: 'k league', icon: '🇰🇷' },
+  { id: 'a-league', label: 'A-League', value: 'a-league', icon: '🇦🇺' },
+  { id: 'friendly', label: 'Friendlies', value: 'friendly', icon: '🤝' },
+  { id: 'youth', label: 'U21/Youth', value: 'u21', icon: '🧒' },
 ];
 
 // Date filter options
@@ -801,6 +812,7 @@ function OddsPage() {
                   className={`league-btn ${leagueQuery === tile.value ? 'active' : ''}`}
                   onClick={() => setLeagueQuery(prev => prev === tile.value ? '' : tile.value)}
                 >
+                  {tile.icon && <span className="league-query-icon">{tile.icon}</span>}
                   <span className="league-name">{tile.label}</span>
                 </button>
               ))}
