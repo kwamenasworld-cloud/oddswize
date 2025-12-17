@@ -683,10 +683,6 @@ a {
 
 /* Toolbar */
 .odds-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
   padding: 0.75rem 1rem;
   background: white;
   border-bottom: 1px solid var(--border);
@@ -695,13 +691,36 @@ a {
   z-index: 100;
 }
 
-.toolbar-left {
-  flex: 0 0 auto;
+.filter-card {
+  background: #fff;
+  border: 1px solid #e7ebf0;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.filter-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .search-wrapper {
   position: relative;
-  width: 280px;
+  flex: 1;
+  min-width: 240px;
 }
 
 .search-wrapper .search-icon {
@@ -716,16 +735,18 @@ a {
 
 .search-field {
   width: 100%;
-  padding: 0.5rem 2rem 0.5rem 2.5rem;
+  padding: 10px 12px 10px 38px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  transition: border-color 0.2s;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: #f9fafb;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .search-field:focus {
   outline: none;
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
 }
 
 .clear-btn {
@@ -736,9 +757,9 @@ a {
   background: #ddd;
   border: none;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  font-size: 12px;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
   cursor: pointer;
   color: #666;
   display: flex;
@@ -750,14 +771,6 @@ a {
   background: #ccc;
 }
 
-.toolbar-center {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  justify-content: center;
-  overflow: hidden;
-}
-
 .league-filters {
   display: flex;
   flex-wrap: wrap;
@@ -765,15 +778,6 @@ a {
   max-height: 80px;
   overflow-y: auto;
   padding: 4px 0;
-}
-
-.league-filters::-webkit-scrollbar {
-  width: 4px;
-}
-
-.league-filters::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 2px;
 }
 
 .league-btn {
@@ -815,28 +819,20 @@ a {
   font-weight: inherit;
 }
 
-.league-query-tiles {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.league-query-grid {
+.filter-pill-rail {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   max-height: 140px;
   overflow-y: auto;
-  padding: 4px 0;
-  flex: 1;
+  padding-right: 4px;
 }
 
-.league-query-grid::-webkit-scrollbar {
+.filter-pill-rail::-webkit-scrollbar {
   width: 4px;
 }
 
-.league-query-grid::-webkit-scrollbar-thumb {
+.filter-pill-rail::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 2px;
 }
