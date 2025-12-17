@@ -923,14 +923,13 @@ def pick_league_for_group(event_group: List[Dict]) -> str:
     if not league:
         league = infer_league_from_teams(event_group[0].get('home_team', ''), event_group[0].get('away_team', ''))
 
-    # Guard: if something was normalized to English Premier League but teams are not EPL clubs,
-    # fall back to the raw league label to avoid mis-tagging (e.g., Uganda Premier League).
-    if league == 'Premier League':
+    # Guard: if league is a known major league but teams are not members, fallback to raw label
+    if league in LEAGUE_TEAMS:
         home = event_group[0].get('home_team', '')
         away = event_group[0].get('away_team', '')
-        if not (is_team_in_league(home, 'Premier League') and is_team_in_league(away, 'Premier League')):
+        if not (is_team_in_league(home, league) and is_team_in_league(away, league)):
             raw_leagues = [m.get('league') for m in event_group if m.get('league')]
-            fallback = raw_leagues[0] if raw_leagues else 'Premier League (Other)'
+            fallback = raw_leagues[0] if raw_leagues else f'{league} (Other)'
             league = fallback
 
     return league
