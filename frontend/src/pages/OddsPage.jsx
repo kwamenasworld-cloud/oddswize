@@ -289,7 +289,7 @@ function OddsPage() {
       } catch (e) {
         // Fallback to existing odds worker
         const [matchData, statusDataResp] = await Promise.all([
-          getMatches(500, 0, 2),  // Get up to 500 matches, min 2 bookmakers
+          getMatches(500, 0, 1),  // Get up to 500 matches, allow single-bookmaker to avoid hiding pending odds
           getStatus(),
         ]);
         fetchedMatches = (matchData.matches || matchData);

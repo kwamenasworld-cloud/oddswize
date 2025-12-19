@@ -62,7 +62,7 @@ const fetchStaticData = async () => {
 /**
  * Get all matches with odds comparison
  */
-export const getMatches = async (limit = 100, offset = 0, minBookmakers = 2) => {
+export const getMatches = async (limit = 100, offset = 0, minBookmakers = 1) => {
   try {
     // Try Cloudflare API first
     const data = await fetchApi('/api/odds');
