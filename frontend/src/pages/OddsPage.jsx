@@ -298,9 +298,9 @@ function OddsPage() {
       }
 
       // Enrich matches with synthetic market data if missing
-      const enrichedMatches = (fetchedMatches || []).map(match => ({
-        ...match,
-        odds: match.odds?.map(odds => ({
+      const nowMs = Date.now();
+      const enrichedMatches = (fetchedMatches || []).map(match => {
+        const oddsArr = match.odds?.map(odds => ({
           ...odds,
           // Generate synthetic double chance and over/under if not present
           home_draw: odds.home_draw || calculateDoubleChance(odds.home_odds, odds.draw_odds),
@@ -308,8 +308,22 @@ function OddsPage() {
           home_away: odds.home_away || calculateDoubleChance(odds.home_odds, odds.away_odds),
           over_25: odds.over_25 || generateOverUnder(odds.home_odds, odds.away_odds, true),
           under_25: odds.under_25 || generateOverUnder(odds.home_odds, odds.away_odds, false),
-        }))
-      }));
+        })) || [];
+
+        const startMs = (match.start_time || 0) * 1000;
+        const hasOdds = oddsArr.length > 0;
+        const missingBookies = oddsArr.length < BOOKMAKER_ORDER.length;
+        const withinWindow = startMs
+          ? (startMs > nowMs - 2 * 3600 * 1000 && startMs < nowMs + 48 * 3600 * 1000)
+          : true;
+        const pendingOdds = hasOdds && missingBookies && withinWindow;
+
+        return {
+          ...match,
+          odds: oddsArr,
+          pendingOdds,
+        };
+      });
 
       setMatches(enrichedMatches);
       setStatus(statusData);
@@ -1074,7 +1088,9 @@ function OddsPage() {
                           })
                         ) : (
                           marketFields.map((_, i) => (
-                            <span key={i} className="odd empty">-</span>
+                            <span key={i} className={`odd empty ${match.pendingOdds ? 'pending' : ''}`}>
+                              {match.pendingOdds ? 'Pending' : '-'}
+                            </span>
                           ))
                         )}
                       </div>
