@@ -284,6 +284,10 @@ function OddsPage() {
           start_time: f.kickoff_time,
           odds: [], // odds not stored in canonical fixtures; UI will show empty cells
         }));
+        // If canonical returned nothing, fall back to worker data
+        if (!fetchedMatches || fetchedMatches.length === 0) {
+          throw new Error('No canonical fixtures, fallback to worker');
+        }
         setUseCanonical(true);
         statusData = statusResp;
       } catch (e) {
