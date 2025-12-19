@@ -208,6 +208,14 @@ function OddsPage() {
     loadData();
   }, []);
 
+  // Auto-refresh odds periodically to keep prices fresh without manual refresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadData({ silent: true });
+    }, 5 * 60 * 1000); // every 5 minutes
+    return () => clearInterval(interval);
+  }, []);
+
   // Sync horizontal scroll between sticky header and content
   useEffect(() => {
     const stickyHeader = document.querySelector('.odds-sticky-header');
@@ -253,7 +261,8 @@ function OddsPage() {
     }
   }, [matches]);
 
-  const loadData = async () => {
+  const loadData = async (opts = { silent: false }) => {
+    const silent = opts?.silent;
     setError(null);
     try {
       let statusData = null;
@@ -309,7 +318,7 @@ function OddsPage() {
       setError('Unable to load odds. Please try again later.');
       setMatches([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
