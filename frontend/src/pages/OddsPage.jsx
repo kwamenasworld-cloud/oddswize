@@ -1092,9 +1092,13 @@ function OddsPage() {
                           })
                         ) : (
                           marketFields.map((_, i) => (
-                            <span key={i} className={`odd empty ${match.pendingOdds ? 'pending' : ''}`}>
-                              {match.pendingOdds ? 'Pending' : '-'}
-                            </span>
+                            match.pendingOdds ? (
+                              <span key={i} className="odd empty pending">
+                                Pending…
+                              </span>
+                            ) : (
+                              <span key={i} className="odd empty">-</span>
+                            )
                           ))
                         )}
                       </div>
