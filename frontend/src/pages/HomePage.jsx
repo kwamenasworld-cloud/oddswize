@@ -85,6 +85,18 @@ const POPULAR_LEAGUES = [
   LEAGUES.bundesliga,
 ];
 
+// Deep links to key pages/leagues for discoverability
+const SEO_LINKS = [
+  { to: '/odds', label: 'Compare Odds' },
+  { to: '/bookmakers', label: 'Bookmakers' },
+  { to: '/news', label: 'News & Guides' },
+  { to: '/odds?league=premier', label: 'Premier League Odds' },
+  { to: '/odds?league=seriea', label: 'Serie A Odds' },
+  { to: '/odds?league=laliga', label: 'La Liga Odds' },
+  { to: '/odds?league=bundesliga', label: 'Bundesliga Odds' },
+  { to: '/odds?league=ligue1', label: 'Ligue 1 Odds' },
+  { to: '/odds?league=ucl', label: 'Champions League Odds' },
+];
 function HomePage() {
   const [matches, setMatches] = useState([]);
   const [leagueData, setLeagueData] = useState([]);
@@ -117,6 +129,19 @@ function HomePage() {
       setLoading(false);
     }
   };
+
+  // Simple deep-links to help discoverability/crawling
+  const seoLinks = [
+    { to: '/odds', label: 'Compare Odds' },
+    { to: '/bookmakers', label: 'Bookmakers' },
+    { to: '/news', label: 'News & Guides' },
+    { to: '/odds?league=premier', label: 'Premier League Odds' },
+    { to: '/odds?league=seriea', label: 'Serie A Odds' },
+    { to: '/odds?league=laliga', label: 'La Liga Odds' },
+    { to: '/odds?league=bundesliga', label: 'Bundesliga Odds' },
+    { to: '/odds?league=ligue1', label: 'Ligue 1 Odds' },
+    { to: '/odds?league=ucl', label: 'Champions League Odds' },
+  ];
 
   // Get best odds for a match
   const getBestOdds = (match, field) => {
@@ -344,6 +369,17 @@ function HomePage() {
               <h3>{tip.title}</h3>
               <p>{tip.description}</p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SEO-friendly deep links to key pages/leagues */}
+      <section className="home-section seo-links">
+        <div className="seo-links-grid">
+          {SEO_LINKS.map((item, idx) => (
+            <Link key={idx} to={item.to} className="seo-link-pill">
+              {item.label}
+            </Link>
           ))}
         </div>
       </section>
