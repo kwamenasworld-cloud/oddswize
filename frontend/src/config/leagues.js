@@ -1328,3 +1328,72 @@ export const getLeagueById = (leagueId) => {
 export const getLeaguesByCountry = (countryId) => {
   return Object.values(LEAGUES).filter(l => l.country === countryId);
 };
+
+const tokenizeLeagueText = (value) => {
+  const normalized = normalizeLeagueText(value);
+  return normalized ? normalized.split(' ').filter(Boolean) : [];
+};
+
+const editDistance = (a, b) => {
+  if (a === b) return 0;
+  if (!a) return b.length;
+  if (!b) return a.length;
+
+  const aLen = a.length;
+  const bLen = b.length;
+  const dp = Array.from({ length: aLen + 1 }, () => new Array(bLen + 1).fill(0));
+
+  for (let i = 0; i <= aLen; i += 1) dp[i][0] = i;
+  for (let j = 0; j <= bLen; j += 1) dp[0][j] = j;
+
+  for (let i = 1; i <= aLen; i += 1) {
+    for (let j = 1; j <= bLen; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,      // deletion
+        dp[i][j - 1] + 1,      // insertion
+        dp[i - 1][j - 1] + cost // substitution
+      );
+    }
+  }
+
+  return dp[aLen][bLen];
+};
+
+const tokensFuzzyMatch = (queryTokens, targetTokens) => {
+  if (queryTokens.length === 0 || targetTokens.length === 0) return false;
+
+  return queryTokens.every((token) => {
+    return targetTokens.some((target) => {
+      if (token === target) return true;
+      if (Math.abs(token.length - target.length) > 1) return false;
+      return editDistance(token, target) <= 1;
+    });
+  });
+};
+
+export const matchLeagueFuzzy = (query) => {
+  const normalized = normalizeLeagueText(query);
+  if (!normalized || normalized.length < 5) return null;
+
+  const queryTokens = tokenizeLeagueText(normalized);
+  if (queryTokens.length === 0) return null;
+
+  let bestMatch = null;
+  let bestKeywordLength = 0;
+
+  for (const league of Object.values(LEAGUES)) {
+    for (const keyword of league.keywords) {
+      const keywordTokens = tokenizeLeagueText(keyword);
+      if (!tokensFuzzyMatch(queryTokens, keywordTokens)) continue;
+
+      const keywordLength = normalizeLeagueText(keyword).length;
+      if (keywordLength > bestKeywordLength) {
+        bestMatch = league;
+        bestKeywordLength = keywordLength;
+      }
+    }
+  }
+
+  return bestMatch;
+};

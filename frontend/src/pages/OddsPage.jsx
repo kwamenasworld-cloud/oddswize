@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { getMatchesByLeague, getStatus, triggerScan } from '../services/api';
 import { getCanonicalLeagues, getCanonicalFixtures } from '../services/canonical';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
-import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague } from '../config/leagues';
+import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague, matchLeagueFuzzy } from '../config/leagues';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
@@ -523,6 +523,15 @@ function OddsPage() {
     }
   }, [selectedOdd]);
 
+  const searchLeagueId = useMemo(() => {
+    const query = searchQuery.trim();
+    if (!query) return null;
+    const exactMatch = matchLeague(query);
+    if (exactMatch) return exactMatch.id;
+    const fuzzyMatch = matchLeagueFuzzy(query);
+    return fuzzyMatch ? fuzzyMatch.id : null;
+  }, [searchQuery]);
+
   // Filter matches based on search, league, country, and date
   const filteredMatches = useMemo(() => {
     return matches.filter((match) => {
@@ -530,17 +539,20 @@ function OddsPage() {
       const leagueLower = (match.league || '').toLowerCase();
       const leagueQueryLower = leagueQuery.toLowerCase();
 
+      const searchLeagueKey = searchLeagueId;
+      const matchLeagueKey = match.league_key || matchLeague(match.league)?.id || null;
       const matchesSearch =
         !searchQuery ||
         match.home_team.toLowerCase().includes(searchLower) ||
         match.away_team.toLowerCase().includes(searchLower) ||
-        leagueLower.includes(searchLower);
+        leagueLower.includes(searchLower) ||
+        (searchLeagueKey && matchLeagueKey === searchLeagueKey);
 
       const matchesLeagueText =
         !leagueQuery || leagueLower.includes(leagueQueryLower);
 
       // League filter using stable league keys (slug or canonical id fallback)
-      const leagueKey = match.league_key || matchLeague(match.league)?.id || null;
+      const leagueKey = matchLeagueKey;
       const includesUnmapped = selectedLeagues.includes('unmapped');
       let matchesLeague = true;
       if (selectedLeagues.length > 0) {
