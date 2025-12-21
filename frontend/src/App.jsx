@@ -49,8 +49,9 @@ function Header() {
   return (
     <header className="header">
       <div className="header-top">
-        <NavLink to="/" className="logo">
-          Odds<span>Wize</span>
+        <NavLink to="/" className="logo" aria-label="OddsWize home">
+          <img src="/logo.png" alt="" className="logo-icon" />
+          <span className="logo-text">Odds<span>Wize</span></span>
         </NavLink>
 
         <button

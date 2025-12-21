@@ -211,7 +211,7 @@ async def trigger_scan():
 async def get_matches(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    min_bookmakers: int = Query(2, ge=2, le=5)
+    min_bookmakers: int = Query(2, ge=2, le=6)
 ):
     """Get all matched events with odds from all bookmakers."""
     scanner = get_scanner()
@@ -299,6 +299,7 @@ async def get_bookmakers():
             {"id": "1xbet", "name": "1xBet Ghana", "url": "https://1xbet.com/gh"},
             {"id": "22bet", "name": "22Bet Ghana", "url": "https://22bet.com.gh"},
             {"id": "soccabet", "name": "SoccaBet Ghana", "url": "https://www.soccabet.com"},
+            {"id": "betfox", "name": "Betfox Ghana", "url": "https://www.betfox.com.gh"},
         ]
     }
 

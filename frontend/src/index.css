@@ -55,12 +55,22 @@ a {
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--success);
 }
 
-.logo span {
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.logo-text span {
   color: white;
 }
 
@@ -2097,6 +2107,11 @@ a {
     font-size: 1.25rem;
   }
 
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+  }
+
   .header-badge {
     display: none;
   }
@@ -2229,6 +2244,11 @@ a {
 
   .logo {
     font-size: 1.1rem;
+  }
+
+  .logo-icon {
+    width: 24px;
+    height: 24px;
   }
 
   .odds-toolbar {

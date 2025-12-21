@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getMatches, getStatus, triggerScan } from '../services/api';
+import { getMatchesByLeague, getStatus, triggerScan } from '../services/api';
 import { getCanonicalLeagues, getCanonicalFixtures } from '../services/canonical';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
 import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague } from '../config/leagues';
@@ -260,6 +260,21 @@ function OddsPage() {
     setSelectedLeagues(prev => prev.filter(id => allowed.has(id)));
   }, [useCanonical]);
 
+  // If canonical data lacks the selected league(s), fall back to worker odds
+  useEffect(() => {
+    if (loading || !useCanonical) return;
+    if (selectedLeagues.length === 0) return;
+    const requested = selectedLeagues.filter(id => id && id !== 'all' && id !== 'unmapped');
+    if (requested.length === 0) return;
+    const hasRequested = matches.some(match => {
+      const key = match.league_key || matchLeague(match.league)?.id || null;
+      return key && requested.includes(key);
+    });
+    if (!hasRequested) {
+      loadData({ silent: true, forceWorker: true });
+    }
+  }, [selectedLeagues, useCanonical, matches, loading]);
+
   // Preload team logos when matches change
   useEffect(() => {
     if (matches.length > 0) {
@@ -268,50 +283,84 @@ function OddsPage() {
     }
   }, [matches]);
 
-  const loadData = async (opts = { silent: false }) => {
+  const loadData = async (opts = { silent: false, forceWorker: false }) => {
     const silent = opts?.silent;
+    const forceWorker = Boolean(opts?.forceWorker);
     setError(null);
     try {
       let statusData = null;
       let fetchedMatches = null;
-      // Try canonical backend first
-      try {
-        const [canonLeagues, canonFixtures, statusResp] = await Promise.all([
-          getCanonicalLeagues(),
-          getCanonicalFixtures(500, 0),
-          getStatus(),
-        ]);
-        setCanonicalLeagues(canonLeagues || []);
-        // Map canonical fixtures to match shape (no odds available yet, so placeholder)
-        fetchedMatches = (canonFixtures || []).map(f => {
-          const canonLeague = canonLeagues.find(l => l.league_id === f.league_id);
-          const leagueName = canonLeague?.display_name || f.raw_league_name || 'Unmapped/Other';
-          const mappedKey = canonLeague?.slug || matchLeague(leagueName)?.id || null;
-          return {
-            home_team: f.home_team,
-            away_team: f.away_team,
-            league: leagueName,
-            league_key: mappedKey || canonLeague?.league_id || null,
-            canonical_league_id: f.league_id || null,
-            start_time: f.kickoff_time,
-            odds: [], // odds not stored in canonical fixtures; UI will show empty cells
-          };
-        });
-        // If canonical returned nothing, fall back to worker data
-        if (!fetchedMatches || fetchedMatches.length === 0) {
-          throw new Error('No canonical fixtures, fallback to worker');
-        }
-        setUseCanonical(true);
-        statusData = statusResp;
-      } catch (e) {
-        // Fallback to existing odds worker
+      const fetchWorkerData = async () => {
         const [matchData, statusDataResp] = await Promise.all([
-          getMatches(500, 0, 1),  // Get up to 500 matches, allow single-bookmaker to avoid hiding pending odds
+          getMatchesByLeague(),
           getStatus(),
         ]);
-        fetchedMatches = (matchData.matches || matchData);
+        const leagues = matchData.leagues || [];
+        const flattened = leagues.flatMap(league =>
+          (league.matches || []).map(match => ({
+            ...match,
+            league: league.league || match.league,
+          }))
+        );
+        fetchedMatches = flattened.filter(
+          match => match.odds && Array.isArray(match.odds) && match.odds.length >= 1
+        );
         statusData = statusDataResp;
         setUseCanonical(false);
+      };
+
+      if (!forceWorker) {
+        // Try canonical backend first
+        try {
+          const [canonLeagues, canonFixtures, statusResp] = await Promise.all([
+            getCanonicalLeagues(),
+            getCanonicalFixtures(2000, 0),
+            getStatus(),
+          ]);
+          setCanonicalLeagues(canonLeagues || []);
+          // Map canonical fixtures to match shape (no odds available yet, so placeholder)
+          fetchedMatches = (canonFixtures || []).map(f => {
+            const canonLeague = canonLeagues.find(l => l.league_id === f.league_id);
+            const leagueName = canonLeague?.display_name || f.raw_league_name || 'Unmapped/Other';
+            const mappedKey = canonLeague?.slug || matchLeague(leagueName)?.id || null;
+            return {
+              home_team: f.home_team,
+              away_team: f.away_team,
+              league: leagueName,
+              league_key: mappedKey || canonLeague?.league_id || null,
+              canonical_league_id: f.league_id || null,
+              start_time: f.kickoff_time,
+              odds: [], // odds not stored in canonical fixtures; UI will show empty cells
+            };
+          });
+          // If canonical returned nothing or misses requested leagues, fall back to worker data
+          if (!fetchedMatches || fetchedMatches.length === 0) {
+            throw new Error('No canonical fixtures, fallback to worker');
+          }
+          const requestedKeys = new Set();
+          const requestedLeague = searchParams.get('league');
+          if (requestedLeague && requestedLeague !== 'all') {
+            requestedKeys.add(requestedLeague);
+          }
+          selectedLeagues.forEach(id => {
+            if (id && id !== 'all' && id !== 'unmapped') requestedKeys.add(id);
+          });
+          if (requestedKeys.size > 0) {
+            const hasRequested = fetchedMatches.some(match => {
+              const key = match.league_key || matchLeague(match.league)?.id || null;
+              return key && requestedKeys.has(key);
+            });
+            if (!hasRequested) {
+              throw new Error('Canonical missing requested league, fallback to worker');
+            }
+          }
+          setUseCanonical(true);
+          statusData = statusResp;
+        } catch (e) {
+          await fetchWorkerData();
+        }
+      } else {
+        await fetchWorkerData();
       }
 
       // Enrich matches with synthetic market data if missing

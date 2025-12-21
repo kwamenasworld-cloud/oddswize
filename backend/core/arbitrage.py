@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Ghana Betting Arbitrage Finder
-Runs all scrapers and finds guaranteed profit opportunities across 5 bookmakers
+Runs all scrapers and finds guaranteed profit opportunities across 6 bookmakers
 """
 
 import json
@@ -22,6 +22,7 @@ try:
         scrape_1xbet_ghana,
         scrape_22bet_ghana,
         scrape_soccabet_ghana,
+        scrape_betfox_ghana,
     )
 except ImportError:
     # When running standalone, add parent to path
@@ -32,6 +33,7 @@ except ImportError:
         scrape_1xbet_ghana,
         scrape_22bet_ghana,
         scrape_soccabet_ghana,
+        scrape_betfox_ghana,
     )
 
 
@@ -360,7 +362,8 @@ class GhanaBettingArbitrage:
             ('SportyBet', scrape_sportybet_ghana),
             ('1xBet', scrape_1xbet_ghana),
             ('22Bet', scrape_22bet_ghana),
-            ('SoccaBet', scrape_soccabet_ghana)
+            ('SoccaBet', scrape_soccabet_ghana),
+            ('Betfox', scrape_betfox_ghana),
         ]
 
         def run_scraper(name, scraper_fn, max_m):
@@ -372,7 +375,7 @@ class GhanaBettingArbitrage:
 
         # Run all scrapers in parallel
         print('Running all scrapers in parallel...\n')
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             futures = {
                 executor.submit(run_scraper, name, fn, max_matches): name
                 for name, fn in scrapers
@@ -391,7 +394,7 @@ class GhanaBettingArbitrage:
         print('\nMatching events across bookmakers...')
 
         # Start with Betway as base (usually has cleanest names)
-        bookmaker_order = ['Betway', 'SportyBet', '1xBet', '22Bet', 'SoccaBet']
+        bookmaker_order = ['Betway', 'SportyBet', '1xBet', '22Bet', 'SoccaBet', 'Betfox']
         available = [b for b in bookmaker_order if b in self.all_matches and self.all_matches[b]]
 
         if len(available) < 2:
