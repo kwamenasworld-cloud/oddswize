@@ -1,0 +1,137 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Loading...</title><base href="/"><link rel="preconnect" href="https://d1wfowvne3d4em.cloudfront.net" crossorigin><link rel="preconnect" href="https://dwmu1hf7ovvid.cloudfront.net" crossorigin><link rel="preconnect" href="https://www.googletagmanager.com" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="dns-prefetch" href="https://google.com" crossorigin><link rel="preconnect" href="https://www.gstatic.com" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com" crossorigin><meta name="theme-color" content="#054146"><meta name="msapplication-navbutton-color" content="#054146"><meta name="apple-mobile-web-app-status-bar-style" content="#054146"><meta name="SKYPE_TOOLBAR" content="SKYPE_TOOLBAR_PARSER_COMPATIBLE"><meta name="viewport" content="width=device-width"><meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"><meta name="msapplication-TileColor" content="#054146"><link rel="manifest" href="/manifest.json"><link rel="icon" type="image/x-icon" href="" id="favicon"><style>
+    html {
+      overflow: hidden;
+      width: 100%;
+      overflow-y: auto;
+    }
+
+    body {
+      background: #044146;
+      margin: 0;
+      tap-highlight-color: transparent;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+      -webkit-overflow-scrolling: touch;
+      -moz-osx-font-smoothing: antialiased;
+      font-family: "Roboto", sans-serif;
+    }
+    #app-loader {
+      position: fixed;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    #app-loader img {
+      display: block;
+      width: 190px;
+    }
+    #new_loader svg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 100;
+      display: block;
+      width: 100%;
+      --new-loader-first-stop-color: #1c3d72;
+      --new-loader-second-stop-color: #0A626A;
+    }
+
+    #load_content {
+      position: fixed;
+      top: 0;
+      left:0;
+      height: 100%;
+      width: 100%;
+    }
+    .loader-progress {
+      height: 3px;
+      width: 100%;
+      --c:no-repeat linear-gradient(#2D787F 0 0);
+      background: var(--c),var(--c), #014147;
+      background-size: 60% 100%;
+      animation: l16 4s infinite;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+    @keyframes l16 {
+      0%   {background-position:-150% 0,-150% 0}
+      66%  {background-position: 250% 0,-150% 0}
+      100% {background-position: 250% 0, 250% 0}
+    }
+    .svg-loader {
+      animation: moveGradient 2s linear infinite;
+    }
+    @keyframes moveGradient {
+      from {
+        transform: translateX(-100%);
+      }
+      to {
+        transform: translateX(100%);
+      }
+    }
+  </style><script>if(window.location.search.includes("lh_performance=true")){let t=document.createElement("script");t.src="configuration.js",document.head.append(t)}window.apiCmsHost="https://staging.22bet.sn",window.platformApiHost="https://platform.staging.22bet.sn",window.deployUrl="https://d3qsixv8u4i3z8.cloudfront.net/release/892654e5ea913a49ba1b5977a298c13f010417dd/22betmain/"</script></head><body><svg style="position: absolute; width: 0; height: 0; overflow: hidden;" aria-hidden="true">
+    <symbol xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 13" id="svg-arrow">
+      <path d="m7.712 7.128-6.038 5.58a1.041 1.041 0 0 1-1.39 0 .86.86 0 0 1 0-1.286l5.342-4.936L.284 1.549a.861.861 0 0 1 0-1.285 1.041 1.041 0 0 1 1.39 0l6.038 5.58c.192.177.288.41.288.642a.872.872 0 0 1-.288.642z"/>
+    </symbol>
+    <symbol xmlns="http://www.w3.org/2000/svg" viewBox="0 0 107 107" id="svg-look">
+      <path d="M25.80147,67.07946v0l14.89986,13.61906v0l-6.50311,6.22173v0l-14.89986,-13.61906v0z" fill="#1392ff" />
+      <path d="M106.99959,38.75912c0,10.35309 -4.0321,20.08637 -11.35288,27.40705c-7.32113,7.32078 -17.05433,11.35244 -27.40803,11.35244c-9.49677,0 -18.47065,-3.39452 -25.54104,-9.60593l-4.92737,4.92701l4.87736,4.87731c0.99781,0.99805 0.99781,2.6158 0,3.61355l-22.15919,22.15841c-2.34089,2.34036 -5.41557,3.51085 -8.49072,3.51085c-3.07503,0 -6.14971,-1.17028 -8.4906,-3.51085c-4.68189,-4.68173 -4.68189,-12.29939 -0.00023,-16.98112l22.15919,-22.15862c0.47916,-0.47893 1.12919,-0.74836 1.80668,-0.74836c0.6776,0 1.32774,0.26943 1.80679,0.74836l4.87736,4.87731l4.92748,-4.92701c-6.21174,-7.07019 -9.60629,-16.04329 -9.60629,-25.54021c0,-10.35309 4.03187,-20.08627 11.35277,-27.40705c7.32101,-7.32068 17.05456,-11.35244 27.4078,-11.35244c10.35324,0 20.0869,4.03176 27.4078,11.35244c7.32101,7.32078 11.35311,17.05376 11.35311,27.40685zM29.38793,87.36241l-9.75449,-9.75432l-12.51308,12.5127c-2.68913,2.68945 -2.68913,7.06538 0,9.75432c2.68925,2.68945 7.06535,2.68945 9.75449,0zM37.22702,79.52363l-9.75471,-9.75432l-4.22573,4.22564l9.75471,9.75432zM92.03323,14.96542c-6.35582,-6.35539 -14.80602,-9.85572 -23.79456,-9.85572c-8.98853,0 -17.43885,3.50033 -23.79456,9.85572c-6.35559,6.3557 -9.856,14.80547 -9.856,23.7937c0,8.98823 3.50018,17.43831 9.856,23.7937c6.35593,6.35539 14.80602,9.85572 23.79456,9.85572c8.98853,0 17.43896,-3.50033 23.79456,-9.85572c13.12008,-13.11979 13.12008,-34.46732 0,-47.58741zM95.02083,38.75912c0,7.15355 -2.78584,13.87867 -7.84435,18.93733c-5.22125,5.22088 -12.07947,7.83147 -18.93791,7.83147c-6.85856,0 -13.71677,-2.61039 -18.93803,-7.83147c-5.05852,-5.05847 -7.84458,-11.78358 -7.84458,-18.93733c0,-7.15355 2.78606,-13.87907 7.84458,-18.93733c10.4425,-10.44227 27.43366,-10.44206 37.87617,0c5.0584,5.05826 7.84435,11.78378 7.84412,18.93733zM89.91093,38.75912c0,-5.78909 -2.25414,-11.2308 -6.34769,-15.32419c-4.22539,-4.22484 -9.77497,-6.33726 -15.32467,-6.33726c-5.54981,0 -11.09985,2.11242 -15.32478,6.33726c-4.09332,4.09338 -6.34769,9.5353 -6.34769,15.32419c0,5.78889 2.25414,11.2308 6.34769,15.32419c8.4502,8.44988 22.19913,8.44988 30.64922,0c4.09355,-4.09338 6.34792,-9.5357 6.34792,-15.32419zM79.12693,38.75912c0,1.41085 -1.14395,2.55508 -2.55512,2.55508h-16.66603c-1.41129,0 -2.55512,-1.14423 -2.55512,-2.55508c0,-1.41085 1.14407,-2.55498 2.55512,-2.55498h16.66603c1.41117,0 2.55512,1.14413 2.55512,2.55498z" fill="#c3d2e0" />
+      <path d="M59.49986,35.99984h17.99995c1.38073,0 2.49996,1.11928 2.49996,2.49998c0,1.38079 -1.11923,2.50008 -2.49996,2.50008h-17.99995c-1.38073,0 -2.50008,-1.11928 -2.50008,-2.50008c0,-1.38069 1.11935,-2.49998 2.50008,-2.49998z" fill="#1392ff" />
+    </symbol>
+    <symbol viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg" id="button-play">
+      <path d="M6.5 0C5.31331 0 4.15328 0.351894 3.16658 1.01118C2.17989 1.67047 1.41085 2.60754 0.956725 3.7039C0.5026 4.80026 0.38378 6.00665 0.615291 7.17054C0.846802 8.33443 1.41825 9.40352 2.25736 10.2426C3.09648 11.0818 4.16557 11.6532 5.32946 11.8847C6.49335 12.1162 7.69975 11.9974 8.7961 11.5433C9.89246 11.0891 10.8295 10.3201 11.4888 9.33342C12.1481 8.34673 12.5 7.18669 12.5 6C12.4983 4.40923 11.8656 2.8841 10.7407 1.75926C9.6159 0.634414 8.09077 0.00172054 6.5 0V0ZM6.5 10.715C5.56744 10.7151 4.6558 10.4387 3.88035 9.92062C3.10491 9.40259 2.5005 8.66624 2.14355 7.8047C1.78661 6.94315 1.69317 5.99511 1.87504 5.08045C2.05691 4.1658 2.50593 3.32562 3.16532 2.66617C3.8247 2.00671 4.66483 1.5576 5.57947 1.37563C6.4941 1.19366 7.44216 1.28701 8.30374 1.64386C9.16532 2.00071 9.90173 2.60505 10.4198 3.38043C10.938 4.15582 11.2145 5.06744 11.2145 6C11.213 7.24992 10.7159 8.44822 9.83205 9.33205C8.94822 10.2159 7.74992 10.713 6.5 10.7145V10.715Z" fill="white" />
+      <path d="M8.8045 5.356L5.8415 3.8745C5.72536 3.80815 5.59349 3.77432 5.45976 3.7766C5.32602 3.77887 5.19537 3.81715 5.08156 3.88741C4.96775 3.95768 4.87498 4.05732 4.81303 4.17586C4.75107 4.2944 4.72221 4.42745 4.7295 4.561V7.438C4.72421 7.57108 4.75371 7.70324 4.81509 7.82143C4.87647 7.93963 4.9676 8.03978 5.0795 8.112C5.19358 8.18229 5.32501 8.21934 5.459 8.219C5.5914 8.21757 5.72166 8.18539 5.8395 8.125L8.8025 6.6435C8.93129 6.59217 9.04173 6.50338 9.11953 6.38862C9.19733 6.27386 9.23891 6.1384 9.23891 5.99975C9.23891 5.86111 9.19733 5.72565 9.11953 5.61088C9.04173 5.49612 8.93129 5.40734 8.8025 5.356H8.8045Z" fill="white" />
+    </symbol>
+    <symbol xmlns="http://www.w3.org/2000/svg" fill="none" id="star">
+      <g clip-path="url(#star_a)">
+        <path fill="currentcolor" d="M19.745 7.214a1.335 1.335 0 0 0-1.249-.871h-5.4L11.16.865a1.331 1.331 0 0 0-2.5.017l-1.929 5.46h-5.4a1.333 1.333 0 0 0-.856 2.354l4.573 3.79-1.919 5.757a1.332 1.332 0 0 0 2.05 1.498l4.734-3.469 4.733 3.47a1.331 1.331 0 0 0 2.05-1.494l-1.92-5.76 4.584-3.8a1.337 1.337 0 0 0 .384-1.474Zm-6.605 4.272a.909.909 0 0 0-.283.988l1.408 4.224a.226.226 0 0 1-.216.299.227.227 0 0 1-.134-.044L10.45 14.41a.909.909 0 0 0-1.075 0l-3.46 2.538a.228.228 0 0 1-.35-.254L6.97 12.47a.909.909 0 0 0-.281-.987l-3.525-2.92a.227.227 0 0 1 .144-.402h4.068a.909.909 0 0 0 .857-.608l1.465-4.152a.227.227 0 0 1 .43 0l1.464 4.152a.908.908 0 0 0 .857.608h4.067a.227.227 0 0 1 .145.402l-3.522 2.923Z"/>
+      </g>
+      <defs>
+        <clipPath id="star_a">
+          <path fill="#fff" d="M0 0h20v20H0z"/>
+        </clipPath>
+      </defs>
+    </symbol>
+    <symbol xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" id="pin">
+      <g class="pin-icon-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="currentcolor" clip-path="url(#pin_a)">
+        <path d="m8 12-7 7M17.348 7.406a.56.56 0 0 0 .792 0l.628-.628a.792.792 0 0 0 0-1.12l-4.425-4.426a.792.792 0 0 0-1.12 0l-.629.628a.56.56 0 0 0 0 .792.56.56 0 0 1 0 .793L9.261 6.778a.792.792 0 0 1-.56.232H6.188a.792.792 0 0 0-.56.232l-.396.396a.792.792 0 0 0 0 1.12l6.01 6.01a.792.792 0 0 0 1.12 0l.396-.396a.793.793 0 0 0 .232-.56V11.3c0-.21.084-.412.232-.56l3.333-3.333a.56.56 0 0 1 .793-.001Z"/>
+      </g>
+      <defs>
+        <clipPath id="pin_a">
+          <path fill="#fff" d="M0 0h20v20H0z"/>
+        </clipPath>
+      </defs>
+    </symbol>
+    <symbol xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 17" id="svg-close">
+      <path d="m10.001 8.497 6.687-6.686A1.062 1.062 0 1 0 15.185.308L8.497 6.993 1.81.308A1.063 1.063 0 1 0 .306 1.81l6.688 6.686-6.688 6.685a1.062 1.062 0 1 0 1.504 1.503L8.497 10l6.688 6.685a1.06 1.06 0 0 0 1.503 0 1.062 1.062 0 0 0 0-1.503z"/>
+    </symbol>
+    <symbol xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" id="info-circle">
+      <path d="M7.99984 2.16666C6.84611 2.16666 5.7183 2.50878 4.75901 3.14975C3.79973 3.79073 3.05205 4.70177 2.61054 5.76767C2.16903 6.83357 2.05351 8.00646 2.27859 9.13802C2.50367 10.2696 3.05924 11.309 3.87505 12.1248C4.69086 12.9406 5.73026 13.4962 6.86181 13.7212C7.99337 13.9463 9.16626 13.8308 10.2322 13.3893C11.2981 12.9478 12.2091 12.2001 12.8501 11.2408C13.4911 10.2815 13.8332 9.15371 13.8332 7.99999C13.8315 6.45341 13.2164 4.97065 12.1228 3.87705C11.0292 2.78345 9.54642 2.16833 7.99984 2.16666V2.16666ZM8.12137 4.59721C8.26558 4.59721 8.40656 4.63998 8.52647 4.7201C8.64638 4.80022 8.73984 4.9141 8.79503 5.04734C8.85022 5.18058 8.86466 5.32719 8.83652 5.46863C8.80839 5.61008 8.73894 5.74 8.63697 5.84198C8.53499 5.94395 8.40506 6.0134 8.26362 6.04153C8.12218 6.06967 7.97556 6.05523 7.84233 6.00004C7.70909 5.94485 7.59521 5.85139 7.51509 5.73148C7.43496 5.61157 7.3922 5.47059 7.3922 5.32638C7.3922 5.13299 7.46902 4.94752 7.60577 4.81078C7.74251 4.67403 7.92798 4.59721 8.12137 4.59721ZM9.21512 11.1597H7.27067C7.14175 11.1597 7.0181 11.1085 6.92694 11.0173C6.83578 10.9262 6.78456 10.8025 6.78456 10.6736C6.78456 10.5447 6.83578 10.421 6.92694 10.3299C7.0181 10.2387 7.14175 10.1875 7.27067 10.1875H7.63526C7.66749 10.1875 7.6984 10.1747 7.72119 10.1519C7.74398 10.1291 7.75678 10.0982 7.75678 10.066V7.87846C7.75678 7.84623 7.74398 7.81532 7.72119 7.79253C7.6984 7.76974 7.66749 7.75693 7.63526 7.75693H7.27067C7.14175 7.75693 7.0181 7.70572 6.92694 7.61455C6.83578 7.52339 6.78456 7.39975 6.78456 7.27082C6.78456 7.1419 6.83578 7.01825 6.92694 6.92709C7.0181 6.83593 7.14175 6.78471 7.27067 6.78471H7.75678C8.01463 6.78471 8.26192 6.88714 8.44425 7.06947C8.62657 7.2518 8.72901 7.49908 8.72901 7.75693V10.066C8.72901 10.0982 8.74181 10.1291 8.7646 10.1519C8.78739 10.1747 8.8183 10.1875 8.85053 10.1875H9.21512C9.34404 10.1875 9.46769 10.2387 9.55885 10.3299C9.65001 10.421 9.70123 10.5447 9.70123 10.6736C9.70123 10.8025 9.65001 10.9262 9.55885 11.0173C9.46769 11.1085 9.34404 11.1597 9.21512 11.1597Z"/>
+    </symbol>
+    
+  </svg>
+  <div id="content" class="text_page-">
+    <div id="platform"></div>
+    <div id="load_content">
+        <div id="new_loader">
+          <svg width="100%" height="5">
+            <defs>
+              <linearGradient id="grad">
+                <stop offset="0%" stop-color="#1c3d72" />
+                <stop offset="100%" stop-color="#0A626A" />
+              </linearGradient>
+            </defs>
+            <rect width="100%" height="5" fill="url(#grad)" class="svg-loader" />
+          </svg>
+        </div>
+        <div id="app-loader"></div>
+    </div>
+  </div>
+  <script>!function(){let e,t=window.deployUrl||"/",a=/(\/release\/)([^/]+)(\/)/,r=new URLSearchParams(window.location.search).get("version"),o=null;try{o=window.sessionStorage}catch(e){o=null}let n="";if(o)try{let e=o.getItem("version");e&&(n=e)}catch(e){n=""}let i=r||n||"";if(r&&o)try{o.setItem("version",i)}catch(e){console.warn("[set-public-path] Unable to persist version parameter",e)}i&&(e=t,/^(?:https?:)?\/\//.test(e)&&a.test(e))&&(t=t.replace(a,"$1"+i+"$3")),t&&!t.endsWith("/")&&(t+="/"),window.__PUBLIC_PATH__=t,window.__webpack_public_path__=t,window.__webpack_base_uri__=t;let s=document.createElement("script");s.type="module",s.src=t+"main.js",document.head.appendChild(s)}(),window.__CORE_BOOTSTRAP_OPTIONS__={credentials:"same-origin",hosts:{cmsLocal:"https://staging.22bet.sn",platformLocal:"https://platform.staging.22bet.sn"},cms:{bootstrap:{versions:{withCountry:"v2",withoutCountry:""}},availability:{versions:{withCountry:"v4",withoutCountry:"v2"}},translations:{versions:{withCountry:"v4",withoutCountry:"v2"},extraQuery:{classificationsStrategy:2,classifications:"db column"}}},platform:{configurations:{}},additionalDataFetches:[{name:"remotesManifest",url:"https://dqvp7q24q4toc.cloudfront.net/remotes/remotes.json",credentials:"omit"}],preloads:{setup:{path:"/api/v2/configurations",unwrap:"data"},customerIpData:{path:"/api/v2/ip-data",unwrap:"data",redirectOnMismatch:!0},currencyList:{path:"/api/data/get-currencies",query:{orderField:"displayOrder",orderDirection:"DESC"},unwrap:"data"},allCountriesList:{path:"/api/data/get-countries-list",unwrap:"data"},currencyVariables:{path:"/api/v2/currency-variables",unwrap:"data"}}},function(){!function(){let e=window.navigator?.userAgent||"",t=!!new URLSearchParams(window.location.search).get("scriptBlock"),a=e.match(/(Mozilla\/5\.0 \(Linux; Android 11; moto g power \(2022\)\) AppleWebKit\/537\.36 \(KHTML, like Gecko\) Chrome\/109\.0.0.0 Mobile Safari\/537\.36)|(Mozilla\/5\.0 \(Macintosh; Intel Mac OS X 10_15_7\) AppleWebKit\/537\.36 \(KHTML, like Gecko\) Chrome\/109\.0\.0\.0 Safari\/537\.36)|(Speed Insights)|(Chrome-Lighthouse)|(PSTS[\d\.]+)/),r=[/^Mozilla\/5\.0 \(Linux; Android 11; moto g power \(2022\)\) AppleWebKit\/537\.36 \(KHTML, like Gecko\) Chrome\/\d+\.0\.0\.0 Mobile Safari\/537\.36$/,/^Mozilla\/5\.0 \(Macintosh; Intel Mac OS X 10_15_7\) AppleWebKit\/537\.36 \(KHTML, like Gecko\) Chrome\/\d+\.0\.0\.0 Safari\/537\.36$/].some(t=>t.test(e)),o=a||r?1:0;(1===o||window.isPrerender)&&(window.isBot=!0),(async()=>{if(!(navigator.permissions&&"function"==typeof navigator.permissions.query))return!1;try{let e=async()=>{let e=!1,t=await navigator.permissions.query({name:"notifications"});return window.Notification&&Notification?.permission==="denied"&&"prompt"===t.state&&(e=!0),e&&!window.chrome&&0===navigator.plugins.length};return await e()}catch{return!1}})().then(e=>{(1===o&&e||t)&&(window.googlePageSpeed=!0)})}();let e=document.querySelector('[name="x-user-country"]'),t=document.querySelector('[name="x-user-lang"]');e&&(window.__COUNTRY__=window.__COUNTRY__||e.content),t&&(window.__AcceptLanguage__=navigator.language);let a=window;function r(e){if(Array.isArray(e))return e.map(r);if(e&&"object"==typeof e){let t={};return Object.keys(e).forEach(a=>{t[a]=r(e[a])}),t}return e}function o(e,t){return t&&"object"==typeof t&&Object.keys(t).forEach(a=>{let r=t[a];if(Array.isArray(r)){e[a]=r.slice();return}if(r&&"object"==typeof r){let t=e[a]&&"object"==typeof e[a]?e[a]:{};e[a]=o(t,r);return}e[a]=r}),e}function n(e,t){let a={};return Object.keys(e||{}).forEach(t=>{a[t]=e[t]}),Object.keys(t||{}).forEach(e=>{a[e]=t[e]}),a}let i=function(){let e=a.__CORE_BOOTSTRAP_OPTIONS__;return e&&"object"==typeof e?e:{}}(),s=o(r({credentials:"same-origin",hosts:{cmsLocal:void 0,cms:void 0,platformLocal:void 0,platform:void 0},query:{includeCountry:!0,includeAcceptLanguage:!0,includePreferredLanguage:!0,preferredLanguageCookie:"preferred-language-client",includeRegion:!0,includeNb:!0,includeAppVersion:!0,includePrerender:!0,includePParam:!0,useIpFallbackForCountry:!0},cms:{bootstrap:{enabled:!0,basePath:"config/bootstrap",versions:{withCountry:"v2",withoutCountry:""},pageUrlStrategy:"v4Aware",pageUrlParam:"pageUrl",includeCommonParams:!0,extraQuery:{},crashParam:void 0,crashUrl:void 0},availability:{enabled:!0,basePath:"page/availability",versions:{withCountry:"v4",withoutCountry:"v2"},pageUrlStrategy:"fullPath",pageUrlParam:"pageUrl",includeCommonParams:!0,extraQuery:{}},translations:{enabled:!0,basePath:"translation/get",versions:{withCountry:"v4",withoutCountry:"v2"},pageUrlStrategy:"v4Aware",pageUrlParam:"pageUrl",includeCommonParams:!0,extraQuery:{classificationsStrategy:2,classifications:"db column"}}},platform:{configurations:{enabled:!0,path:"/api/v2/rev2/configurations",extraQuery:{}}},additionalDataFetches:[],preloads:{setup:{enabled:!0,path:"/api/v2/configurations",unwrap:"data"},customerIpData:{enabled:!0,path:"/api/v2/ip-data",unwrap:"data",redirectOnMismatch:!0,redirectQueryParam:"rdrByCountry"},currencyList:{enabled:!0,path:"/api/data/get-currencies",query:{orderField:"displayOrder",orderDirection:"DESC"},unwrap:"data"},allCountriesList:{enabled:!0,path:"/api/data/get-countries-list",unwrap:"data"},currencyVariables:{enabled:!0,path:"/api/v2/currency-variables",unwrap:"data"},provincesList:{enabled:!1,path:"/api/data/provinces",unwrap:"data"}},additionalPreloads:[]}),i);delete a.__CORE_BOOTSTRAP_OPTIONS__;let l=s.hosts||{},c=a.location,u=c.hostname,d="localhost"===u?void 0!==l.cmsLocal?l.cmsLocal:a.apiCmsHost||"":void 0!==l.cms?l.cms:"",p="localhost"===u?void 0!==l.platformLocal?l.platformLocal:a.platformApiHost||"":void 0!==l.platform?l.platform:"https://platform."+c.host;a.__APP_DATA__=a.__APP_DATA__||{},a.__APP_PRELOAD__=a.__APP_PRELOAD__||{};let h=new URLSearchParams(c.search),_=h.get("imbaWebView")||null,f=h.get("appVersion")||null,m=a.__COUNTRY__||null,g=a.__AcceptLanguage__||"en-GB",y=!!a.isPrerender,w=c.pathname+c.search,P=c.pathname.split("/").filter(Boolean)[0]||"";function v(e){let t=RegExp(`(?:^|; )${e.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g,"\\$1")}=([^;]*)`).exec(document.cookie);return t?decodeURIComponent(t[1]):null}let b=h.get("nb"),A=v("nb");null!==b&&function(e,t,a){let r=Object.assign({path:"/"},{}),o=Object.keys(r).map(e=>{let t=r[e];return!0===t?e:`${e}=${t}`});document.cookie=[`${encodeURIComponent("nb")}=${encodeURIComponent(t)}`].concat(o).join("; ")}(0,b);let C=b??A??null,L=s.query||{},O=L.includePreferredLanguage&&L.preferredLanguageCookie&&v(L.preferredLanguageCookie)||void 0,S=function(){let e={};L.includeCountry&&m&&(e.country=m),L.includeAcceptLanguage&&g&&(e.acceptLanguage=g),L.includePreferredLanguage&&O&&(e.preferredLanguage=O),L.includeRegion&&a.__REGION__&&(e.region=a.__REGION__),L.includeNb&&(e.nb=_?1:C??void 0),L.includeAppVersion&&f&&(e.appVersion=f),L.includePrerender&&(e.prerenderBuild=y?"true":void 0),L.includePParam&&(e.p=y?void 0:"0"),!e.country&&L.useIpFallbackForCountry&&a.__IP__&&(e.country=a.__IP__);let t={};return Object.keys(e||{}).forEach(a=>{let r=e[a];null!=r&&(t[a]=r)}),t}();function D(e,t,r){let o,n=function(e){if(!e||"string"!=typeof e)return a.location.origin;let t=e.trim();return t.startsWith("//")&&(t=`${a.location.protocol}${t}`),t.startsWith("/")&&(t=a.location.origin+t),/^https?:\/\//i.test(t)||(t=`${a.location.protocol}//${t}`),t.replace(/\/+$/g,"")}(t);return o=/^(?:[a-z]+:)?\/\//i.test(e)?new URL(e,a.location.origin):new URL(("/"+String(e||"").trim()).replace(/\/{2,}/g,"/"),n),Object.keys(r||{}).forEach(e=>{let t=r[e];null!=t&&o.searchParams.set(e,String(t))}),o.toString()}function R(e,t){let a=t.fetchOptions?r(t.fetchOptions):{};if(a.method=t.method||"GET",!a.credentials){let e=void 0!==t.credentials?t.credentials:s.credentials;e&&(a.credentials=e)}return t.headers&&(a.headers=n(a.headers||{},t.headers)),fetch(e,a).then(e=>{if(!e.ok)throw Error(e.status+" "+e.statusText);let a=t.parser||"json";return"text"===a?e.text():"blob"===a?e.blob():"arrayBuffer"===a?e.arrayBuffer():e.json()})}function U(e,t){if(!e)return t||"";if(/^(?:[a-z]+:)?\/\//i.test(e)||e.startsWith("/"))return e;let a=t||"";return a?a.replace(/\/+$/,"")+"/"+e.replace(/^\/+/,""):"/"+e}let E=[],T=s.cms||{};function I(e,t){var r;if(!t||!1===t.enabled)return;if(t.crashParam&&t.crashUrl&&-1!==a.location.search.indexOf(t.crashParam)){let r=D(t.crashUrl,d);E.push(R(r,t).then(t=>{a.__APP_DATA__[e]=t}));return}let o=!!m,i=t.versions||{},s=o?i.withCountry:i.withoutCountry,l=t.basePath||"",c="/api/"+(s?s.replace(/\/+$/,"")+"/":"")+l.replace(/^\/+/,""),u={};!1!==t.includeCommonParams&&(u=n(u,S)),u[t.pageUrlParam||"pageUrl"]=(r=t.pageUrlStrategy,"firstPath"===r||"v4Aware"===r&&o?P?"/"+P:"/":w),t.extraQuery&&(u=n(u,t.extraQuery));let p=D(c,d,u);E.push(R(p,t).then(t=>{a.__APP_DATA__[e]=t}))}I("bootstrap",T.bootstrap),I("availability",T.availability),I("translates",T.translations);let k=(s.platform||{}).configurations;if(k&&!1!==k.enabled){let e=D(U(k.path||"/api/v2/rev2/configurations"),p,k.extraQuery);E.push(R(e,k).then(e=>{a.__APP_DATA__.configurations=e}))}(s.additionalDataFetches||[]).forEach(e=>{if(!e||!1===e.enabled||!e.name)return;let t=e.url;if(!t){let a=!1!==e.includeCommonParams,r=e.query||{};a&&(r=n(S,r)),t="cms"===e.from?D(U(e.path||""),d,r):D(U(e.path||""),p,r)}E.push(R(t,e).then(t=>{("preload"===e.target?a.__APP_PRELOAD__:a.__APP_DATA__)[e.name]=t}))});let j=s.preloads||{};function x(e,t){if(!t||!1===t.enabled)return;let r=n(!1!==t.includeCommonParams?S:{},t.query||{}),o=t.url?t.url:D(U(t.path||""),"cms"===t.from?d:p,r);a.__APP_PRELOAD__[e]=R(o,t).then(e=>{var r;let o=(r=t.unwrap)?"data"===r?e&&e.data:"string"==typeof r?e&&e[r]:e:e;return"customerIpRedirect"===t.onSuccess&&function(e,t){if(e&&e.country&&a.__COUNTRY__)try{if(!window.googlePageSpeed&&String(e.country).toLowerCase()!==String(a.__COUNTRY__).toLowerCase()){let r=t.redirectQueryParam||"rdrByCountry",o=new URL(a.location.href);o.searchParams.set(r,e.country),a.location.href=o.toString()}}catch(e){console.error("Failed to process customer ip redirect",e)}}(o,t),o}).catch(t=>(console.error("Preload failed for",e,t),a.__APP_PRELOAD__[e]=null,null))}if(x("getSetup",j.setup),j.customerIpData){let e=o({},j.customerIpData);e.redirectOnMismatch&&(e.onSuccess="customerIpRedirect"),x("getCustomerIpData",e)}x("getCurrencyList",j.currencyList),x("getAllCountriesList",j.allCountriesList),x("getCurrencyVariables",j.currencyVariables),x("getProvincesList",j.provincesList),(s.additionalPreloads||[]).forEach(e=>{e&&!1!==e.enabled&&e.name&&x(e.name,e)}),Promise.all(E.length?E:[Promise.resolve()]).then(()=>{a.__APP_READY__=!0,a.dispatchEvent(new Event("appReady"))}).catch(e=>{console.error("Error preloading data:",e)})}(),window.addEventListener("beforeinstallprompt",function(e){e.preventDefault(),window.deferredPrompt=e,console.log("deffered",window.deferredPrompt)}),window.__APP_PRELOAD__={};let baseData={favicon:"/assets/favicon.ico",loader:"/assets/loader.gif"},loader=document.getElementById("loader-image"),favicon=document.getElementById("favicon"),host=window.location.hostname,isStaging=host.includes("staging")||host.includes("localhost"),cloudfrontUrl=isStaging?"d1qraj8yy6en49":"d3qsixv8u4i3z8",setAssetsData=function(e){loader&&(loader.src=e.loader),favicon&&(favicon.href=e.favicon),window.mainLoader=e.loader};try{fetch(`https://${cloudfrontUrl}.cloudfront.net/site/upload/logos/loaders.json`).then(function(e){(async e=>{try{let t=await e.json();setAssetsData({favicon:t[host]?.favicon||t.default?.favicon||baseData.favicon,loader:t[host]?.loader||t.default?.loader||baseData.loader})}catch(e){setAssetsData(baseData),console.log(e)}})(e)})}catch(e){console.log("assets error",e),setAssetsData(baseData)}</script><script src="https://dwmu1hf7ovvid.cloudfront.net/remotes/remotes-manifest.js" defer></script></body></html>

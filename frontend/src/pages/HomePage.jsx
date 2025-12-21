@@ -231,7 +231,9 @@ function HomePage() {
               <span className="stat-label">Bookmakers</span>
             </div>
             <div className="stat">
-              <span className="stat-value">{matches.length > 0 ? `${matches.length}+` : 'Loading...'}</span>
+              <span className="stat-value">
+                {loading ? 'Loading...' : matches.length > 0 ? `${matches.length}+` : '0'}
+              </span>
               <span className="stat-label">Matches</span>
             </div>
             <div className="stat">

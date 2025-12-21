@@ -101,9 +101,36 @@ export const LEAGUES = {
     keywords: [
       'UEFA Champions League',
       'UEFA. Champions League',
+      'UEFA Champions League Qualifiers',
+      'UEFA Champions League Qualification',
+      'UEFA Champions League Qualifying',
+      'UEFA Champions League - Qualifiers',
+      'UEFA Champions League - Qualification',
+      'UEFA Champions League - Qualifying',
+      'UEFA Champions League. Qualifiers',
+      'UEFA Champions League. Qualification',
+      'UEFA Champions League. Playoffs',
+      'UEFA Champions League. Play-Offs',
+      'UEFA Champions League. Group Stage',
+      'UEFA Champions League. Knockout Stage',
       'UCL',
       'Europe. Champions League',
       'UEFA Champions League. League Phase',
+    ],
+  },
+
+  // UEFA Women's Champions League
+  uwcl: {
+    id: 'uwcl',
+    name: 'Champions League Women',
+    country: 'europe',
+    tier: 2,
+    keywords: [
+      'UEFA Champions League Women',
+      "UEFA Women's Champions League",
+      'UEFA Women Champions League',
+      'UEFA Champions League (Women)',
+      'UWCL',
     ],
   },
 
@@ -1084,9 +1111,26 @@ const COUNTRY_NAME_TO_ID = {
   'africa': 'africa',
   'african': 'africa',
   'caf': 'africa',
+  'afc': 'asia',
   'south america': 'southamerica',
   'conmebol': 'southamerica',
+  'concacaf': 'international',
 };
+
+const normalizeLeagueText = (value) =>
+  (value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+const COMPETITION_PREFIX_HINTS = [
+  'league',
+  'cup',
+  'championship',
+  'tournament',
+  'qualif',
+  'playoff',
+  'group',
+  'round',
+  'phase',
+];
 
 /**
  * Extract country/region from league string
@@ -1103,9 +1147,20 @@ const extractCountryFromLeague = (leagueString) => {
   const match = leagueString.match(/^([^.]+)\.\s*/);
   if (match) {
     const extracted = match[1].trim().toLowerCase();
+    const countryId = COUNTRY_NAME_TO_ID[extracted] || null;
+    if (countryId) {
+      return { hasPrefix: true, countryId };
+    }
+    const normalizedPrefix = normalizeLeagueText(extracted);
+    const looksLikeCompetition = COMPETITION_PREFIX_HINTS.some(hint =>
+      normalizedPrefix.includes(hint)
+    );
+    if (looksLikeCompetition) {
+      return { hasPrefix: false, countryId: null };
+    }
     return {
       hasPrefix: true,
-      countryId: COUNTRY_NAME_TO_ID[extracted] || null
+      countryId: null
     };
   }
   return { hasPrefix: false, countryId: null };
@@ -1126,7 +1181,7 @@ const extractCountryFromLeague = (leagueString) => {
  */
 export const matchLeague = (leagueString) => {
   if (!leagueString) return null;
-  const lower = leagueString.toLowerCase().trim();
+  const normalized = normalizeLeagueText(leagueString);
 
   // Step 1: Check for "Country. League" format
   const { hasPrefix, countryId } = extractCountryFromLeague(leagueString);
@@ -1141,7 +1196,8 @@ export const matchLeague = (leagueString) => {
 
       for (const league of countryLeagues) {
         for (const keyword of league.keywords) {
-          if (lower.includes(keyword.toLowerCase())) {
+          const keywordNormalized = normalizeLeagueText(keyword);
+          if (normalized.includes(keywordNormalized)) {
             return league;
           }
         }
@@ -1164,18 +1220,19 @@ export const matchLeague = (leagueString) => {
   for (const league of allLeagues) {
     for (const keyword of league.keywords) {
       const keywordLower = keyword.toLowerCase();
+      const keywordNormalized = normalizeLeagueText(keyword);
 
       // For certain keywords, require exact match to avoid false positives
       // "Premier League": prevents "Kenya Premier League" from matching
       // "La Liga": prevents "Argentina Trofeo De Campeones De La Liga Profesional" from matching
       const requiresExactMatch = keywordLower === 'premier league' || keywordLower === 'la liga';
       const isMatch = requiresExactMatch
-        ? lower === keywordLower
-        : lower.includes(keywordLower);
+        ? normalized === keywordNormalized
+        : normalized.includes(keywordNormalized);
 
-      if (isMatch && keywordLower.length > bestMatchLength) {
+      if (isMatch && keywordNormalized.length > bestMatchLength) {
         bestMatch = league;
-        bestMatchLength = keywordLower.length;
+        bestMatchLength = keywordNormalized.length;
       }
     }
   }
@@ -1191,7 +1248,7 @@ export const isLeagueMatch = (leagueString, leagueId) => {
   const league = LEAGUES[leagueId];
   if (!league) return false;
 
-  const lower = leagueString.toLowerCase().trim();
+  const normalized = normalizeLeagueText(leagueString);
 
   // Check for country prefix format
   const { hasPrefix, countryId } = extractCountryFromLeague(leagueString);
@@ -1209,9 +1266,10 @@ export const isLeagueMatch = (leagueString, leagueId) => {
   // Keyword matching
   return league.keywords.some(kw => {
     const kwLower = kw.toLowerCase();
+    const kwNormalized = normalizeLeagueText(kw);
     // For certain keywords, require exact match to avoid false positives
     const requiresExactMatch = kwLower === 'premier league' || kwLower === 'la liga';
-    return requiresExactMatch ? lower === kwLower : lower.includes(kwLower);
+    return requiresExactMatch ? normalized === kwNormalized : normalized.includes(kwNormalized);
   });
 };
 

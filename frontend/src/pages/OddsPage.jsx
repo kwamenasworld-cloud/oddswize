@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { getMatches, getStatus, triggerScan } from '../services/api';
 import { getCanonicalLeagues, getCanonicalFixtures } from '../services/canonical';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
-import { LEAGUES, COUNTRIES, matchesAnyLeague, isCountryMatch, getLeagueTier, matchLeague } from '../config/leagues';
+import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague } from '../config/leagues';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
@@ -52,7 +52,7 @@ const COUNTRY_FILTERS = [
 // Quick league keyword tiles for canonical/text filtering
 const LEAGUE_QUERY_TILES = [
   { id: 'premier', label: 'Premier League', value: 'premier league', logoId: 'premier' },
-  { id: 'ucl', label: 'UCL', value: 'champions league', logoId: 'ucl' },
+  { id: 'ucl', label: 'UCL', value: 'uefa champions league', logoId: 'ucl' },
   { id: 'uel', label: 'Europa', value: 'europa league', logoId: 'uel' },
   { id: 'uecl', label: 'Conference', value: 'conference league', logoId: 'conference' },
   { id: 'laliga', label: 'La Liga', value: 'la liga', logoId: 'laliga' },
@@ -74,7 +74,7 @@ const LEAGUE_QUERY_TILES = [
   { id: 'k1', label: 'K League', value: 'k league', logoId: 'k1' },
   { id: 'a-league', label: 'A-League', value: 'a-league', logoId: 'a-league' },
   { id: 'wsl', label: 'FA WSL', value: 'women super league', logoId: 'wsl' },
-  { id: 'uwcl', label: 'UWCL', value: 'women champions', logoId: 'uwcl' },
+  { id: 'uwcl', label: 'UWCL', value: 'uefa champions league women', logoId: 'uwcl' },
   { id: 'nwsl', label: 'NWSL', value: 'nwsl', logoId: 'nwsl' },
   { id: 'friendly', label: 'Friendlies', value: 'friendly' },
   { id: 'youth', label: 'U21/Youth', value: 'u21' },
@@ -253,6 +253,13 @@ function OddsPage() {
     }
   }, [searchParams]);
 
+  // Drop canonical-only selections when falling back to non-canonical data
+  useEffect(() => {
+    if (useCanonical) return;
+    const allowed = new Set(POPULAR_LEAGUES.map(l => l.id));
+    setSelectedLeagues(prev => prev.filter(id => allowed.has(id)));
+  }, [useCanonical]);
+
   // Preload team logos when matches change
   useEffect(() => {
     if (matches.length > 0) {
@@ -276,14 +283,20 @@ function OddsPage() {
         ]);
         setCanonicalLeagues(canonLeagues || []);
         // Map canonical fixtures to match shape (no odds available yet, so placeholder)
-        fetchedMatches = (canonFixtures || []).map(f => ({
-          home_team: f.home_team,
-          away_team: f.away_team,
-          league: f.league_id ? (canonLeagues.find(l => l.league_id === f.league_id)?.display_name || 'Unknown') : 'Unmapped/Other',
-          canonical_league_id: f.league_id || null,
-          start_time: f.kickoff_time,
-          odds: [], // odds not stored in canonical fixtures; UI will show empty cells
-        }));
+        fetchedMatches = (canonFixtures || []).map(f => {
+          const canonLeague = canonLeagues.find(l => l.league_id === f.league_id);
+          const leagueName = canonLeague?.display_name || f.raw_league_name || 'Unmapped/Other';
+          const mappedKey = canonLeague?.slug || matchLeague(leagueName)?.id || null;
+          return {
+            home_team: f.home_team,
+            away_team: f.away_team,
+            league: leagueName,
+            league_key: mappedKey || canonLeague?.league_id || null,
+            canonical_league_id: f.league_id || null,
+            start_time: f.kickoff_time,
+            odds: [], // odds not stored in canonical fixtures; UI will show empty cells
+          };
+        });
         // If canonical returned nothing, fall back to worker data
         if (!fetchedMatches || fetchedMatches.length === 0) {
           throw new Error('No canonical fixtures, fallback to worker');
@@ -322,10 +335,13 @@ function OddsPage() {
           : true;
         const pendingOdds = hasOdds && missingBookies && withinWindow;
 
+        const derivedKey = match.league_key || matchLeague(match.league)?.id || null;
+
         return {
           ...match,
           odds: oddsArr,
           pendingOdds,
+          league_key: derivedKey,
         };
       });
 
@@ -474,14 +490,14 @@ function OddsPage() {
       const matchesLeagueText =
         !leagueQuery || leagueLower.includes(leagueQueryLower);
 
-      // League filter using centralized matching
-      let matchesLeague = matchesAnyLeague(match.league, selectedLeagues);
-      if (useCanonical && selectedLeagues.length > 0) {
-        if (selectedLeagues.includes('unmapped')) {
-          matchesLeague = (!match.canonical_league_id || match.league === 'Unmapped/Other');
-        } else {
-          matchesLeague = selectedLeagues.some(id => match.canonical_league_id === id);
-        }
+      // League filter using stable league keys (slug or canonical id fallback)
+      const leagueKey = match.league_key || matchLeague(match.league)?.id || null;
+      const includesUnmapped = selectedLeagues.includes('unmapped');
+      let matchesLeague = true;
+      if (selectedLeagues.length > 0) {
+        const matchesKnown = leagueKey ? selectedLeagues.includes(leagueKey) : false;
+        const matchesUnmapped = includesUnmapped && !leagueKey;
+        matchesLeague = matchesKnown || matchesUnmapped;
       }
 
       // Country filter using centralized matching
@@ -493,12 +509,25 @@ function OddsPage() {
     });
   }, [matches, searchQuery, leagueQuery, selectedLeagues, selectedCountry, selectedDate, useCanonical, canonicalLeagues]);
 
+  const hasFilters =
+    Boolean(searchQuery || leagueQuery || selectedLeagues.length > 0 || selectedCountry !== 'all');
+  const hasDateFilter = selectedDate !== 'all';
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setLeagueQuery('');
+    setSelectedLeagues([]);
+    setSelectedCountry('all');
+    setSelectedDate('all');
+    setShowAllMatches(true);
+  };
+
   // Filter visible league pills based on selected country
   const visibleLeagues = useMemo(() => {
     if (useCanonical && canonicalLeagues.length > 0) {
       const base = [{ id: 'all', name: 'All', country: 'all' }, { id: 'unmapped', name: 'Unmapped/Other', country: 'all' }];
       const canon = canonicalLeagues.map(l => ({
-        id: l.league_id,
+        id: l.slug || matchLeague(l.display_name)?.id || l.league_id,
         name: l.display_name,
         country: l.country_code || 'all',
       }));
@@ -991,19 +1020,36 @@ function OddsPage() {
         {/* No Results */}
         {!loading && !error && filteredMatches.length === 0 && matches.length === 0 && (
           <div className="empty-state">
-            <span className="empty-icon">📊</span>
-            <p>No odds available yet</p>
-            <span>Data is being collected. Check back in a few minutes.</span>
-            <button className="retry-btn" onClick={loadData}>Refresh</button>
+            <span className="empty-icon">dY"S</span>
+            <p>{hasDateFilter ? 'No fixtures for the selected date' : 'No odds available yet'}</p>
+            <span>
+              {hasDateFilter
+                ? 'Try a different date or show all matches.'
+                : 'Data is being collected. Check back in a few minutes.'}
+            </span>
+            {hasDateFilter ? (
+              <button className="retry-btn" onClick={() => setSelectedDate('all')}>Show All Dates</button>
+            ) : (
+              <button className="retry-btn" onClick={loadData}>Refresh</button>
+            )}
           </div>
         )}
 
         {/* No Results from filter */}
         {!loading && !error && filteredMatches.length === 0 && matches.length > 0 && (
           <div className="empty-state">
-            <span className="empty-icon">🔍</span>
-            <p>No matches found</p>
-            <span>Try adjusting your search or filters</span>
+            <span className="empty-icon">dY"?</span>
+            <p>{hasFilters ? 'No matches for these filters' : 'No fixtures for the selected date'}</p>
+            <span>
+              {hasFilters
+                ? 'Try clearing filters or adjusting your search.'
+                : 'Try a different date or show all matches.'}
+            </span>
+            {hasFilters ? (
+              <button className="retry-btn" onClick={resetFilters}>Reset Filters</button>
+            ) : (
+              <button className="retry-btn" onClick={() => setSelectedDate('all')}>Show All Dates</button>
+            )}
           </div>
         )}
 

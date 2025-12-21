@@ -6,6 +6,7 @@
 // API Configuration
 const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://oddswize-api.kwamenahb.workers.dev';
 const STATIC_DATA_URL = '/data/odds_data.json';
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS) || 10000;
 
 // Minimal team list to infer Premier League when league comes back empty
 const PREMIER_TEAMS = new Set([
@@ -26,13 +27,30 @@ const isPremierLeagueMatch = (home, away) => {
 // Fetch helper with error handling
 const fetchApi = async (endpoint, options = {}) => {
   const url = `${CLOUDFLARE_API_URL}${endpoint}`;
+  const {
+    timeoutMs = API_TIMEOUT_MS,
+    headers,
+    signal: requestSignal,
+    ...fetchOptions
+  } = options;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  if (requestSignal) {
+    if (requestSignal.aborted) {
+      controller.abort();
+    } else {
+      requestSignal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
 
   try {
     const response = await fetch(url, {
-      ...options,
+      ...fetchOptions,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...headers,
       },
     });
 
@@ -42,8 +60,14 @@ const fetchApi = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
-    console.error(`API request failed: ${endpoint}`, error);
+    if (error.name === 'AbortError') {
+      console.error(`API request timed out after ${timeoutMs}ms: ${endpoint}`);
+    } else {
+      console.error(`API request failed: ${endpoint}`, error);
+    }
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

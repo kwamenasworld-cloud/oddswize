@@ -27,6 +27,55 @@ const GHANA_BOOKMAKERS = [
   'Betfox Ghana',
 ];
 
+type LeagueKeyRule = {
+  key: string;
+  keywords: string[];
+};
+
+const LEAGUE_KEY_RULES: LeagueKeyRule[] = [
+  { key: 'premier', keywords: ['premier league', 'english premier league', 'epl'] },
+  { key: 'laliga', keywords: ['la liga', 'laliga', 'primera division'] },
+  { key: 'seriea', keywords: ['serie a'] },
+  { key: 'bundesliga', keywords: ['bundesliga'] },
+  { key: 'ligue1', keywords: ['ligue 1'] },
+  { key: 'ucl', keywords: ['uefa champions league', 'uefa champions league league phase', 'uefa champions league qualifiers', 'uefa champions league qualification', 'uefa champions league playoff', 'ucl'] },
+  { key: 'uwcl', keywords: ['uefa champions league women', 'uefa womens champions league', 'uwcl'] },
+  { key: 'europa', keywords: ['uefa europa league', 'europa league', 'uel'] },
+  { key: 'conference', keywords: ['uefa europa conference league', 'uefa conference league', 'europa conference league', 'uecl'] },
+];
+
+function normalizeLeagueName(name: string): string {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function resolveLeagueKey(name: string): string | null {
+  const normalized = normalizeLeagueName(name);
+  if (!normalized) return null;
+  let bestKey: string | null = null;
+  let bestLen = 0;
+  for (const rule of LEAGUE_KEY_RULES) {
+    for (const keyword of rule.keywords) {
+      if (normalized.includes(keyword) && keyword.length > bestLen) {
+        bestKey = rule.key;
+        bestLen = keyword.length;
+      }
+    }
+  }
+  return bestKey;
+}
+
+function attachLeagueKeys(groups: LeagueGroup[]): LeagueGroup[] {
+  return groups.map((group) => {
+    const groupKey = group.league_key || resolveLeagueKey(group.league);
+    const matches = group.matches.map((match) => {
+      const matchKey =
+        match.league_key || groupKey || resolveLeagueKey(match.league || group.league);
+      return matchKey ? { ...match, league_key: matchKey } : match;
+    });
+    return groupKey ? { ...group, league_key: groupKey, matches } : { ...group, matches };
+  });
+}
+
 /**
  * CORS headers
  */
@@ -143,7 +192,11 @@ async function getOddsData(env: Env): Promise<OddsResponse> {
     const cached = await env.ODDS_CACHE.get('all_odds', 'json');
 
     if (cached) {
-      return cached as OddsResponse;
+      const cachedResponse = cached as OddsResponse;
+      return {
+        ...cachedResponse,
+        data: attachLeagueKeys(cachedResponse.data || []),
+      };
     }
 
     // If no cache, return empty data
@@ -174,14 +227,15 @@ async function updateOddsData(
   data: LeagueGroup[]
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const totalMatches = data.reduce(
+    const normalizedData = attachLeagueKeys(data);
+    const totalMatches = normalizedData.reduce(
       (sum, league) => sum + league.matches.length,
       0
     );
 
     const oddsResponse: OddsResponse = {
       success: true,
-      data,
+      data: normalizedData,
       meta: {
         total_matches: totalMatches,
         total_bookmakers: GHANA_BOOKMAKERS.length,
@@ -373,6 +427,7 @@ async function initD1Schema(env: Env) {
       season_end INTEGER,
       display_name TEXT NOT NULL,
       normalized_name TEXT NOT NULL,
+      slug TEXT,
       timezone TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -416,6 +471,7 @@ async function initD1Schema(env: Env) {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_leagues_norm ON leagues(sport, country_code, normalized_name, season_start, season_end);
+    CREATE INDEX IF NOT EXISTS idx_leagues_slug ON leagues(sport, slug);
     CREATE INDEX IF NOT EXISTS idx_league_alias_provider ON league_aliases(provider, provider_league_id);
     CREATE INDEX IF NOT EXISTS idx_fixtures_league_time ON fixtures(league_id, kickoff_time);
     CREATE INDEX IF NOT EXISTS idx_fixtures_provider ON fixtures(provider, provider_fixture_id);
@@ -425,7 +481,7 @@ async function initD1Schema(env: Env) {
 
 async function listLeaguesD1(env: Env): Promise<Response> {
   const res = await env.D1.prepare(
-    'SELECT league_id, display_name, sport, country_code, tier, season_start, season_end FROM leagues ORDER BY sport, country_code, display_name'
+    'SELECT league_id, display_name, slug, sport, country_code, tier, season_start, season_end FROM leagues ORDER BY sport, country_code, display_name'
   ).all();
   return jsonResponse(res.results || [], 200, env);
 }

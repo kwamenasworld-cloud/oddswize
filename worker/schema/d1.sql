@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS leagues (
   season_end INTEGER,
   display_name TEXT NOT NULL,
   normalized_name TEXT NOT NULL,
+  slug TEXT,
   timezone TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS unmapped_candidates (
 );
 
 CREATE INDEX IF NOT EXISTS idx_leagues_norm ON leagues(sport, country_code, normalized_name, season_start, season_end);
+CREATE INDEX IF NOT EXISTS idx_leagues_slug ON leagues(sport, slug);
 CREATE INDEX IF NOT EXISTS idx_league_alias_provider ON league_aliases(provider, provider_league_id);
 CREATE INDEX IF NOT EXISTS idx_fixtures_league_time ON fixtures(league_id, kickoff_time);
 CREATE INDEX IF NOT EXISTS idx_fixtures_provider ON fixtures(provider, provider_fixture_id);

@@ -23,6 +23,7 @@ export interface Match {
   home_team: string;
   away_team: string;
   league: string;
+  league_key?: string;
   start_time: number;  // Unix timestamp in seconds
   odds: BookmakerOdds[];
   is_live?: boolean;
@@ -30,6 +31,7 @@ export interface Match {
 
 export interface LeagueGroup {
   league: string;
+  league_key?: string;
   matches: Match[];
 }
 

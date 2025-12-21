@@ -5,6 +5,7 @@ FastAPI backend for OddsChecker-style web and mobile apps
 """
 import os
 import sys
+import re
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -86,6 +87,7 @@ class ScannerStatus(BaseModel):
 class LeagueOut(BaseModel):
     league_id: str
     display_name: str
+    slug: Optional[str] = None
     sport: str
     country_code: str
     tier: Optional[int] = None
@@ -110,6 +112,39 @@ class FixtureOut(BaseModel):
 def require_admin(key: Optional[str]):
     if ADMIN_API_KEY and key != ADMIN_API_KEY:
         raise HTTPException(status_code=403, detail="Forbidden")
+
+def slugify(text: str) -> str:
+    text = re.sub(r"[^a-z0-9]+", "-", (text or "").lower())
+    return text.strip("-")
+
+
+LEAGUE_SLUG_OVERRIDES = {
+    "premier league": "premier",
+    "english premier league": "premier",
+    "la liga": "laliga",
+    "primera division": "laliga",
+    "serie a": "seriea",
+    "bundesliga": "bundesliga",
+    "ligue 1": "ligue1",
+    "uefa champions league": "ucl",
+    "uefa champions league women": "uwcl",
+    "uefa womens champions league": "uwcl",
+    "uefa europa league": "europa",
+    "uefa europa conference league": "conference",
+    "uefa conference league": "conference",
+}
+
+
+def resolve_league_slug(display_name: str, normalized_name: Optional[str], slug: Optional[str]) -> Optional[str]:
+    if slug:
+        return slug
+    base = (normalized_name or normalize_competition_name(display_name or "")).strip().lower()
+    if not base:
+        return None
+    override = LEAGUE_SLUG_OVERRIDES.get(base)
+    if override:
+        return override
+    return slugify(display_name)
 
 
 def get_scanner() -> GhanaBettingArbitrage:
@@ -279,20 +314,40 @@ async def list_leagues():
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT league_id, display_name, sport, country_code, tier, season_start, season_end
-                    FROM leagues
-                    ORDER BY sport, country_code, display_name
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = 'leagues' AND column_name = 'slug'
+                    LIMIT 1
                 """)
+                has_slug = cur.fetchone() is not None
+
+                if has_slug:
+                    cur.execute("""
+                        SELECT league_id, display_name, slug, sport, country_code, tier, season_start, season_end, normalized_name
+                        FROM leagues
+                        ORDER BY sport, country_code, display_name
+                    """)
+                else:
+                    cur.execute("""
+                        SELECT league_id, display_name, sport, country_code, tier, season_start, season_end, normalized_name
+                        FROM leagues
+                        ORDER BY sport, country_code, display_name
+                    """)
                 rows = cur.fetchall()
         return [
             LeagueOut(
                 league_id=row[0],
                 display_name=row[1],
-                sport=row[2],
-                country_code=row[3],
-                tier=row[4],
-                season_start=row[5],
-                season_end=row[6],
+                slug=resolve_league_slug(
+                    row[1],
+                    row[8] if has_slug else row[7],
+                    row[2] if has_slug else None,
+                ),
+                sport=row[3] if has_slug else row[2],
+                country_code=row[4] if has_slug else row[3],
+                tier=row[5] if has_slug else row[4],
+                season_start=row[6] if has_slug else row[5],
+                season_end=row[7] if has_slug else row[6],
             )
             for row in rows
         ]
