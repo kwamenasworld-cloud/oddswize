@@ -112,6 +112,12 @@ img {
     min-width: 44px;
   }
 
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
+  }
+
   /* Don't force min-height on odds cells - they need to fit in grid layout */
   /* The grid layout in index.css handles their sizing correctly */
 

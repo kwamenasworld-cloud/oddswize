@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getMatchesByLeague, getStatus, triggerScan } from '../services/api';
 import { getCanonicalLeagues, getCanonicalFixtures } from '../services/canonical';
@@ -15,6 +15,34 @@ const MARKETS = {
   '1x2': { id: '1x2', name: '1X2', labels: ['1', 'X', '2'], description: 'Match Result' },
   'double_chance': { id: 'double_chance', name: 'Double Chance', labels: ['1X', 'X2', '12'], description: 'Double Chance' },
   'over_under': { id: 'over_under', name: 'O/U 2.5', labels: ['Over', 'Under'], description: 'Over/Under 2.5 Goals' },
+};
+
+const DEFAULT_REFRESH_MS = 5 * 60 * 1000;
+const MIN_REFRESH_MS = 2 * 60 * 1000;
+const MAX_REFRESH_MS = 30 * 60 * 1000;
+const COMPACT_BREAKPOINT = 520;
+
+const resolveRefreshInterval = (cacheTtlSeconds) => {
+  const ttlSeconds = Number(cacheTtlSeconds);
+  if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
+    return DEFAULT_REFRESH_MS;
+  }
+  const ttlMs = ttlSeconds * 1000;
+  return Math.min(Math.max(ttlMs, MIN_REFRESH_MS), MAX_REFRESH_MS);
+};
+
+const normalizePillKey = (value) => (
+  (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '')
+);
+
+const resolvePillKey = (pill) => {
+  if (!pill) return '';
+  if (pill.type === 'league') {
+    return normalizePillKey(pill.id || pill.name);
+  }
+  const baseValue = pill.logoId || pill.value || pill.label || pill.id;
+  const matched = matchLeague(baseValue) || matchLeague(pill.value) || matchLeague(pill.label);
+  return normalizePillKey(matched?.id || baseValue);
 };
 
 // Build popular leagues list from centralized config (with short display names)
@@ -204,20 +232,61 @@ function OddsPage() {
   );
   const [showAllMatches, setShowAllMatches] = useState(false);
   const [selectedSort, setSelectedSort] = useState('time');
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState(DEFAULT_REFRESH_MS);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [compactView, setCompactView] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    if (window.matchMedia) {
+      return window.matchMedia(`(max-width: ${COMPACT_BREAKPOINT}px)`).matches;
+    }
+    return window.innerWidth <= COMPACT_BREAKPOINT;
+  });
+  const loadDataRef = useRef(() => {});
   useEffect(() => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia(`(max-width: ${COMPACT_BREAKPOINT}px)`);
+    const handleChange = (event) => {
+      setCompactView(event.matches);
+    };
+    handleChange(mediaQuery);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
+
+  // Pause auto-refresh when the tab is hidden
+  useEffect(() => {
+    const handleVisibility = () => {
+      const visible = document.visibilityState === 'visible';
+      setAutoRefreshEnabled(visible);
+      if (visible) {
+        loadDataRef.current({ silent: true });
+      }
+    };
+    handleVisibility();
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   // Auto-refresh odds periodically to keep prices fresh without manual refresh
   useEffect(() => {
+    if (!autoRefreshEnabled) return;
     const interval = setInterval(() => {
-      loadData({ silent: true });
-    }, 5 * 60 * 1000); // every 5 minutes
+      loadDataRef.current({ silent: true });
+    }, refreshIntervalMs);
     return () => clearInterval(interval);
-  }, []);
+  }, [autoRefreshEnabled, refreshIntervalMs]);
 
   // Sync horizontal scroll between sticky header and content
   useEffect(() => {
+    if (compactView) return;
     const stickyHeader = document.querySelector('.odds-sticky-header');
     const content = document.querySelector('.odds-container');
 
@@ -238,7 +307,7 @@ function OddsPage() {
       content.removeEventListener('scroll', syncContentToHeader);
       stickyHeader.removeEventListener('scroll', syncHeaderToContent);
     };
-  }, [loading]); // Re-attach when loading changes
+  }, [loading, compactView]); // Re-attach when loading changes
 
   // Sync URL params with selected leagues (handles navigation from HomePage)
   useEffect(() => {
@@ -283,19 +352,23 @@ function OddsPage() {
     }
   }, [matches]);
 
-  const loadData = async (opts = { silent: false, forceWorker: false }) => {
+  const loadData = async (opts = {}) => {
     const silent = opts?.silent;
     const forceWorker = Boolean(opts?.forceWorker);
+    const bypassCache = Boolean(opts?.bypassCache);
     setError(null);
     try {
       let statusData = null;
       let fetchedMatches = null;
       const fetchWorkerData = async () => {
         const [matchData, statusDataResp] = await Promise.all([
-          getMatchesByLeague(),
+          getMatchesByLeague({ allowStale: !bypassCache, bypassCache }),
           getStatus(),
         ]);
         const leagues = matchData.leagues || [];
+        if (matchData?.meta?.cache_ttl) {
+          setRefreshIntervalMs(resolveRefreshInterval(matchData.meta.cache_ttl));
+        }
         const flattened = leagues.flatMap(league =>
           (league.matches || []).map(match => ({
             ...match,
@@ -306,6 +379,9 @@ function OddsPage() {
           match => match.odds && Array.isArray(match.odds) && match.odds.length >= 1
         );
         statusData = statusDataResp;
+        if (statusDataResp?.cacheTtl) {
+          setRefreshIntervalMs(resolveRefreshInterval(statusDataResp.cacheTtl));
+        }
         setUseCanonical(false);
       };
 
@@ -356,6 +432,9 @@ function OddsPage() {
           }
           setUseCanonical(true);
           statusData = statusResp;
+          if (statusResp?.cacheTtl) {
+            setRefreshIntervalMs(resolveRefreshInterval(statusResp.cacheTtl));
+          }
         } catch (e) {
           await fetchWorkerData();
         }
@@ -404,6 +483,7 @@ function OddsPage() {
       if (!silent) setLoading(false);
     }
   };
+  loadDataRef.current = loadData;
 
   // Calculate synthetic double chance odds
   const calculateDoubleChance = (odds1, odds2) => {
@@ -431,7 +511,7 @@ function OddsPage() {
     setRefreshing(true);
     try {
       await triggerScan();
-      await loadData();
+      await loadData({ bypassCache: true });
     } catch (error) {
       console.error('Failed to refresh:', error);
     } finally {
@@ -586,12 +666,22 @@ function OddsPage() {
   // Filter visible league pills based on selected country
   const visibleLeagues = useMemo(() => {
     if (useCanonical && canonicalLeagues.length > 0) {
-      const base = [{ id: 'all', name: 'All', country: 'all' }, { id: 'unmapped', name: 'Unmapped/Other', country: 'all' }];
-      const canon = canonicalLeagues.map(l => ({
-        id: l.slug || matchLeague(l.display_name)?.id || l.league_id,
-        name: l.display_name,
-        country: l.country_code || 'all',
-      }));
+      const base = [
+        { id: 'all', name: 'All', country: 'all' },
+        { id: 'unmapped', name: 'Unmapped/Other', country: 'all' },
+      ];
+      const seen = new Set(base.map(l => l.id));
+      const canon = [];
+      canonicalLeagues.forEach(l => {
+        const id = l.slug || matchLeague(l.display_name)?.id || l.league_id;
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        canon.push({
+          id,
+          name: l.display_name,
+          country: l.country_code || 'all',
+        });
+      });
       return base.concat(canon);
     }
 
@@ -608,28 +698,23 @@ function OddsPage() {
     const seen = new Set();
     const pills = [];
 
-    visibleLeagues.forEach(l => {
-      const key = `league-${l.id}`;
-      if (seen.has(key)) return;
+    const pushPill = (pill) => {
+      const key = resolvePillKey(pill);
+      if (!key || seen.has(key)) return;
       seen.add(key);
-      pills.push({ type: 'league', ...l });
-    });
+      pills.push(pill);
+    };
 
-    LEAGUE_QUERY_TILES.forEach(t => {
-      const key = `kw-${(t.logoId || t.id || t.label || t.value).toLowerCase()}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      pills.push({ type: 'keyword', ...t });
-    });
+    visibleLeagues.forEach(l => pushPill({ type: 'league', ...l }));
+    LEAGUE_QUERY_TILES.forEach(t => pushPill({ type: 'keyword', ...t }));
 
-    // Add a single All keyword reset
-    if (!seen.has('kw-all')) {
-      seen.add('kw-all');
-      pills.push({ type: 'keyword', id: 'kw-all', label: 'All', value: '' });
+    // Add a single All keyword reset if it's not already covered
+    if (!seen.has('all')) {
+      pushPill({ type: 'keyword', id: 'kw-all', label: 'All', value: '' });
     }
 
     return pills;
-  }, [visibleLeagues, leagueQuery]);
+  }, [visibleLeagues]);
 
   // Get featured/top matches (today's matches from top leagues)
   const featuredMatches = useMemo(() => {
@@ -665,6 +750,7 @@ function OddsPage() {
 
   // Get active bookmakers
   const activeBookmakers = BOOKMAKER_ORDER.filter(b => enabledBookies[b]);
+  const oddsColumns = `minmax(var(--odds-match-min), var(--odds-match-max)) var(--odds-time) repeat(${activeBookmakers.length}, minmax(var(--odds-bookie-min), 1fr))`;
 
   // Sort function based on selected sort option
   const sortMatches = (matchList) => {
@@ -1021,43 +1107,44 @@ function OddsPage() {
       </div>
 
       {/* Main Odds Grid */}
-      <div className="odds-wrapper">
-        {/* Sticky Header Section */}
-        <div className="odds-sticky-header">
-          {/* Table Header - Bookmakers */}
-          <div className="odds-header" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
-            <div className="header-match">Match</div>
-            <div className="header-time">Kick-off</div>
-            {activeBookmakers.map((name) => {
-              const config = BOOKMAKER_AFFILIATES[name];
-              return (
-                <a
-                  key={name}
-                  href={config.affiliateUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="header-bookmaker"
-                >
-                  <BookmakerLogo bookmaker={name} size={28} />
-                  <span className="bookie-name">{config.name}</span>
-                </a>
-              );
-            })}
-          </div>
+      <div className={`odds-wrapper ${compactView ? 'compact' : ''}`} style={{ '--odds-columns': oddsColumns }}>
+        {!compactView && (
+          <div className="odds-sticky-header">
+            {/* Table Header - Bookmakers */}
+            <div className="odds-header">
+              <div className="header-match">Match</div>
+              <div className="header-time">Kick-off</div>
+              {activeBookmakers.map((name) => {
+                const config = BOOKMAKER_AFFILIATES[name];
+                return (
+                  <a
+                    key={name}
+                    href={config.affiliateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="header-bookmaker"
+                  >
+                    <BookmakerLogo bookmaker={name} size={28} />
+                    <span className="bookie-name">{config.name}</span>
+                  </a>
+                );
+              })}
+            </div>
 
-          {/* Outcome Labels Row */}
-          <div className="outcome-row" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
-            <div className="outcome-match"></div>
-            <div className="outcome-time"></div>
-            {activeBookmakers.map((name) => (
-              <div key={name} className={`outcome-labels ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
-                {currentMarket.labels.map((label, i) => (
-                  <span key={i}>{label}</span>
-                ))}
-              </div>
-            ))}
+            {/* Outcome Labels Row */}
+            <div className="outcome-row">
+              <div className="outcome-match"></div>
+              <div className="outcome-time"></div>
+              {activeBookmakers.map((name) => (
+                <div key={name} className={`outcome-labels ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
+                  {currentMarket.labels.map((label, i) => (
+                    <span key={i}>{label}</span>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Scrollable Content */}
         <div className="odds-container">
@@ -1136,8 +1223,99 @@ function OddsPage() {
               // Create share link for this specific match
               const shareLink = `${window.location.origin}/odds?match=${encodeURIComponent(match.home_team + ' vs ' + match.away_team)}`;
 
+              if (compactView) {
+                return (
+                  <div key={idx} className="odds-card">
+                    <div className="odds-card-header">
+                      <div className="odds-card-teams">
+                        <div className="odds-card-team">
+                          <TeamLogo teamName={match.home_team} size={18} />
+                          <span className="team-name">{match.home_team}</span>
+                        </div>
+                        <div className="odds-card-team">
+                          <TeamLogo teamName={match.away_team} size={18} />
+                          <span className="team-name">{match.away_team}</span>
+                        </div>
+                      </div>
+                      <div className="odds-card-meta">
+                        <span className="odds-card-time">{formatTime(match.start_time)}</span>
+                        <span className="odds-card-league">{match.league}</span>
+                        <div className="odds-card-share">
+                          <ShareButton
+                            home_team={match.home_team}
+                            away_team={match.away_team}
+                            league={match.league}
+                            time={formatTime(match.start_time)}
+                            bestHome={best1x2Home}
+                            bestDraw={best1x2Draw}
+                            bestAway={best1x2Away}
+                            shareLink={shareLink}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="odds-card-odds">
+                      {activeBookmakers.map((bookmaker) => {
+                        const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
+                        const config = BOOKMAKER_AFFILIATES[bookmaker];
+
+                        return (
+                          <div key={bookmaker} className="odds-card-row">
+                            <a
+                              href={config.affiliateUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="odds-card-bookie"
+                            >
+                              <BookmakerLogo bookmaker={bookmaker} size={22} />
+                              <span className="odds-card-bookie-name">{config.name}</span>
+                            </a>
+                            <div className={`odds-card-values ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
+                              {bookieOdds ? (
+                                marketFields.map((field, i) => {
+                                  const oddsValue = bookieOdds[field];
+                                  const isBest = oddsValue && oddsValue === bestOdds[i].value;
+                                  const isEdge = isBigEdge(oddsValue, avgOdds[i]);
+                                  const isSmallEdge = !isEdge && isAboveAverage(oddsValue, avgOdds[i]);
+                                  const edgePercent = avgOdds[i] ? ((oddsValue - avgOdds[i]) / avgOdds[i] * 100).toFixed(0) : 0;
+
+                                  return (
+                                    <a
+                                      key={field}
+                                      href={config.affiliateUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
+                                      onClick={(e) => handleOddsClick(e, oddsValue, currentMarket.labels[i], config.name)}
+                                      title={`Click for probability  ${oddsToProb(oddsValue).toFixed(1)}%`}
+                                    >
+                                      <span className="odds-card-odd-label">{currentMarket.labels[i]}</span>
+                                      <span className="odds-card-odd-value">{oddsValue ? oddsValue.toFixed(2) : '-'}</span>
+                                      {isBest && oddsValue && <span className="best-tag">BEST</span>}
+                                      {isEdge && oddsValue && <span className="edge-tag">+{edgePercent}%</span>}
+                                    </a>
+                                  );
+                                })
+                              ) : (
+                                marketFields.map((_, i) => (
+                                  <span key={i} className={`odd empty ${match.pendingOdds ? 'pending' : ''}`}>
+                                    <span className="odds-card-odd-label">{currentMarket.labels[i]}</span>
+                                    <span className="odds-card-odd-value">{match.pendingOdds ? 'Pending.' : '-'}</span>
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
               return (
-                <div key={idx} className="match-row" style={{ gridTemplateColumns: `minmax(200px, 280px) 100px repeat(${activeBookmakers.length}, minmax(120px, 1fr))` }}>
+                <div key={idx} className="match-row">
                   {/* Teams */}
                   <div className="match-teams-cell">
                     <div className="team-row">
@@ -1218,12 +1396,14 @@ function OddsPage() {
         ))}
 
         {/* Mobile scroll hint */}
-        <div className="scroll-hint-mobile">
-          <span>Swipe for more bookmakers</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
-        </div>
+        {!compactView && (
+          <div className="scroll-hint-mobile">
+            <span>Swipe for more bookmakers</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </div>
+        )}
         </div>{/* End odds-container */}
       </div>{/* End odds-wrapper */}
 
