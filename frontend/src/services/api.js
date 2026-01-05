@@ -8,6 +8,11 @@ const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://o
 const STATIC_DATA_URL = '/data/odds_data.json';
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS) || 10000;
 
+const ODDS_CACHE_KEY = 'oddswize_odds_cache_v1';
+const ODDS_CACHE_DEFAULT_TTL_MS = 15 * 60 * 1000;
+let oddsCacheMemory = null;
+let oddsFetchPromise = null;
+
 // Minimal team list to infer Premier League when league comes back empty
 const PREMIER_TEAMS = new Set([
   'arsenal', 'aston villa', 'bournemouth', 'brentford', 'brighton', 'brighton & hove albion',
@@ -24,6 +29,48 @@ const isPremierLeagueMatch = (home, away) => {
   return PREMIER_TEAMS.has(h) && PREMIER_TEAMS.has(a);
 };
 
+const readOddsCache = (allowExpired = false) => {
+  if (oddsCacheMemory) {
+    if (allowExpired || oddsCacheMemory.expiresAt > Date.now()) {
+      return oddsCacheMemory;
+    }
+  }
+
+  try {
+    const raw = localStorage.getItem(ODDS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.payload || !parsed.storedAt) return null;
+    const expiresAt = parsed.expiresAt || (parsed.storedAt + ODDS_CACHE_DEFAULT_TTL_MS);
+    const cache = { ...parsed, expiresAt };
+    if (!allowExpired && expiresAt <= Date.now()) return null;
+    oddsCacheMemory = cache;
+    return cache;
+  } catch (error) {
+    return null;
+  }
+};
+
+const saveOddsCache = (payload, ttlSeconds, etag) => {
+  const storedAt = Date.now();
+  const ttlMs = Number.isFinite(ttlSeconds) && ttlSeconds > 0
+    ? ttlSeconds * 1000
+    : ODDS_CACHE_DEFAULT_TTL_MS;
+  const cache = {
+    payload,
+    storedAt,
+    expiresAt: storedAt + ttlMs,
+    etag: etag || null,
+  };
+  oddsCacheMemory = cache;
+  try {
+    localStorage.setItem(ODDS_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    // Ignore storage failures (private mode/quota)
+  }
+  return cache;
+};
+
 // Fetch helper with error handling
 const fetchApi = async (endpoint, options = {}) => {
   const url = `${CLOUDFLARE_API_URL}${endpoint}`;
@@ -31,6 +78,7 @@ const fetchApi = async (endpoint, options = {}) => {
     timeoutMs = API_TIMEOUT_MS,
     headers,
     signal: requestSignal,
+    returnResponse = false,
     ...fetchOptions
   } = options;
   const controller = new AbortController();
@@ -53,6 +101,10 @@ const fetchApi = async (endpoint, options = {}) => {
         ...headers,
       },
     });
+
+    if (returnResponse) {
+      return response;
+    }
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -83,13 +135,103 @@ const fetchStaticData = async () => {
   }
 };
 
+const fetchOddsData = async (options = {}) => {
+  const { allowStale = true, bypassCache = false } = options;
+  const now = Date.now();
+  const cached = bypassCache ? null : readOddsCache(allowStale);
+
+  if (!bypassCache && cached && cached.expiresAt > now) {
+    return {
+      data: cached.payload,
+      meta: cached.payload.meta || {},
+      cache: { source: 'local', stale: false, storedAt: cached.storedAt },
+    };
+  }
+
+  if (oddsFetchPromise && !bypassCache) {
+    return oddsFetchPromise;
+  }
+
+  const requestHeaders = {};
+  if (cached?.etag) {
+    requestHeaders['If-None-Match'] = cached.etag;
+  }
+
+  const fetchPromise = (async () => {
+    const response = await fetchApi('/api/odds', {
+      returnResponse: true,
+      headers: requestHeaders,
+      cache: bypassCache ? 'no-store' : 'default',
+    });
+
+    if (response.status === 304 && cached?.payload) {
+      return {
+        data: cached.payload,
+        meta: cached.payload.meta || {},
+        cache: { source: 'etag', stale: false, storedAt: cached.storedAt },
+      };
+    }
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const ttlSeconds = payload?.meta?.cache_ttl;
+    const etag = response.headers.get('ETag');
+    const saved = saveOddsCache(payload, ttlSeconds, etag);
+
+    return {
+      data: payload,
+      meta: payload.meta || {},
+      cache: { source: 'network', stale: false, storedAt: saved.storedAt },
+    };
+  })();
+
+  if (!bypassCache) {
+    oddsFetchPromise = fetchPromise;
+  }
+
+  try {
+    return await fetchPromise;
+  } catch (error) {
+    if (allowStale && cached?.payload) {
+      return {
+        data: cached.payload,
+        meta: cached.payload.meta || {},
+        cache: { source: 'stale', stale: true, storedAt: cached.storedAt },
+      };
+    }
+    throw error;
+  } finally {
+    if (!bypassCache) {
+      oddsFetchPromise = null;
+    }
+  }
+};
+
+export const getCachedOdds = () => {
+  const cached = readOddsCache(true);
+  if (!cached) return null;
+  return {
+    data: cached.payload,
+    meta: cached.payload.meta || {},
+    cache: {
+      source: 'local',
+      stale: cached.expiresAt <= Date.now(),
+      storedAt: cached.storedAt,
+    },
+  };
+};
+
 /**
  * Get all matches with odds comparison
  */
-export const getMatches = async (limit = 100, offset = 0, minBookmakers = 1) => {
+export const getMatches = async (limit = 100, offset = 0, minBookmakers = 1, options = {}) => {
   try {
-    // Try Cloudflare API first
-    const data = await fetchApi('/api/odds');
+    // Try Cloudflare API first (with local cache + ETag support)
+    const oddsResponse = await fetchOddsData(options);
+    const data = oddsResponse.data;
 
     // Validate response structure
     if (data.success && data.data && Array.isArray(data.data)) {
@@ -120,6 +262,7 @@ export const getMatches = async (limit = 100, offset = 0, minBookmakers = 1) => 
         matches: filtered.slice(offset, offset + limit),
         total: filtered.length,
         meta: data.meta || {},
+        cache: oddsResponse.cache,
       };
     }
 
@@ -155,14 +298,16 @@ export const getMatches = async (limit = 100, offset = 0, minBookmakers = 1) => 
 /**
  * Get matches grouped by league
  */
-export const getMatchesByLeague = async () => {
+export const getMatchesByLeague = async (options = {}) => {
   try {
-    const data = await fetchApi('/api/odds');
+    const oddsResponse = await fetchOddsData(options);
+    const data = oddsResponse.data;
 
     if (data.success && data.data) {
       return {
         leagues: data.data,
         meta: data.meta,
+        cache: oddsResponse.cache,
       };
     }
 
@@ -234,38 +379,6 @@ export const getArbitrage = async (bankroll = 100) => {
 };
 
 /**
- * Get scanner/API status
- */
-export const getStatus = async () => {
-  try {
-    const data = await fetchApi('/health');
-
-    return {
-      status: data.status,
-      last_scan: data.timestamp,
-      service: data.service,
-      version: data.version,
-    };
-  } catch (error) {
-    // Fallback to static data
-    const staticData = await fetchStaticData();
-
-    if (staticData && staticData.stats) {
-      return {
-        status: 'ok',
-        last_scan: staticData.last_updated,
-        ...staticData.stats,
-      };
-    }
-
-    return {
-      status: 'offline',
-      last_scan: null,
-    };
-  }
-};
-
-/**
  * Get bookmaker list
  */
 export const getBookmakers = async () => {
@@ -310,15 +423,17 @@ export const getMatch = async (matchId) => {
 /**
  * Get last update time
  */
-export const getLastUpdate = async () => {
+export const getLastUpdate = async (options = {}) => {
   try {
-    const data = await fetchApi('/api/odds');
+    const oddsResponse = await fetchOddsData(options);
+    const data = oddsResponse.data;
 
     if (data.success && data.meta) {
       return {
         lastUpdated: data.meta.last_updated,
         cacheTtl: data.meta.cache_ttl,
         totalMatches: data.meta.total_matches,
+        cache: oddsResponse.cache,
       };
     }
 
@@ -338,6 +453,52 @@ export const getLastUpdate = async () => {
 };
 
 /**
+ * Get scanner/API status
+ */
+export const getStatus = async () => {
+  try {
+    const lastUpdate = await getLastUpdate({ allowStale: true });
+    if (lastUpdate?.lastUpdated) {
+      return {
+        status: 'ok',
+        last_scan: lastUpdate.lastUpdated,
+        cacheTtl: lastUpdate.cacheTtl,
+        totalMatches: lastUpdate.totalMatches,
+      };
+    }
+  } catch (error) {
+    // Fall back to health endpoint below
+  }
+
+  try {
+    const data = await fetchApi('/health');
+
+    return {
+      status: data.status,
+      last_scan: data.timestamp,
+      service: data.service,
+      version: data.version,
+    };
+  } catch (error) {
+    // Fallback to static data
+    const staticData = await fetchStaticData();
+
+    if (staticData && staticData.stats) {
+      return {
+        status: 'ok',
+        last_scan: staticData.last_updated,
+        ...staticData.stats,
+      };
+    }
+
+    return {
+      status: 'offline',
+      last_scan: null,
+    };
+  }
+};
+
+/**
  * Trigger data refresh (not available in Cloudflare - data is pushed from scraper)
  */
 export const triggerScan = async () => {
@@ -350,6 +511,7 @@ export const triggerScan = async () => {
 
 // Default export for backward compatibility
 export default {
+  getCachedOdds,
   getMatches,
   getMatchesByLeague,
   getArbitrage,

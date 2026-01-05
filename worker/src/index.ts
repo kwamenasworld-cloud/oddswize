@@ -91,13 +91,37 @@ function corsHeaders(env: Env): HeadersInit {
 /**
  * JSON response helper
  */
-function jsonResponse(data: unknown, status = 200, env?: Env): Response {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(env ? corsHeaders(env) : {}),
-  };
+function jsonResponse(
+  data: unknown,
+  status = 200,
+  env?: Env,
+  extraHeaders: HeadersInit = {}
+): Response {
+  const headers = new Headers(env ? corsHeaders(env) : undefined);
+  headers.set('Content-Type', 'application/json');
+
+  const extra = new Headers(extraHeaders);
+  extra.forEach((value, key) => headers.set(key, value));
 
   return new Response(JSON.stringify(data), { status, headers });
+}
+
+function buildCacheHeaders(
+  prefix: string,
+  meta?: { last_updated?: string; cache_ttl?: number }
+): Record<string, string> {
+  const lastUpdated = meta?.last_updated || new Date().toISOString();
+  const ttlSeconds = Math.max(60, Math.floor(meta?.cache_ttl || CACHE_TTL));
+  const maxAge = Math.min(300, ttlSeconds);
+  const staleWhileRevalidate = Math.max(0, ttlSeconds - maxAge);
+  const lastModified = new Date(lastUpdated).toUTCString();
+  const safePrefix = prefix.replace(/[^a-z0-9-]+/gi, '-');
+
+  return {
+    'Cache-Control': `public, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+    'ETag': `W/"${safePrefix}-${lastUpdated}"`,
+    'Last-Modified': lastModified,
+  };
 }
 
 /**
@@ -290,7 +314,15 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     // GET /api/odds - Get all odds data
     if (path === '/api/odds' && request.method === 'GET') {
       const data = await getOddsData(env);
-      return jsonResponse(data, 200, env);
+      const cacheHeaders = buildCacheHeaders('odds', data.meta);
+      const etag = cacheHeaders['ETag'];
+      if (etag && request.headers.get('If-None-Match') === etag) {
+        return new Response(null, {
+          status: 304,
+          headers: { ...corsHeaders(env), ...cacheHeaders },
+        });
+      }
+      return jsonResponse(data, 200, env, cacheHeaders);
     }
 
     // GET /api/odds/:league - Get odds for specific league
@@ -300,6 +332,18 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       const leagueData = allData.data.filter(
         (l) => l.league.toLowerCase() === league.toLowerCase()
       );
+
+      const cacheHeaders = buildCacheHeaders(
+        `odds-${league.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        allData.meta
+      );
+      const etag = cacheHeaders['ETag'];
+      if (etag && request.headers.get('If-None-Match') === etag) {
+        return new Response(null, {
+          status: 304,
+          headers: { ...corsHeaders(env), ...cacheHeaders },
+        });
+      }
 
       return jsonResponse(
         {
@@ -314,7 +358,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
           },
         },
         200,
-        env
+        env,
+        cacheHeaders
       );
     }
 
@@ -333,7 +378,16 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         },
       };
 
-      return jsonResponse(response, 200, env);
+      const cacheHeaders = buildCacheHeaders('arb', allData.meta);
+      const etag = cacheHeaders['ETag'];
+      if (etag && request.headers.get('If-None-Match') === etag) {
+        return new Response(null, {
+          status: 304,
+          headers: { ...corsHeaders(env), ...cacheHeaders },
+        });
+      }
+
+      return jsonResponse(response, 200, env, cacheHeaders);
     }
 
     // GET /api/match/:id - Get single match
