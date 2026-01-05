@@ -4,7 +4,7 @@ import { TeamLogo } from '../components/TeamLogo';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
-import { LEAGUES, matchLeague } from '../config/leagues';
+import { LEAGUES, matchLeague, getLeagueTier } from '../config/leagues';
 import { getMatchesByLeague } from '../services/api';
 
 // News articles for homepage (links to full articles)
@@ -155,10 +155,58 @@ function HomePage() {
     return best;
   };
 
-  // Featured matches (today's matches from top leagues)
+  const getPopularityScore = (match, nowSeconds) => {
+    const odds = match.odds || [];
+    const bookmakerCount = odds.length;
+    if (!bookmakerCount) return 0;
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const tier = getLeagueTier(match.league);
+    const coverage = clamp(bookmakerCount / BOOKMAKER_ORDER.length, 0, 1);
+    const coverageScore = Math.pow(coverage, 1.4) * 50;
+
+    const completeCount = odds.filter(o => o.home_odds && o.draw_odds && o.away_odds).length;
+    const completenessScore = (completeCount / bookmakerCount) * 10;
+    const leagueScore = (5 - tier) * 18;
+
+    const timeDiffHours = ((match.start_time || 0) - nowSeconds) / 3600;
+    let timeScore = 0;
+    if (timeDiffHours > 0) {
+      if (timeDiffHours <= 6) {
+        timeScore = 40;
+      } else if (timeDiffHours <= 24) {
+        timeScore = 40 - ((timeDiffHours - 6) * (20 / 18));
+      } else if (timeDiffHours <= 48) {
+        timeScore = 20 - ((timeDiffHours - 24) * (20 / 24));
+      }
+    }
+
+    const marketSpread = (field) => {
+      const values = odds
+        .map(o => o[field])
+        .filter(v => Number.isFinite(v) && v > 1);
+      if (values.length < 2) return 0;
+      const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+      if (!mean) return 0;
+      const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
+      const cv = Math.sqrt(variance) / mean;
+      return clamp(cv, 0, 0.25);
+    };
+
+    const spreadAvg = (
+      marketSpread('home_odds') +
+      marketSpread('draw_odds') +
+      marketSpread('away_odds')
+    ) / 3;
+    const varianceScore = (spreadAvg / 0.25) * 15;
+
+    return coverageScore + completenessScore + leagueScore + timeScore + varianceScore;
+  };
+
+  // Featured matches (popular matches happening today)
   const featuredMatches = useMemo(() => {
-    const topLeagueIds = ['premier', 'laliga', 'ucl', 'seriea', 'bundesliga', 'ligue1'];
     const now = new Date();
+    const nowSeconds = now.getTime() / 1000;
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -170,11 +218,16 @@ function HomePage() {
         const isToday = matchDate >= today && matchDate < tomorrow;
         if (!isToday) return false;
 
-        // Must be from top leagues (using centralized matching)
-        const matchedLeague = matchLeague(m.league);
-        return matchedLeague && topLeagueIds.includes(matchedLeague.id);
+        // Must have enough bookmakers to be considered popular
+        return (m.odds?.length || 0) >= 2;
       })
-      .sort((a, b) => (a.start_time || 0) - (b.start_time || 0))
+      .map(match => ({ match, score: getPopularityScore(match, nowSeconds) }))
+      .sort((a, b) => {
+        const scoreDiff = b.score - a.score;
+        if (scoreDiff !== 0) return scoreDiff;
+        return (a.match.start_time || 0) - (b.match.start_time || 0);
+      })
+      .map(({ match }) => match)
       .slice(0, 6);
   }, [matches]);
 
