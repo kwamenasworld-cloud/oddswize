@@ -5,51 +5,9 @@ import { BookmakerLogo } from '../components/BookmakerLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 import { LEAGUES, matchLeague, getLeagueTier } from '../config/leagues';
+import { getTeamPopularityScore } from '../config/popularity';
+import { getLatestArticles, formatArticleDate } from '../data/articles';
 import { getMatchesByLeague } from '../services/api';
-
-// News articles for homepage (links to full articles)
-const NEWS_ARTICLES = [
-  {
-    id: 1,
-    slug: 'premier-league-title-race-best-odds',
-    title: 'Premier League Title Race Heats Up: Best Odds for Top 4 Finish',
-    excerpt: 'With the season reaching its climax, we analyze the best betting odds for the Premier League top 4 race across Ghana\'s bookmakers.',
-    category: 'Premier League',
-    date: '2 hours ago',
-    image: 'epl',
-    readTime: '3 min read',
-  },
-  {
-    id: 2,
-    slug: 'afcon-2025-ghana-black-stars-odds',
-    title: 'AFCON 2025 Qualifiers: Ghana Black Stars Odds Analysis',
-    excerpt: 'The Black Stars face crucial qualifiers. Here\'s where to find the best odds on Ghana\'s matches at Betway, Sportybet and more.',
-    category: 'Ghana Football',
-    date: '5 hours ago',
-    image: 'ghana',
-    readTime: '4 min read',
-  },
-  {
-    id: 3,
-    slug: 'champions-league-predictions-best-value-bets',
-    title: 'Champions League Predictions: Best Value Bets This Week',
-    excerpt: 'Our experts break down the Champions League matchday odds and highlight the best value picks from Ghanaian sportsbooks.',
-    category: 'Champions League',
-    date: '1 day ago',
-    image: 'ucl',
-    readTime: '5 min read',
-  },
-  {
-    id: 4,
-    slug: 'how-to-compare-betting-odds-ghana-guide',
-    title: 'How to Compare Betting Odds in Ghana: A Complete Guide',
-    excerpt: 'Learn how to find the best betting value by comparing odds across Betway, Sportybet, 1xBet and other licensed bookmakers.',
-    category: 'Betting Guide',
-    date: '2 days ago',
-    image: 'guide',
-    readTime: '8 min read',
-  },
-];
 
 // Betting tips for engagement
 const BETTING_TIPS = [
@@ -101,6 +59,7 @@ function HomePage() {
   const [matches, setMatches] = useState([]);
   const [leagueData, setLeagueData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const latestArticles = useMemo(() => getLatestArticles(4), []);
 
   useEffect(() => {
     loadMatches();
@@ -200,7 +159,11 @@ function HomePage() {
     ) / 3;
     const varianceScore = (spreadAvg / 0.25) * 15;
 
-    return coverageScore + completenessScore + leagueScore + timeScore + varianceScore;
+    const homePopularity = getTeamPopularityScore(match.home_team);
+    const awayPopularity = getTeamPopularityScore(match.away_team);
+    const teamScore = ((homePopularity + awayPopularity) / 2) * 3;
+
+    return coverageScore + completenessScore + leagueScore + timeScore + varianceScore + teamScore;
   };
 
   // Featured matches (popular matches happening today)
@@ -393,16 +356,17 @@ function HomePage() {
           <span className="section-subtitle">Expert insights and odds analysis</span>
         </div>
         <div className="news-grid">
-          {NEWS_ARTICLES.map((article) => (
+          {latestArticles.map((article) => (
             <Link to={`/news/${article.slug}`} key={article.id} className="news-card">
-              <div className={`news-image news-image-${article.image}`}>
+              <div className="news-image">
+                <img src={article.image} alt={article.title} loading="lazy" />
                 <span className="news-category">{article.category}</span>
               </div>
               <div className="news-content">
                 <h3>{article.title}</h3>
                 <p>{article.excerpt}</p>
                 <div className="news-meta">
-                  <span className="news-date">{article.date}</span>
+                  <span className="news-date">{formatArticleDate(article.publishedAt)}</span>
                   <span className="news-readtime">{article.readTime}</span>
                 </div>
               </div>
