@@ -2,13 +2,15 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getMatchesByLeague, getStatus, triggerScan } from '../services/api';
 import { getCanonicalLeagues, getCanonicalFixtures } from '../services/canonical';
-import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getAffiliateUrl } from '../config/affiliates';
+import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague, matchLeagueFuzzy } from '../config/leagues';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
 import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
 import ShareButton from '../components/ShareButton';
+import { trackAffiliateClick } from '../services/analytics';
+import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
 
 // Market types
 const MARKETS = {
@@ -575,6 +577,35 @@ function OddsPage() {
     return diff > 10;
   };
 
+  const getBestValueOffer = (match, marketFields, labels, activeBookmakers) => {
+    const odds = match.odds || [];
+    if (!odds.length) return null;
+    const averages = marketFields.map(field => getMarketAverage(match, field));
+    let best = null;
+
+    odds.forEach((bookie) => {
+      if (!activeBookmakers.includes(bookie.bookmaker)) return;
+      marketFields.forEach((field, index) => {
+        const oddsValue = bookie[field];
+        const average = averages[index];
+        if (!oddsValue || !average) return;
+        const edge = ((oddsValue - average) / average) * 100;
+        if (edge <= 0) return;
+        if (!best || edge > best.edge) {
+          best = {
+            bookmaker: bookie.bookmaker,
+            odds: oddsValue,
+            edge,
+            outcome: labels[index],
+          };
+        }
+      });
+    });
+
+    if (!best) return null;
+    return best;
+  };
+
   // Convert odds to implied probability
   const oddsToProb = (odds) => {
     if (!odds || odds <= 1) return 0;
@@ -582,16 +613,25 @@ function OddsPage() {
   };
 
   // Handle odds click to show probability
-  const handleOddsClick = (e, odds, outcome, bookmaker) => {
-    e.preventDefault();
+  const handleOddsClick = (e, odds, outcome, bookmaker, meta = {}) => {
     const prob = oddsToProb(odds);
     setSelectedOdd({
       odds,
       prob: prob.toFixed(1),
       outcome,
       bookmaker,
-      x: e.clientX,
-      y: e.clientY,
+      x: e?.clientX || 0,
+      y: e?.clientY || 0,
+    });
+    trackAffiliateClick({
+      bookmaker,
+      placement: meta.placement || 'odds_cell',
+      match: meta.match,
+      league: meta.league,
+      outcome,
+      odds,
+      valuePercent: meta.valuePercent,
+      url: meta.url,
     });
   };
 
@@ -834,6 +874,17 @@ function OddsPage() {
 
     return groups;
   }, [filteredMatches, selectedSort]);
+
+  const stickyRecommendation = useMemo(() => {
+    let leagueName = '';
+    if (selectedLeagues.length === 1) {
+      leagueName = POPULAR_LEAGUES.find(l => l.id === selectedLeagues[0])?.name || '';
+    } else if (filteredMatches.length > 0) {
+      leagueName = filteredMatches[0].league || '';
+    }
+    const [recommended] = getRecommendedBookmakers({ league: leagueName, count: 1 });
+    return recommended || null;
+  }, [selectedLeagues, filteredMatches]);
 
   // Get current market config
   const currentMarket = MARKETS[selectedMarket];
@@ -1123,6 +1174,11 @@ function OddsPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="header-bookmaker"
+                    onClick={() => trackAffiliateClick({
+                      bookmaker: config.name,
+                      placement: 'odds_header_bookie',
+                      url: config.affiliateUrl,
+                    })}
                   >
                     <BookmakerLogo bookmaker={name} size={28} />
                     <span className="bookie-name">{config.name}</span>
@@ -1220,8 +1276,14 @@ function OddsPage() {
               const best1x2Draw = getBestOdds(match, 'draw_odds');
               const best1x2Away = getBestOdds(match, 'away_odds');
 
+              const matchLabel = `${match.home_team} vs ${match.away_team}`;
+              const bestValue = getBestValueOffer(match, marketFields, currentMarket.labels, activeBookmakers);
+              const bestValueConfig = bestValue ? BOOKMAKER_AFFILIATES[bestValue.bookmaker] : null;
+              const bestValuePercent = bestValue ? Math.round(bestValue.edge) : 0;
+              const hasBestValue = Boolean(bestValue && bestValueConfig && bestValuePercent > 0);
+
               // Create share link for this specific match
-              const shareLink = `${window.location.origin}/odds?match=${encodeURIComponent(match.home_team + ' vs ' + match.away_team)}`;
+              const shareLink = `${window.location.origin}/odds?match=${encodeURIComponent(matchLabel)}`;
 
               if (compactView) {
                 return (
@@ -1255,6 +1317,35 @@ function OddsPage() {
                       </div>
                     </div>
 
+                    {hasBestValue && (
+                      <div className="odds-card-cta">
+                        <div className="odds-card-cta-info">
+                          <span className="odds-card-cta-label">Best {bestValue.outcome} odds</span>
+                          <span className="odds-card-cta-meta">
+                            {bestValueConfig.name} +{bestValuePercent}% vs avg
+                          </span>
+                        </div>
+                        <a
+                          href={bestValueConfig.affiliateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="odds-card-cta-btn"
+                          onClick={() => trackAffiliateClick({
+                            bookmaker: bestValueConfig.name,
+                            placement: 'odds_card_cta',
+                            match: matchLabel,
+                            league: match.league,
+                            outcome: bestValue.outcome,
+                            odds: bestValue.odds,
+                            valuePercent: bestValuePercent,
+                            url: bestValueConfig.affiliateUrl,
+                          })}
+                        >
+                          Bet Now
+                        </a>
+                      </div>
+                    )}
+
                     <div className="odds-card-odds">
                       {activeBookmakers.map((bookmaker) => {
                         const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
@@ -1267,6 +1358,13 @@ function OddsPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="odds-card-bookie"
+                              onClick={() => trackAffiliateClick({
+                                bookmaker: config.name,
+                                placement: 'odds_card_bookie',
+                                match: matchLabel,
+                                league: match.league,
+                                url: config.affiliateUrl,
+                              })}
                             >
                               <BookmakerLogo bookmaker={bookmaker} size={22} />
                               <span className="odds-card-bookie-name">{config.name}</span>
@@ -1278,7 +1376,11 @@ function OddsPage() {
                                   const isBest = oddsValue && oddsValue === bestOdds[i].value;
                                   const isEdge = isBigEdge(oddsValue, avgOdds[i]);
                                   const isSmallEdge = !isEdge && isAboveAverage(oddsValue, avgOdds[i]);
-                                  const edgePercent = avgOdds[i] ? ((oddsValue - avgOdds[i]) / avgOdds[i] * 100).toFixed(0) : 0;
+                                  const edgePercent = avgOdds[i] && oddsValue
+                                    ? Math.round(((oddsValue - avgOdds[i]) / avgOdds[i]) * 100)
+                                    : 0;
+                                  const showEdge = isEdge && edgePercent > 0;
+                                  const showValue = !showEdge && isBest && edgePercent > 0;
 
                                   return (
                                     <a
@@ -1287,13 +1389,26 @@ function OddsPage() {
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
-                                      onClick={(e) => handleOddsClick(e, oddsValue, currentMarket.labels[i], config.name)}
+                                      onClick={(e) => handleOddsClick(
+                                        e,
+                                        oddsValue,
+                                        currentMarket.labels[i],
+                                        config.name,
+                                        {
+                                          placement: 'odds_card_cell',
+                                          match: matchLabel,
+                                          league: match.league,
+                                          valuePercent: edgePercent,
+                                          url: config.affiliateUrl,
+                                        }
+                                      )}
                                       title={`Click for probability  ${oddsToProb(oddsValue).toFixed(1)}%`}
                                     >
                                       <span className="odds-card-odd-label">{currentMarket.labels[i]}</span>
                                       <span className="odds-card-odd-value">{oddsValue ? oddsValue.toFixed(2) : '-'}</span>
                                       {isBest && oddsValue && <span className="best-tag">BEST</span>}
-                                      {isEdge && oddsValue && <span className="edge-tag">+{edgePercent}%</span>}
+                                      {showEdge && oddsValue && <span className="edge-tag">+{edgePercent}%</span>}
+                                      {showValue && oddsValue && <span className="value-tag">+{edgePercent}%</span>}
                                     </a>
                                   );
                                 })
@@ -1337,6 +1452,34 @@ function OddsPage() {
                       bestAway={best1x2Away}
                       shareLink={shareLink}
                     />
+                    {hasBestValue && (
+                      <div className="match-cta">
+                        <div className="match-cta-info">
+                          <span className="match-cta-label">Best {bestValue.outcome} odds</span>
+                          <span className="match-cta-meta">
+                            {bestValueConfig.name} +{bestValuePercent}% vs avg
+                          </span>
+                        </div>
+                        <a
+                          href={bestValueConfig.affiliateUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="match-cta-btn"
+                          onClick={() => trackAffiliateClick({
+                            bookmaker: bestValueConfig.name,
+                            placement: 'odds_match_cta',
+                            match: matchLabel,
+                            league: match.league,
+                            outcome: bestValue.outcome,
+                            odds: bestValue.odds,
+                            valuePercent: bestValuePercent,
+                            url: bestValueConfig.affiliateUrl,
+                          })}
+                        >
+                          Bet Now
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   {/* Kick-off Time */}
@@ -1357,7 +1500,11 @@ function OddsPage() {
                             const isBest = oddsValue && oddsValue === bestOdds[i].value;
                             const isEdge = isBigEdge(oddsValue, avgOdds[i]);
                             const isSmallEdge = !isEdge && isAboveAverage(oddsValue, avgOdds[i]);
-                            const edgePercent = avgOdds[i] ? ((oddsValue - avgOdds[i]) / avgOdds[i] * 100).toFixed(0) : 0;
+                            const edgePercent = avgOdds[i] && oddsValue
+                              ? Math.round(((oddsValue - avgOdds[i]) / avgOdds[i]) * 100)
+                              : 0;
+                            const showEdge = isEdge && edgePercent > 0;
+                            const showValue = !showEdge && isBest && edgePercent > 0;
 
                             return (
                               <a
@@ -1366,12 +1513,25 @@ function OddsPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
-                                onClick={(e) => handleOddsClick(e, oddsValue, currentMarket.labels[i], config.name)}
+                                onClick={(e) => handleOddsClick(
+                                  e,
+                                  oddsValue,
+                                  currentMarket.labels[i],
+                                  config.name,
+                                  {
+                                    placement: 'odds_table_cell',
+                                    match: matchLabel,
+                                    league: match.league,
+                                    valuePercent: edgePercent,
+                                    url: config.affiliateUrl,
+                                  }
+                                )}
                                 title={`Click for probability • ${oddsToProb(oddsValue).toFixed(1)}%`}
                               >
                                 {oddsValue ? oddsValue.toFixed(2) : '-'}
                                 {isBest && oddsValue && <span className="best-tag">BEST</span>}
-                                {isEdge && oddsValue && <span className="edge-tag">+{edgePercent}%</span>}
+                                {showEdge && oddsValue && <span className="edge-tag">+{edgePercent}%</span>}
+                                {showValue && oddsValue && <span className="value-tag">+{edgePercent}%</span>}
                               </a>
                             );
                           })
@@ -1431,6 +1591,32 @@ function OddsPage() {
           <span className="stat-lbl">{status?.last_scan ? formatRelativeTime(status.last_scan) : 'Loading...'}</span>
         </div>
       </div>
+
+      {stickyRecommendation && (
+        <div className="sticky-cta">
+          <div className="sticky-cta-text">
+            <span className="sticky-cta-title">
+              Bet with {stickyRecommendation.name}
+            </span>
+            <span className="sticky-cta-subtitle">
+              {stickyRecommendation.reason} · {stickyRecommendation.signupBonus}
+            </span>
+          </div>
+          <a
+            href={stickyRecommendation.affiliateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sticky-cta-btn"
+            onClick={() => trackAffiliateClick({
+              bookmaker: stickyRecommendation.name,
+              placement: 'odds_sticky_cta',
+              url: stickyRecommendation.affiliateUrl,
+            })}
+          >
+            Claim Bonus
+          </a>
+        </div>
+      )}
 
       {/* Probability Tooltip */}
       {selectedOdd && (

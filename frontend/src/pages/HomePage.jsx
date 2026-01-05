@@ -7,6 +7,7 @@ import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 import { LEAGUES, matchLeague, getLeagueTier } from '../config/leagues';
 import { getTeamPopularityScore } from '../config/popularity';
 import { getLatestArticles, formatArticleDate } from '../data/articles';
+import { trackAffiliateClick } from '../services/analytics';
 import { getMatchesByLeague } from '../services/api';
 
 // Betting tips for engagement
@@ -419,6 +420,11 @@ function HomePage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bookmaker-card-home"
+                onClick={() => trackAffiliateClick({
+                  bookmaker: config.name,
+                  placement: 'home_bookmakers',
+                  url: config.affiliateUrl,
+                })}
               >
                 <BookmakerLogo bookmaker={bookie} size={40} />
                 <span className="bookmaker-name">{config.name}</span>

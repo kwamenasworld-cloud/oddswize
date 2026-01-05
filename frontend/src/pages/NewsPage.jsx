@@ -1,8 +1,16 @@
 import { Link } from 'react-router-dom';
+import { BookmakerLogo } from '../components/BookmakerLogo';
 import { getSortedArticles, formatArticleDate } from '../data/articles';
+import { trackAffiliateClick } from '../services/analytics';
+import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
 
 function NewsPage() {
   const articles = getSortedArticles();
+  const recommendations = getRecommendedBookmakers({
+    category: articles[0]?.category,
+    count: 2,
+  });
+  const topRecommendation = recommendations[0] || null;
   const listJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -26,6 +34,43 @@ function NewsPage() {
         <a className="news-feed-link" href="/rss.xml">Get updates via RSS</a>
       </section>
 
+      {recommendations.length > 0 && (
+        <section className="news-recommendations">
+          <div className="section-header">
+            <h2>Top Bookmakers for This Week</h2>
+            <span className="section-subtitle">Trusted options with the best bonuses</span>
+          </div>
+          <div className="recommended-grid">
+            {recommendations.map((bookie) => (
+              <div key={bookie.id} className="recommended-card">
+                <div className="recommended-card-header">
+                  <BookmakerLogo bookmaker={bookie.name} size={36} />
+                  <div>
+                    <h3>{bookie.name}</h3>
+                    <span className="recommended-reason">{bookie.reason}</span>
+                  </div>
+                </div>
+                <div className="recommended-bonus">{bookie.signupBonus}</div>
+                <a
+                  href={bookie.affiliateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="recommended-cta"
+                  style={{ background: bookie.color }}
+                  onClick={() => trackAffiliateClick({
+                    bookmaker: bookie.name,
+                    placement: 'news_recommendation',
+                    url: bookie.affiliateUrl,
+                  })}
+                >
+                  Claim Bonus
+                </a>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="news-list">
         {articles.map((article) => (
           <Link to={`/news/${article.slug}`} key={article.id} className="news-list-item">
@@ -44,6 +89,32 @@ function NewsPage() {
           </Link>
         ))}
       </section>
+
+      {topRecommendation && (
+        <div className="sticky-cta">
+          <div className="sticky-cta-text">
+            <span className="sticky-cta-title">
+              Join {topRecommendation.name} for better odds
+            </span>
+            <span className="sticky-cta-subtitle">
+              {topRecommendation.reason} · {topRecommendation.signupBonus}
+            </span>
+          </div>
+          <a
+            href={topRecommendation.affiliateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sticky-cta-btn"
+            onClick={() => trackAffiliateClick({
+              bookmaker: topRecommendation.name,
+              placement: 'news_sticky_cta',
+              url: topRecommendation.affiliateUrl,
+            })}
+          >
+            Claim Bonus
+          </a>
+        </div>
+      )}
     </div>
   );
 }

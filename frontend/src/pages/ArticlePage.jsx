@@ -1,5 +1,21 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
+import { BookmakerLogo } from '../components/BookmakerLogo';
 import { getArticleBySlug, getSortedArticles, formatArticleDate } from '../data/articles';
+import { trackAffiliateClick } from '../services/analytics';
+import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
+
+const splitArticleContent = (html) => {
+  if (!html) return { introHtml: '', restHtml: '' };
+  const marker = '</p>';
+  const first = html.indexOf(marker);
+  if (first === -1) return { introHtml: html, restHtml: '' };
+  const second = html.indexOf(marker, first + marker.length);
+  const cutIndex = second !== -1 ? second + marker.length : first + marker.length;
+  return {
+    introHtml: html.slice(0, cutIndex),
+    restHtml: html.slice(cutIndex),
+  };
+};
 
 function ArticlePage() {
   const { slug } = useParams();
@@ -12,6 +28,13 @@ function ArticlePage() {
   const relatedArticles = getSortedArticles()
     .filter((item) => item.id !== article.id)
     .slice(0, 3);
+  const recommendations = getRecommendedBookmakers({
+    category: article.category,
+    league: article.category,
+    count: 2,
+  });
+  const topRecommendation = recommendations[0] || null;
+  const { introHtml, restHtml } = splitArticleContent(article.content);
 
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -68,10 +91,67 @@ function ArticlePage() {
           <span className="article-readtime">{article.readTime}</span>
         </div>
 
-        <div
-          className="article-body"
-          dangerouslySetInnerHTML={{ __html: article.content }}
-        />
+        {recommendations.length > 0 && (
+          <div className="article-recommended">
+            <h3>Recommended Bookmakers</h3>
+            <div className="article-recommended-grid">
+              {recommendations.map((bookie) => (
+                <div key={bookie.id} className="article-recommended-card">
+                  <div className="article-recommended-header">
+                    <BookmakerLogo bookmaker={bookie.name} size={34} />
+                    <div>
+                      <span className="article-recommended-name">{bookie.name}</span>
+                      <span className="article-recommended-reason">{bookie.reason}</span>
+                    </div>
+                  </div>
+                  <span className="article-recommended-bonus">{bookie.signupBonus}</span>
+                  <a
+                    href={bookie.affiliateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="article-recommended-cta"
+                    style={{ background: bookie.color }}
+                    onClick={() => trackAffiliateClick({
+                      bookmaker: bookie.name,
+                      placement: 'article_top_recommendation',
+                      url: bookie.affiliateUrl,
+                    })}
+                  >
+                    Claim Bonus
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="article-body">
+          <div dangerouslySetInnerHTML={{ __html: introHtml }} />
+          {topRecommendation && (
+            <div className="article-inline-cta">
+              <div>
+                <h4>Best odds for this story</h4>
+                <p>
+                  {topRecommendation.name} · {topRecommendation.reason}
+                </p>
+              </div>
+              <a
+                href={topRecommendation.affiliateUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="article-inline-cta-btn"
+                onClick={() => trackAffiliateClick({
+                  bookmaker: topRecommendation.name,
+                  placement: 'article_inline_cta',
+                  url: topRecommendation.affiliateUrl,
+                })}
+              >
+                Bet Now
+              </a>
+            </div>
+          )}
+          {restHtml && <div dangerouslySetInnerHTML={{ __html: restHtml }} />}
+        </div>
 
         <div className="article-cta">
           <h3>Ready to Compare Odds?</h3>

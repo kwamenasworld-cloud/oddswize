@@ -1,5 +1,6 @@
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 import { BookmakerLogo, StarRating, FeatureBadge } from '../components/BookmakerLogo';
+import { trackAffiliateClick } from '../services/analytics';
 
 function BookmakersPage() {
   const bookmakers = BOOKMAKER_ORDER.map((name) => ({
@@ -102,6 +103,11 @@ function BookmakersPage() {
                 rel="noopener noreferrer"
                 className="cta-button"
                 style={{ background: bookie.color }}
+                onClick={() => trackAffiliateClick({
+                  bookmaker: bookie.name,
+                  placement: 'bookmakers_card',
+                  url: bookie.affiliateUrl,
+                })}
               >
                 Claim Bonus
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -147,6 +153,11 @@ function BookmakersPage() {
                       rel="noopener noreferrer"
                       className="join-btn"
                       style={{ background: bookie.color }}
+                      onClick={() => trackAffiliateClick({
+                        bookmaker: bookie.name,
+                        placement: 'bookmakers_table',
+                        url: bookie.affiliateUrl,
+                      })}
                     >
                       Join
                     </a>
