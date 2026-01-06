@@ -1,12 +1,12 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import HomePage from './pages/HomePage';
-import OddsPage from './pages/OddsPage';
-import BookmakersPage from './pages/BookmakersPage';
-import NewsPage from './pages/NewsPage';
-import ArticlePage from './pages/ArticlePage';
-import AdminPage from './pages/AdminPage';
-import './index.css';
+import { useState, useEffect, lazy, Suspense } from 'react';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
+const OddsPage = lazy(() => import('./pages/OddsPage'));
+const BookmakersPage = lazy(() => import('./pages/BookmakersPage'));
+const NewsPage = lazy(() => import('./pages/NewsPage'));
+const ArticlePage = lazy(() => import('./pages/ArticlePage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 function App() {
   return (
@@ -14,14 +14,16 @@ function App() {
       <div className="app">
         <Header />
         <main>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/odds" element={<OddsPage />} />
-            <Route path="/bookmakers" element={<BookmakersPage />} />
-            <Route path="/news" element={<NewsPage />} />
-            <Route path="/news/:slug" element={<ArticlePage />} />
-            <Route path="/admin" element={<AdminPage />} />
-          </Routes>
+          <Suspense fallback={<div className="page-loading">Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/odds" element={<OddsPage />} />
+              <Route path="/bookmakers" element={<BookmakersPage />} />
+              <Route path="/news" element={<NewsPage />} />
+              <Route path="/news/:slug" element={<ArticlePage />} />
+              <Route path="/admin" element={<AdminPage />} />
+            </Routes>
+          </Suspense>
         </main>
         <Footer />
       </div>

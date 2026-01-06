@@ -1078,6 +1078,48 @@ a {
   -webkit-overflow-scrolling: touch;
 }
 
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+
+.pagination-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pagination-btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #d7e6ff;
+  background: #eef6ff;
+  color: #1a73e8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pagination-btn:hover {
+  border-color: #1a73e8;
+  background: #dcecff;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Header Row - Bookmakers */
 .odds-header {
   display: grid;
@@ -1853,6 +1895,16 @@ a {
   padding: 1.5rem;
 }
 
+.page-loading {
+  min-height: 40vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
 /* Footer */
 .footer {
   background: var(--dark);
@@ -2143,7 +2195,14 @@ a {
   box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
-.comments-header { margin-bottom: 1.25rem; }
+.comments-header {
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
 
 .comments-header h3 {
   display: flex;
@@ -2151,6 +2210,17 @@ a {
   gap: 0.5rem;
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+.comments-auth {
+  margin-left: auto;
+}
+
+.comments-match {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.25rem 0 0;
+  width: 100%;
 }
 
 .comments-count {
@@ -2192,6 +2262,20 @@ a {
   max-width: 140px;
 }
 
+.comment-select {
+  flex: 1;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: white;
+}
+
+.comment-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 .comment-textarea {
   width: 100%;
   padding: 0.6rem 0.85rem;
@@ -2206,6 +2290,24 @@ a {
 .comment-textarea:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+.comments-locked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+  color: #666;
+}
+
+.comment-turnstile {
+  margin-top: 0.6rem;
+}
+
+.comment-error {
+  margin: 0.5rem 0 0;
+  color: #d32f2f;
+  font-size: 0.8rem;
 }
 
 .form-footer {
@@ -2240,6 +2342,92 @@ a {
   cursor: not-allowed;
 }
 
+.match-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.odds-wrapper.compact .odds-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.discussion-btn {
+  border: 1px solid #d7e6ff;
+  background: #eef6ff;
+  color: #1a73e8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.discussion-btn:hover {
+  border-color: #1a73e8;
+  background: #dcecff;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.comments-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.comments-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.comments-modal-panel {
+  position: relative;
+  background: #fff;
+  width: min(900px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 18px 18px 0 0;
+  padding: 1.5rem 1.5rem 2rem;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.comments-modal-loading {
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-weight: 600;
+}
+
+.comments-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f3f5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comments-modal-close:hover {
+  background: #e0e0e0;
+}
 .comments-list {
   display: flex;
   flex-direction: column;

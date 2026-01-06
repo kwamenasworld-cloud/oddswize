@@ -24,6 +24,7 @@ CORS_ORIGIN = "*"
 
 # Secrets (set via: wrangler secret put API_SECRET)
 # API_SECRET = "your-secret-key" (use wrangler secret put)
+# TURNSTILE_SECRET = "your-turnstile-secret" (use wrangler secret put)
 
 # Development settings
 [env.dev]

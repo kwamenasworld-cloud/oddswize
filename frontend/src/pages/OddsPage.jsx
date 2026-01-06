@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getMatchesByLeague, getStatus, triggerScan } from '../services/api';
-import { getCanonicalLeagues, getCanonicalFixtures } from '../services/canonical';
+import { getCachedOdds, getMatchesByLeague, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague, matchLeagueFuzzy } from '../config/leagues';
 import { BookmakerLogo } from '../components/BookmakerLogo';
@@ -11,6 +10,7 @@ import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
 import ShareButton from '../components/ShareButton';
 import { trackAffiliateClick } from '../services/analytics';
 import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
+const CommentsSection = lazy(() => import('../components/CommentsSection'));
 
 // Market types
 const MARKETS = {
@@ -23,6 +23,8 @@ const DEFAULT_REFRESH_MS = 5 * 60 * 1000;
 const MIN_REFRESH_MS = 2 * 60 * 1000;
 const MAX_REFRESH_MS = 30 * 60 * 1000;
 const COMPACT_BREAKPOINT = 520;
+const PAGE_SIZE_DESKTOP = 60;
+const PAGE_SIZE_MOBILE = 30;
 
 const resolveRefreshInterval = (cacheTtlSeconds) => {
   const ttlSeconds = Number(cacheTtlSeconds);
@@ -45,6 +47,22 @@ const resolvePillKey = (pill) => {
   const baseValue = pill.logoId || pill.value || pill.label || pill.id;
   const matched = matchLeague(baseValue) || matchLeague(pill.value) || matchLeague(pill.label);
   return normalizePillKey(matched?.id || baseValue);
+};
+
+const slugify = (value) => (
+  (value || '')
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+);
+
+const buildMatchId = (match) => {
+  if (match?.id) return match.id;
+  const home = slugify(match?.home_team);
+  const away = slugify(match?.away_team);
+  const start = match?.start_time || 0;
+  return `${home}-vs-${away}-${start}`;
 };
 
 // Build popular leagues list from centralized config (with short display names)
@@ -204,12 +222,14 @@ const MARKET_FIELDS = {
 
 function OddsPage() {
   const [searchParams] = useSearchParams();
+  const preferCanonical = searchParams.get('source') === 'canonical';
   const [matches, setMatches] = useState([]);
   const [canonicalLeagues, setCanonicalLeagues] = useState([]);
   const [useCanonical, setUseCanonical] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState(null);
+  const [totalMatchCount, setTotalMatchCount] = useState(0);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [leagueQuery, setLeagueQuery] = useState('');
@@ -236,6 +256,8 @@ function OddsPage() {
   const [selectedSort, setSelectedSort] = useState('time');
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(DEFAULT_REFRESH_MS);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [discussionMatch, setDiscussionMatch] = useState(null);
+  const [pageIndex, setPageIndex] = useState(0);
   const [compactView, setCompactView] = useState(() => {
     if (typeof window === 'undefined') return false;
     if (window.matchMedia) {
@@ -243,10 +265,61 @@ function OddsPage() {
     }
     return window.innerWidth <= COMPACT_BREAKPOINT;
   });
+  const hasFilters =
+    Boolean(searchQuery || leagueQuery || selectedLeagues.length > 0 || selectedCountry !== 'all');
+  const hasDateFilter = selectedDate !== 'all';
+  const useServerPagination = !hasFilters && !hasDateFilter && selectedSort === 'time';
+  const pageSize = compactView ? PAGE_SIZE_MOBILE : PAGE_SIZE_DESKTOP;
   const loadDataRef = useRef(() => {});
+  const oddsContainerRef = useRef(null);
+  const hasLoadedRef = useRef(false);
+
+  const flattenWorkerLeagues = (leagues) => (
+    (leagues || []).flatMap(league =>
+      (league.matches || []).map(match => ({
+        ...match,
+        league: league.league || match.league,
+      }))
+    )
+  );
+
   useEffect(() => {
+    if (useServerPagination) {
+      loadData();
+      hasLoadedRef.current = true;
+      return;
+    }
+    const cached = getCachedOdds();
+    if (cached?.data?.data?.length) {
+      const flattened = flattenWorkerLeagues(cached.data.data);
+      const filtered = flattened.filter(
+        match => match.odds && Array.isArray(match.odds) && match.odds.length >= 1
+      );
+      setMatches(enrichMatches(filtered));
+      setTotalMatchCount(cached.meta?.total_matches || filtered.length);
+      if (cached.meta?.cache_ttl) {
+        setRefreshIntervalMs(resolveRefreshInterval(cached.meta.cache_ttl));
+      }
+      if (cached.meta?.last_updated) {
+        setStatus({
+          status: 'ok',
+          last_scan: cached.meta.last_updated,
+          cacheTtl: cached.meta.cache_ttl,
+          totalMatches: cached.meta.total_matches,
+        });
+      }
+      setLoading(false);
+      loadData({ silent: true });
+      hasLoadedRef.current = true;
+      return;
+    }
     loadData();
+    hasLoadedRef.current = true;
   }, []);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [searchQuery, leagueQuery, selectedLeagues, selectedCountry, selectedDate, selectedSort]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
@@ -262,6 +335,15 @@ function OddsPage() {
     mediaQuery.addListener(handleChange);
     return () => mediaQuery.removeListener(handleChange);
   }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (discussionMatch) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+  }, [discussionMatch]);
 
   // Pause auto-refresh when the tab is hidden
   useEffect(() => {
@@ -348,38 +430,46 @@ function OddsPage() {
 
   // Preload team logos when matches change
   useEffect(() => {
-    if (matches.length > 0) {
-      const teamNames = matches.flatMap(m => [m.home_team, m.away_team]);
-      preloadTeamLogos(teamNames.slice(0, 100));
+    if (matches.length === 0 || typeof window === 'undefined') return undefined;
+    const teamNames = matches.flatMap(m => [m.home_team, m.away_team]);
+    const run = () => preloadTeamLogos(teamNames.slice(0, 40));
+    if (window.requestIdleCallback) {
+      const idleId = window.requestIdleCallback(run, { timeout: 2000 });
+      return () => window.cancelIdleCallback && window.cancelIdleCallback(idleId);
     }
+    const timeoutId = setTimeout(run, 800);
+    return () => clearTimeout(timeoutId);
   }, [matches]);
 
   const loadData = async (opts = {}) => {
     const silent = opts?.silent;
     const forceWorker = Boolean(opts?.forceWorker);
     const bypassCache = Boolean(opts?.bypassCache);
+    const pageLimit = useServerPagination ? pageSize : undefined;
+    const pageOffset = useServerPagination ? pageIndex * pageSize : undefined;
     setError(null);
     try {
       let statusData = null;
       let fetchedMatches = null;
       const fetchWorkerData = async () => {
         const [matchData, statusDataResp] = await Promise.all([
-          getMatchesByLeague({ allowStale: !bypassCache, bypassCache }),
+          getMatchesByLeague({
+            allowStale: !bypassCache,
+            bypassCache,
+            limit: pageLimit,
+            offset: pageOffset,
+          }),
           getStatus(),
         ]);
         const leagues = matchData.leagues || [];
         if (matchData?.meta?.cache_ttl) {
           setRefreshIntervalMs(resolveRefreshInterval(matchData.meta.cache_ttl));
         }
-        const flattened = leagues.flatMap(league =>
-          (league.matches || []).map(match => ({
-            ...match,
-            league: league.league || match.league,
-          }))
-        );
+        const flattened = flattenWorkerLeagues(leagues);
         fetchedMatches = flattened.filter(
           match => match.odds && Array.isArray(match.odds) && match.odds.length >= 1
         );
+        setTotalMatchCount(matchData?.meta?.total_matches || fetchedMatches.length);
         statusData = statusDataResp;
         if (statusDataResp?.cacheTtl) {
           setRefreshIntervalMs(resolveRefreshInterval(statusDataResp.cacheTtl));
@@ -387,9 +477,10 @@ function OddsPage() {
         setUseCanonical(false);
       };
 
-      if (!forceWorker) {
+      if (!forceWorker && preferCanonical) {
         // Try canonical backend first
         try {
+          const { getCanonicalLeagues, getCanonicalFixtures } = await import('../services/canonical');
           const [canonLeagues, canonFixtures, statusResp] = await Promise.all([
             getCanonicalLeagues(),
             getCanonicalFixtures(2000, 0),
@@ -433,6 +524,7 @@ function OddsPage() {
             }
           }
           setUseCanonical(true);
+          setTotalMatchCount(fetchedMatches.length);
           statusData = statusResp;
           if (statusResp?.cacheTtl) {
             setRefreshIntervalMs(resolveRefreshInterval(statusResp.cacheTtl));
@@ -445,47 +537,28 @@ function OddsPage() {
       }
 
       // Enrich matches with synthetic market data if missing
-      const nowMs = Date.now();
-      const enrichedMatches = (fetchedMatches || []).map(match => {
-        const oddsArr = match.odds?.map(odds => ({
-          ...odds,
-          // Generate synthetic double chance and over/under if not present
-          home_draw: odds.home_draw || calculateDoubleChance(odds.home_odds, odds.draw_odds),
-          draw_away: odds.draw_away || calculateDoubleChance(odds.draw_odds, odds.away_odds),
-          home_away: odds.home_away || calculateDoubleChance(odds.home_odds, odds.away_odds),
-          over_25: odds.over_25 || generateOverUnder(odds.home_odds, odds.away_odds, true),
-          under_25: odds.under_25 || generateOverUnder(odds.home_odds, odds.away_odds, false),
-        })) || [];
-
-        const startMs = (match.start_time || 0) * 1000;
-        const hasOdds = oddsArr.length > 0;
-        const missingBookies = oddsArr.length < BOOKMAKER_ORDER.length;
-        const withinWindow = startMs
-          ? (startMs > nowMs - 2 * 3600 * 1000 && startMs < nowMs + 48 * 3600 * 1000)
-          : true;
-        const pendingOdds = hasOdds && missingBookies && withinWindow;
-
-        const derivedKey = match.league_key || matchLeague(match.league)?.id || null;
-
-        return {
-          ...match,
-          odds: oddsArr,
-          pendingOdds,
-          league_key: derivedKey,
-        };
-      });
-
-      setMatches(enrichedMatches);
+      setMatches(enrichMatches(fetchedMatches || []));
       setStatus(statusData);
     } catch (err) {
       console.error('Failed to load odds:', err);
       setError('Unable to load odds. Please try again later.');
       setMatches([]);
+      setTotalMatchCount(0);
     } finally {
       if (!silent) setLoading(false);
     }
   };
   loadDataRef.current = loadData;
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    loadDataRef.current({ silent: true });
+  }, [useServerPagination]);
+
+  useEffect(() => {
+    if (!useServerPagination || !hasLoadedRef.current) return;
+    loadDataRef.current({ silent: true });
+  }, [pageIndex, pageSize, useServerPagination]);
 
   // Calculate synthetic double chance odds
   const calculateDoubleChance = (odds1, odds2) => {
@@ -507,6 +580,38 @@ function OddsPage() {
     } else {
       return Math.round((2.8 - (avgOdds - 2) * 0.15) * 100) / 100;
     }
+  };
+
+  const enrichMatches = (rawMatches) => {
+    const nowMs = Date.now();
+    return (rawMatches || []).map(match => {
+      const oddsArr = match.odds?.map(odds => ({
+        ...odds,
+        // Generate synthetic double chance and over/under if not present
+        home_draw: odds.home_draw || calculateDoubleChance(odds.home_odds, odds.draw_odds),
+        draw_away: odds.draw_away || calculateDoubleChance(odds.draw_odds, odds.away_odds),
+        home_away: odds.home_away || calculateDoubleChance(odds.home_odds, odds.away_odds),
+        over_25: odds.over_25 || generateOverUnder(odds.home_odds, odds.away_odds, true),
+        under_25: odds.under_25 || generateOverUnder(odds.home_odds, odds.away_odds, false),
+      })) || [];
+
+      const startMs = (match.start_time || 0) * 1000;
+      const hasOdds = oddsArr.length > 0;
+      const missingBookies = oddsArr.length < BOOKMAKER_ORDER.length;
+      const withinWindow = startMs
+        ? (startMs > nowMs - 2 * 3600 * 1000 && startMs < nowMs + 48 * 3600 * 1000)
+        : true;
+      const pendingOdds = hasOdds && missingBookies && withinWindow;
+
+      const derivedKey = match.league_key || matchLeague(match.league)?.id || null;
+
+      return {
+        ...match,
+        odds: oddsArr,
+        pendingOdds,
+        league_key: derivedKey,
+      };
+    });
   };
 
   const handleRefresh = async () => {
@@ -554,6 +659,18 @@ function OddsPage() {
     const best = validOdds.reduce((max, o) => (o[field] > max[field] ? o : max), validOdds[0]);
     return { value: best[field], bookmaker: best.bookmaker };
   };
+
+  const openDiscussion = (match) => {
+    const matchId = buildMatchId(match);
+    const matchName = `${match.home_team} vs ${match.away_team}`;
+    setDiscussionMatch({
+      id: matchId,
+      name: matchName,
+      league: match.league,
+    });
+  };
+
+  const closeDiscussion = () => setDiscussionMatch(null);
 
   // Calculate market average for an outcome
   const getMarketAverage = (match, field) => {
@@ -690,9 +807,21 @@ function OddsPage() {
     });
   }, [matches, searchQuery, leagueQuery, selectedLeagues, selectedCountry, selectedDate, useCanonical, canonicalLeagues]);
 
-  const hasFilters =
-    Boolean(searchQuery || leagueQuery || selectedLeagues.length > 0 || selectedCountry !== 'all');
-  const hasDateFilter = selectedDate !== 'all';
+  const paginationTotal = useServerPagination ? totalMatchCount : filteredMatches.length;
+  const totalPages = paginationTotal > 0 ? Math.ceil(paginationTotal / pageSize) : 0;
+  const safePageIndex = Math.min(pageIndex, Math.max(totalPages - 1, 0));
+  const pageStart = paginationTotal > 0 ? safePageIndex * pageSize : 0;
+  const pageEnd = Math.min(pageStart + pageSize, paginationTotal);
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [pageSize]);
+
+  useEffect(() => {
+    if (safePageIndex !== pageIndex) {
+      setPageIndex(safePageIndex);
+    }
+  }, [safePageIndex, pageIndex]);
 
   const resetFilters = () => {
     setSearchQuery('');
@@ -811,16 +940,16 @@ function OddsPage() {
   };
 
   // Group matches by league (or flat list for certain sorts)
-  const groupedMatches = useMemo(() => {
+  const groupMatches = (matchList) => {
     // For popularity and bookmakers sort, show flat list sorted globally
     if (selectedSort === 'popularity' || selectedSort === 'bookmakers') {
-      const sorted = sortMatches(filteredMatches);
+      const sorted = sortMatches(matchList);
       return { 'All Matches': sorted };
     }
 
     // For league sort, group by country + league name to ensure complete separation
     const groups = {};
-    filteredMatches.forEach(match => {
+    matchList.forEach(match => {
       // Use matched league for grouping to normalize variants
       const matchedLeague = matchLeague(match.league);
 
@@ -873,7 +1002,46 @@ function OddsPage() {
     }
 
     return groups;
-  }, [filteredMatches, selectedSort]);
+  };
+
+  const sliceGroupedMatches = (groups, startIndex, endIndex) => {
+    if (!groups || startIndex >= endIndex) return {};
+    const sliced = {};
+    let cursor = 0;
+
+    for (const [league, matches] of Object.entries(groups)) {
+      if (cursor >= endIndex) break;
+      const bucket = [];
+      for (const match of matches) {
+        if (cursor >= endIndex) break;
+        if (cursor >= startIndex) {
+          bucket.push(match);
+        }
+        cursor += 1;
+      }
+      if (bucket.length) {
+        sliced[league] = bucket;
+      }
+    }
+    return sliced;
+  };
+
+  const groupedMatchesAll = useMemo(
+    () => groupMatches(filteredMatches),
+    [filteredMatches, selectedSort]
+  );
+
+  const pagedGroupedMatches = useMemo(
+    () => (useServerPagination
+      ? groupedMatchesAll
+      : sliceGroupedMatches(groupedMatchesAll, pageStart, pageEnd)),
+    [groupedMatchesAll, pageStart, pageEnd, useServerPagination]
+  );
+
+  const totalLeagueCount = useMemo(
+    () => Object.keys(groupedMatchesAll).length,
+    [groupedMatchesAll]
+  );
 
   const stickyRecommendation = useMemo(() => {
     let leagueName = '';
@@ -889,6 +1057,17 @@ function OddsPage() {
   // Get current market config
   const currentMarket = MARKETS[selectedMarket];
   const marketFields = MARKET_FIELDS[selectedMarket];
+  const hasPagination = totalPages > 1;
+
+  const handlePageChange = (nextPage) => {
+    const clamped = Math.min(Math.max(nextPage, 0), Math.max(totalPages - 1, 0));
+    setPageIndex(clamped);
+    if (oddsContainerRef.current) {
+      oddsContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="odds-page">
@@ -1203,7 +1382,7 @@ function OddsPage() {
         )}
 
         {/* Scrollable Content */}
-        <div className="odds-container">
+        <div className="odds-container" ref={oddsContainerRef}>
         {/* Loading State */}
         {loading && (
           <div className="loading-state">
@@ -1258,7 +1437,7 @@ function OddsPage() {
         )}
 
         {/* Matches grouped by league */}
-        {!loading && Object.entries(groupedMatches).map(([league, leagueMatches]) => (
+        {!loading && Object.entries(pagedGroupedMatches).map(([league, leagueMatches]) => (
           <div key={league} className="league-group">
             <div className="league-header">
               <span className="league-dot"></span>
@@ -1302,7 +1481,7 @@ function OddsPage() {
                       <div className="odds-card-meta">
                         <span className="odds-card-time">{formatTime(match.start_time)}</span>
                         <span className="odds-card-league">{match.league}</span>
-                        <div className="odds-card-share">
+                        <div className="odds-card-actions">
                           <ShareButton
                             home_team={match.home_team}
                             away_team={match.away_team}
@@ -1313,6 +1492,13 @@ function OddsPage() {
                             bestAway={best1x2Away}
                             shareLink={shareLink}
                           />
+                          <button
+                            type="button"
+                            className="discussion-btn"
+                            onClick={() => openDiscussion(match)}
+                          >
+                            Discuss
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1441,17 +1627,25 @@ function OddsPage() {
                       <TeamLogo teamName={match.away_team} size={20} />
                       <span className="team-name">{match.away_team}</span>
                     </div>
-                    {/* Share button */}
-                    <ShareButton
-                      home_team={match.home_team}
-                      away_team={match.away_team}
-                      league={match.league}
-                      time={formatTime(match.start_time)}
-                      bestHome={best1x2Home}
-                      bestDraw={best1x2Draw}
-                      bestAway={best1x2Away}
-                      shareLink={shareLink}
-                    />
+                    <div className="match-actions">
+                      <ShareButton
+                        home_team={match.home_team}
+                        away_team={match.away_team}
+                        league={match.league}
+                        time={formatTime(match.start_time)}
+                        bestHome={best1x2Home}
+                        bestDraw={best1x2Draw}
+                        bestAway={best1x2Away}
+                        shareLink={shareLink}
+                      />
+                      <button
+                        type="button"
+                        className="discussion-btn"
+                        onClick={() => openDiscussion(match)}
+                      >
+                        Discuss
+                      </button>
+                    </div>
                     {hasBestValue && (
                       <div className="match-cta">
                         <div className="match-cta-info">
@@ -1555,6 +1749,33 @@ function OddsPage() {
           </div>
         ))}
 
+        {!loading && !error && hasPagination && (
+          <div className="pagination-controls">
+            <button
+              type="button"
+              className="pagination-btn"
+              onClick={() => handlePageChange(safePageIndex - 1)}
+              disabled={!hasPagination || safePageIndex === 0}
+            >
+              Previous
+            </button>
+            <div className="pagination-info">
+              <span>Showing {pageStart + 1}-{pageEnd} of {paginationTotal}</span>
+              {hasPagination && (
+                <span>Page {safePageIndex + 1} of {totalPages}</span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="pagination-btn"
+              onClick={() => handlePageChange(safePageIndex + 1)}
+              disabled={!hasPagination || safePageIndex >= totalPages - 1}
+            >
+              Next
+            </button>
+          </div>
+        )}
+
         {/* Mobile scroll hint */}
         {!compactView && (
           <div className="scroll-hint-mobile">
@@ -1570,11 +1791,11 @@ function OddsPage() {
       {/* Quick Stats Footer */}
       <div className="quick-stats">
         <div className="stat">
-          <span className="stat-num">{filteredMatches.length}</span>
+          <span className="stat-num">{useServerPagination ? totalMatchCount : filteredMatches.length}</span>
           <span className="stat-lbl">Matches</span>
         </div>
         <div className="stat">
-          <span className="stat-num">{Object.keys(groupedMatches).length}</span>
+          <span className="stat-num">{totalLeagueCount}</span>
           <span className="stat-lbl">Leagues</span>
         </div>
         <div className="stat">
@@ -1615,6 +1836,26 @@ function OddsPage() {
           >
             Claim Bonus
           </a>
+        </div>
+      )}
+
+      {discussionMatch && (
+        <div className="comments-modal">
+          <div className="comments-modal-backdrop" onClick={closeDiscussion} />
+          <div className="comments-modal-panel">
+            <button className="comments-modal-close" onClick={closeDiscussion} aria-label="Close discussion">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+            <Suspense fallback={<div className="comments-modal-loading">Loading discussion...</div>}>
+              <CommentsSection
+                matchId={discussionMatch.id}
+                matchName={discussionMatch.name}
+                league={discussionMatch.league}
+              />
+            </Suspense>
+          </div>
         </div>
       )}
 

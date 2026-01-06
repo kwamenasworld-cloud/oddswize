@@ -27,6 +27,10 @@ const GHANA_BOOKMAKERS = [
   'Betfox Ghana',
 ];
 
+const COMMENTS_RATE_LIMIT_SECONDS = 30;
+const COMMENTS_DAILY_LIMIT = 15;
+let commentsSchemaReady = false;
+
 type LeagueKeyRule = {
   key: string;
   keywords: string[];
@@ -136,6 +140,216 @@ function errorResponse(message: string, code = 500, env?: Env): Response {
   return jsonResponse(error, code, env);
 }
 
+function getClientIp(request: Request): string {
+  const cfIp = request.headers.get('CF-Connecting-IP');
+  if (cfIp) return cfIp;
+  const forwarded = request.headers.get('X-Forwarded-For');
+  if (!forwarded) return 'unknown';
+  return forwarded.split(',')[0].trim() || 'unknown';
+}
+
+async function hashValue(value: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function ensureCommentsSchema(env: Env): Promise<void> {
+  if (commentsSchemaReady) return;
+  const schema = `
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      match_id TEXT NOT NULL,
+      match_name TEXT,
+      league TEXT,
+      author_name TEXT NOT NULL,
+      author_id TEXT,
+      content TEXT NOT NULL,
+      prediction TEXT,
+      likes INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'approved',
+      ip_hash TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS comment_likes (
+      comment_id TEXT NOT NULL,
+      ip_hash TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (comment_id, ip_hash)
+    );
+    CREATE INDEX IF NOT EXISTS idx_comments_match ON comments(match_id, created_at);
+  `;
+  await env.D1.exec(schema);
+  commentsSchemaReady = true;
+}
+
+function sanitizeComment(content: string): string {
+  return (content || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function verifyTurnstile(token: string | null, request: Request, env: Env): Promise<{ success: boolean; message?: string }> {
+  if (!env.TURNSTILE_SECRET) {
+    return { success: true };
+  }
+  if (!token) {
+    return { success: false, message: 'Captcha required' };
+  }
+  const formData = new URLSearchParams();
+  formData.append('secret', env.TURNSTILE_SECRET);
+  formData.append('response', token);
+  const ip = getClientIp(request);
+  if (ip && ip !== 'unknown') {
+    formData.append('remoteip', ip);
+  }
+  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    body: formData,
+  });
+  const data = await response.json<{ success?: boolean; 'error-codes'?: string[] }>();
+  if (!data?.success) {
+    return { success: false, message: data?.['error-codes']?.join(', ') || 'Captcha failed' };
+  }
+  return { success: true };
+}
+
+async function listComments(request: Request, env: Env): Promise<Response> {
+  await ensureCommentsSchema(env);
+  const url = new URL(request.url);
+  const matchId = url.searchParams.get('match_id');
+  if (!matchId) return errorResponse('match_id is required', 400, env);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
+  const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
+
+  const result = await env.D1.prepare(
+    `SELECT id, match_id, match_name, league, author_name, content, prediction, likes, created_at
+     FROM comments
+     WHERE match_id = ? AND status = 'approved'
+     ORDER BY datetime(created_at) DESC
+     LIMIT ? OFFSET ?`
+  ).bind(matchId, limit, offset).all();
+
+  return jsonResponse({ success: true, data: result.results || [], meta: { count: result.results?.length || 0 } }, 200, env);
+}
+
+async function createComment(request: Request, env: Env): Promise<Response> {
+  await ensureCommentsSchema(env);
+  const body = await request.json() as {
+    match_id?: string;
+    match_name?: string;
+    league?: string;
+    author_name?: string;
+    author_id?: string;
+    content?: string;
+    prediction?: string;
+    turnstile_token?: string;
+  };
+
+  const matchId = body.match_id?.trim();
+  const authorName = body.author_name?.trim();
+  const content = sanitizeComment(body.content || '');
+
+  if (!matchId) return errorResponse('match_id is required', 400, env);
+  if (!authorName) return errorResponse('author_name is required', 400, env);
+  if (!content || content.length < 3) return errorResponse('comment is too short', 400, env);
+  if (content.length > 500) return errorResponse('comment is too long', 400, env);
+
+  const captcha = await verifyTurnstile(body.turnstile_token || null, request, env);
+  if (!captcha.success) {
+    return errorResponse(captcha.message || 'Captcha failed', 400, env);
+  }
+
+  const ip = getClientIp(request);
+  const ipHash = await hashValue(ip || 'unknown');
+
+  const lastComment = await env.D1.prepare(
+    `SELECT created_at FROM comments WHERE ip_hash = ? ORDER BY datetime(created_at) DESC LIMIT 1`
+  ).bind(ipHash).first() as { created_at?: string } | null;
+
+  if (lastComment?.created_at) {
+    const lastTime = new Date(lastComment.created_at).getTime();
+    if (!Number.isNaN(lastTime)) {
+      const diffSeconds = (Date.now() - lastTime) / 1000;
+      if (diffSeconds < COMMENTS_RATE_LIMIT_SECONDS) {
+        return errorResponse('Slow down and try again', 429, env);
+      }
+    }
+  }
+
+  const daily = await env.D1.prepare(
+    `SELECT COUNT(1) as count FROM comments WHERE ip_hash = ? AND created_at >= datetime('now','-24 hours')`
+  ).bind(ipHash).first() as { count?: number } | null;
+
+  if ((daily?.count || 0) >= COMMENTS_DAILY_LIMIT) {
+    return errorResponse('Daily comment limit reached', 429, env);
+  }
+
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+  const prediction = body.prediction?.trim() || null;
+
+  await env.D1.prepare(
+    `INSERT INTO comments (id, match_id, match_name, league, author_name, author_id, content, prediction, likes, status, ip_hash, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'approved', ?, ?)`
+  ).bind(
+    id,
+    matchId,
+    body.match_name || null,
+    body.league || null,
+    authorName,
+    body.author_id || null,
+    content,
+    prediction,
+    ipHash,
+    createdAt
+  ).run();
+
+  return jsonResponse({
+    success: true,
+    data: {
+      id,
+      match_id: matchId,
+      match_name: body.match_name || null,
+      league: body.league || null,
+      author_name: authorName,
+      content,
+      prediction,
+      likes: 0,
+      created_at: createdAt,
+    },
+  }, 200, env);
+}
+
+async function likeComment(request: Request, env: Env, commentId: string): Promise<Response> {
+  await ensureCommentsSchema(env);
+  if (!commentId) return errorResponse('Comment id required', 400, env);
+  const ipHash = await hashValue(getClientIp(request) || 'unknown');
+
+  const existing = await env.D1.prepare(
+    `SELECT 1 FROM comment_likes WHERE comment_id = ? AND ip_hash = ? LIMIT 1`
+  ).bind(commentId, ipHash).first();
+
+  if (existing) {
+    return jsonResponse({ success: true, data: { liked: false } }, 200, env);
+  }
+
+  await env.D1.batch([
+    env.D1.prepare(
+      `INSERT INTO comment_likes (comment_id, ip_hash, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)`
+    ).bind(commentId, ipHash),
+    env.D1.prepare(
+      `UPDATE comments SET likes = likes + 1 WHERE id = ?`
+    ).bind(commentId),
+  ]);
+
+  return jsonResponse({ success: true, data: { liked: true } }, 200, env);
+}
+
 /**
  * Calculate arbitrage opportunities
  */
@@ -243,6 +457,48 @@ async function getOddsData(env: Env): Promise<OddsResponse> {
   }
 }
 
+function sliceOddsData(
+  response: OddsResponse,
+  offset: number,
+  limit: number
+): OddsResponse {
+  if (!limit || limit <= 0) return response;
+
+  const sliced: LeagueGroup[] = [];
+  let cursor = 0;
+  let returned = 0;
+
+  for (const league of response.data || []) {
+    if (returned >= limit) break;
+    const matches = league.matches || [];
+    const bucket: Match[] = [];
+
+    for (const match of matches) {
+      if (cursor >= offset && returned < limit) {
+        bucket.push(match);
+        returned += 1;
+      }
+      cursor += 1;
+      if (returned >= limit) break;
+    }
+
+    if (bucket.length > 0) {
+      sliced.push({ ...league, matches: bucket });
+    }
+  }
+
+  return {
+    ...response,
+    data: sliced,
+    meta: {
+      ...response.meta,
+      offset,
+      limit,
+      returned_matches: returned,
+    },
+  };
+}
+
 /**
  * Update odds data (called by external scraper or scheduled job)
  */
@@ -313,8 +569,17 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
     // GET /api/odds - Get all odds data
     if (path === '/api/odds' && request.method === 'GET') {
+      const limitParam = url.searchParams.get('limit');
+      const offsetParam = url.searchParams.get('offset');
+      const parsedLimit = limitParam ? parseInt(limitParam, 10) : 0;
+      const parsedOffset = offsetParam ? parseInt(offsetParam, 10) : 0;
+      const limit = Number.isFinite(parsedLimit) ? Math.max(0, Math.min(parsedLimit, 500)) : 0;
+      const offset = Number.isFinite(parsedOffset) ? Math.max(0, parsedOffset) : 0;
+
       const data = await getOddsData(env);
-      const cacheHeaders = buildCacheHeaders('odds', data.meta);
+      const responseData = limit > 0 ? sliceOddsData(data, offset, limit) : data;
+      const cachePrefix = limit > 0 ? `odds-${offset}-${limit}` : 'odds';
+      const cacheHeaders = buildCacheHeaders(cachePrefix, responseData.meta);
       const etag = cacheHeaders['ETag'];
       if (etag && request.headers.get('If-None-Match') === etag) {
         return new Response(null, {
@@ -322,7 +587,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
           headers: { ...corsHeaders(env), ...cacheHeaders },
         });
       }
-      return jsonResponse(data, 200, env, cacheHeaders);
+      return jsonResponse(responseData, 200, env, cacheHeaders);
     }
 
     // GET /api/odds/:league - Get odds for specific league
@@ -425,6 +690,25 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         200,
         env
       );
+    }
+
+    // GET /api/comments?match_id=... - list comments for a match
+    if (path === '/api/comments' && request.method === 'GET') {
+      return listComments(request, env);
+    }
+
+    // POST /api/comments - create a comment
+    if (path === '/api/comments' && request.method === 'POST') {
+      return createComment(request, env);
+    }
+
+    // POST /api/comments/:id/like - like a comment
+    if (path.startsWith('/api/comments/') && request.method === 'POST') {
+      const parts = path.split('/');
+      if (parts.length === 5 && parts[4] === 'like') {
+        const commentId = parts[3];
+        return likeComment(request, env, commentId);
+      }
     }
 
     // POST /api/odds/update - Update odds data (protected endpoint)

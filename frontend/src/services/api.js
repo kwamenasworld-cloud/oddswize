@@ -136,7 +136,33 @@ const fetchStaticData = async () => {
 };
 
 const fetchOddsData = async (options = {}) => {
-  const { allowStale = true, bypassCache = false } = options;
+  const { allowStale = true, bypassCache = false, limit, offset } = options;
+  const parsedLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0;
+  const parsedOffset = Number.isFinite(offset) ? Math.max(0, Math.floor(offset)) : 0;
+  const isPaged = parsedLimit > 0;
+
+  const query = new URLSearchParams();
+  if (parsedLimit > 0) {
+    query.set('limit', String(parsedLimit));
+    if (parsedOffset > 0) {
+      query.set('offset', String(parsedOffset));
+    }
+  }
+  const endpoint = query.toString() ? `/api/odds?${query.toString()}` : '/api/odds';
+
+  if (isPaged) {
+    const response = await fetchApi(endpoint, { returnResponse: true, cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const payload = await response.json();
+    return {
+      data: payload,
+      meta: payload.meta || {},
+      cache: { source: 'network', stale: false },
+    };
+  }
+
   const now = Date.now();
   const cached = bypassCache ? null : readOddsCache(allowStale);
 
@@ -158,7 +184,7 @@ const fetchOddsData = async (options = {}) => {
   }
 
   const fetchPromise = (async () => {
-    const response = await fetchApi('/api/odds', {
+    const response = await fetchApi(endpoint, {
       returnResponse: true,
       headers: requestHeaders,
       cache: bypassCache ? 'no-store' : 'default',

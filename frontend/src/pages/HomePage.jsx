@@ -8,7 +8,7 @@ import { LEAGUES, matchLeague, getLeagueTier } from '../config/leagues';
 import { getTeamPopularityScore } from '../config/popularity';
 import { getLatestArticles, formatArticleDate } from '../data/articles';
 import { trackAffiliateClick } from '../services/analytics';
-import { getMatchesByLeague } from '../services/api';
+import { getCachedOdds, getMatchesByLeague } from '../services/api';
 
 // Betting tips for engagement
 const BETTING_TIPS = [
@@ -57,51 +57,88 @@ const SEO_LINKS = [
   { to: '/odds?league=ucl', label: 'Champions League Odds' },
 ];
 function HomePage() {
-  const [matches, setMatches] = useState([]);
-  const [leagueData, setLeagueData] = useState([]);
+  const [featuredMatches, setFeaturedMatches] = useState([]);
+  const [leagueMatchCounts, setLeagueMatchCounts] = useState({});
+  const [totalMatches, setTotalMatches] = useState(0);
   const [loading, setLoading] = useState(true);
   const latestArticles = useMemo(() => getLatestArticles(4), []);
 
-  useEffect(() => {
-    loadMatches();
-  }, []);
+  const applyHomeData = (leagues) => {
+    const now = new Date();
+    const nowSeconds = now.getTime() / 1000;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const counts = {};
+    POPULAR_LEAGUES.forEach((league) => {
+      counts[league.id] = 0;
+    });
+
+    let total = 0;
+    const scored = [];
+
+    (leagues || []).forEach((league) => {
+      const leagueMatches = league.matches || [];
+      total += leagueMatches.length;
+      const matchedLeague = matchLeague(league.league);
+      if (matchedLeague && Object.prototype.hasOwnProperty.call(counts, matchedLeague.id)) {
+        counts[matchedLeague.id] += leagueMatches.length;
+      }
+
+      leagueMatches.forEach((match) => {
+        const matchData = {
+          ...match,
+          league: league.league || match.league,
+        };
+        const matchDate = new Date((matchData.start_time || 0) * 1000);
+        const isToday = matchDate >= today && matchDate < tomorrow;
+        if (!isToday) return;
+        if ((matchData.odds?.length || 0) < 2) return;
+        scored.push({ match: matchData, score: getPopularityScore(matchData, nowSeconds) });
+      });
+    });
+
+    scored.sort((a, b) => {
+      const scoreDiff = b.score - a.score;
+      if (scoreDiff !== 0) return scoreDiff;
+      return (a.match.start_time || 0) - (b.match.start_time || 0);
+    });
+
+    setFeaturedMatches(scored.slice(0, 6).map(item => item.match));
+    setLeagueMatchCounts(counts);
+    setTotalMatches(total);
+  };
 
   const loadMatches = async () => {
     try {
-      // Load grouped league data for accurate counts
       const data = await getMatchesByLeague();
-
-      // Flatten matches for featured matches section
-      const allMatches = data.leagues.flatMap(league =>
-        league.matches.map(match => ({
-          ...match,
-          league: league.league
-        }))
-      );
-
-      setLeagueData(data.leagues);
-      setMatches(allMatches);
+      applyHomeData(data.leagues || []);
     } catch (error) {
       console.error('Failed to load matches:', error);
-      setMatches([]);
-      setLeagueData([]);
+      setFeaturedMatches([]);
+      setLeagueMatchCounts({});
+      setTotalMatches(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Simple deep-links to help discoverability/crawling
-  const seoLinks = [
-    { to: '/odds', label: 'Compare Odds' },
-    { to: '/bookmakers', label: 'Bookmakers' },
-    { to: '/news', label: 'News & Guides' },
-    { to: '/odds?league=premier', label: 'Premier League Odds' },
-    { to: '/odds?league=seriea', label: 'Serie A Odds' },
-    { to: '/odds?league=laliga', label: 'La Liga Odds' },
-    { to: '/odds?league=bundesliga', label: 'Bundesliga Odds' },
-    { to: '/odds?league=ligue1', label: 'Ligue 1 Odds' },
-    { to: '/odds?league=ucl', label: 'Champions League Odds' },
-  ];
+  useEffect(() => {
+    const cached = getCachedOdds();
+    if (cached?.data?.data?.length) {
+      applyHomeData(cached.data.data);
+      setLoading(false);
+      const run = () => loadMatches();
+      if (typeof window !== 'undefined' && window.requestIdleCallback) {
+        window.requestIdleCallback(run, { timeout: 2000 });
+      } else {
+        setTimeout(run, 800);
+      }
+      return;
+    }
+    loadMatches();
+  }, []);
 
   // Get best odds for a match
   const getBestOdds = (match, field) => {
@@ -167,55 +204,6 @@ function HomePage() {
     return coverageScore + completenessScore + leagueScore + timeScore + varianceScore + teamScore;
   };
 
-  // Featured matches (popular matches happening today)
-  const featuredMatches = useMemo(() => {
-    const now = new Date();
-    const nowSeconds = now.getTime() / 1000;
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    return matches
-      .filter(m => {
-        // Must be today
-        const matchDate = new Date(m.start_time * 1000);
-        const isToday = matchDate >= today && matchDate < tomorrow;
-        if (!isToday) return false;
-
-        // Must have enough bookmakers to be considered popular
-        return (m.odds?.length || 0) >= 2;
-      })
-      .map(match => ({ match, score: getPopularityScore(match, nowSeconds) }))
-      .sort((a, b) => {
-        const scoreDiff = b.score - a.score;
-        if (scoreDiff !== 0) return scoreDiff;
-        return (a.match.start_time || 0) - (b.match.start_time || 0);
-      })
-      .map(({ match }) => match)
-      .slice(0, 6);
-  }, [matches]);
-
-  // Count matches per league for display (using API's grouped data directly)
-  const leagueMatchCounts = useMemo(() => {
-    const counts = {};
-
-    POPULAR_LEAGUES.forEach(popularLeague => {
-      // Find all API leagues that match this popular league
-      const matchingApiLeagues = leagueData.filter(apiLeague => {
-        const matched = matchLeague(apiLeague.league);
-        return matched && matched.id === popularLeague.id;
-      });
-
-      // Sum up matches from all matching leagues
-      counts[popularLeague.id] = matchingApiLeagues.reduce(
-        (sum, league) => sum + (league.matches?.length || 0),
-        0
-      );
-    });
-
-    return counts;
-  }, [leagueData]);
-
   // Format kickoff time
   const formatTime = (timestamp) => {
     if (!timestamp) return 'TBD';
@@ -249,7 +237,7 @@ function HomePage() {
             </div>
             <div className="stat">
               <span className="stat-value">
-                {loading ? 'Loading...' : matches.length > 0 ? `${matches.length}+` : '0'}
+                {loading ? 'Loading...' : totalMatches > 0 ? `${totalMatches}+` : '0'}
               </span>
               <span className="stat-label">Matches</span>
             </div>

@@ -6,6 +6,7 @@ export interface Env {
   ENVIRONMENT: string;
   CORS_ORIGIN: string;
   API_SECRET: string;
+  TURNSTILE_SECRET?: string;
 }
 
 // Match data types
@@ -43,6 +44,9 @@ export interface OddsResponse {
     total_bookmakers: number;
     last_updated: string;
     cache_ttl: number;
+    offset?: number;
+    limit?: number;
+    returned_matches?: number;
   };
 }
 
