@@ -1085,8 +1085,15 @@ a {
   gap: 0.75rem;
   flex-wrap: wrap;
   padding: 1rem;
-  border-top: 1px solid var(--border);
   background: #fff;
+}
+
+.pagination-controls.pagination-top {
+  border-bottom: 1px solid var(--border);
+}
+
+.pagination-controls.pagination-bottom {
+  border-top: 1px solid var(--border);
 }
 
 .pagination-info {

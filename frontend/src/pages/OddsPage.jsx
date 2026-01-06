@@ -23,8 +23,8 @@ const DEFAULT_REFRESH_MS = 5 * 60 * 1000;
 const MIN_REFRESH_MS = 2 * 60 * 1000;
 const MAX_REFRESH_MS = 30 * 60 * 1000;
 const COMPACT_BREAKPOINT = 520;
-const PAGE_SIZE_DESKTOP = 60;
-const PAGE_SIZE_MOBILE = 30;
+const PAGE_SIZE_DESKTOP = 25;
+const PAGE_SIZE_MOBILE = 15;
 
 const resolveRefreshInterval = (cacheTtlSeconds) => {
   const ttlSeconds = Number(cacheTtlSeconds);
@@ -1031,11 +1031,12 @@ function OddsPage() {
     [filteredMatches, selectedSort]
   );
 
+  const shouldSlice = !useServerPagination || filteredMatches.length > pageSize;
   const pagedGroupedMatches = useMemo(
-    () => (useServerPagination
-      ? groupedMatchesAll
-      : sliceGroupedMatches(groupedMatchesAll, pageStart, pageEnd)),
-    [groupedMatchesAll, pageStart, pageEnd, useServerPagination]
+    () => (shouldSlice
+      ? sliceGroupedMatches(groupedMatchesAll, pageStart, pageEnd)
+      : groupedMatchesAll),
+    [groupedMatchesAll, pageStart, pageEnd, shouldSlice]
   );
 
   const totalLeagueCount = useMemo(
@@ -1058,6 +1059,34 @@ function OddsPage() {
   const currentMarket = MARKETS[selectedMarket];
   const marketFields = MARKET_FIELDS[selectedMarket];
   const hasPagination = totalPages > 1;
+
+  const renderPagination = (className = '') => {
+    if (loading || error || !hasPagination) return null;
+    return (
+      <div className={`pagination-controls ${className}`}>
+        <button
+          type="button"
+          className="pagination-btn"
+          onClick={() => handlePageChange(safePageIndex - 1)}
+          disabled={safePageIndex === 0}
+        >
+          Previous
+        </button>
+        <div className="pagination-info">
+          <span>Showing {pageStart + 1}-{pageEnd} of {paginationTotal}</span>
+          <span>Page {safePageIndex + 1} of {totalPages}</span>
+        </div>
+        <button
+          type="button"
+          className="pagination-btn"
+          onClick={() => handlePageChange(safePageIndex + 1)}
+          disabled={safePageIndex >= totalPages - 1}
+        >
+          Next
+        </button>
+      </div>
+    );
+  };
 
   const handlePageChange = (nextPage) => {
     const clamped = Math.min(Math.max(nextPage, 0), Math.max(totalPages - 1, 0));
@@ -1335,6 +1364,8 @@ function OddsPage() {
           </button>
         ))}
       </div>
+
+      {renderPagination('pagination-top')}
 
       {/* Main Odds Grid */}
       <div className={`odds-wrapper ${compactView ? 'compact' : ''}`} style={{ '--odds-columns': oddsColumns }}>
@@ -1749,32 +1780,7 @@ function OddsPage() {
           </div>
         ))}
 
-        {!loading && !error && hasPagination && (
-          <div className="pagination-controls">
-            <button
-              type="button"
-              className="pagination-btn"
-              onClick={() => handlePageChange(safePageIndex - 1)}
-              disabled={!hasPagination || safePageIndex === 0}
-            >
-              Previous
-            </button>
-            <div className="pagination-info">
-              <span>Showing {pageStart + 1}-{pageEnd} of {paginationTotal}</span>
-              {hasPagination && (
-                <span>Page {safePageIndex + 1} of {totalPages}</span>
-              )}
-            </div>
-            <button
-              type="button"
-              className="pagination-btn"
-              onClick={() => handlePageChange(safePageIndex + 1)}
-              disabled={!hasPagination || safePageIndex >= totalPages - 1}
-            >
-              Next
-            </button>
-          </div>
-        )}
+        {renderPagination('pagination-bottom')}
 
         {/* Mobile scroll hint */}
         {!compactView && (
