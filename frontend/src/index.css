@@ -1556,6 +1556,38 @@ a {
   cursor: pointer;
 }
 
+.odd-info {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.15);
+  color: #222;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.odd-info:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.odd-info:active {
+  transform: scale(0.96);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .odd-info {
+    display: flex;
+  }
+}
+
 .odd:hover {
   background: var(--primary);
   color: white;

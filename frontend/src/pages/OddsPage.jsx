@@ -815,6 +815,13 @@ function OddsPage() {
 
   const hideOddsTooltip = () => setSelectedOdd(null);
 
+  const handleOddsInfoClick = (event, odds, outcome, bookmaker) => {
+    if (!event) return;
+    event.preventDefault();
+    event.stopPropagation();
+    showOddsTooltip(event, odds, outcome, bookmaker);
+  };
+
   const handleOddsClick = (odds, outcome, bookmaker, meta = {}) => {
     trackAffiliateClick({
       bookmaker,
@@ -1700,13 +1707,39 @@ function OddsPage() {
                                           url: config.affiliateUrl,
                                         }
                                       )}
-                                      title={`Hover for probability ${oddsToProb(oddsValue).toFixed(1)}%`}
+                                      title={`Hover or tap info for probability ${oddsToProb(oddsValue).toFixed(1)}%`}
                                     >
                                       <span className="odds-card-odd-label">{currentMarket.labels[i]}</span>
                                       <span className="odds-card-odd-value">{oddsValue ? oddsValue.toFixed(2) : '-'}</span>
                                       {isBest && oddsValue && <span className="best-tag">BEST</span>}
                                       {showEdge && oddsValue && <span className="edge-tag">+{edgePercent}%</span>}
                                       {showValue && oddsValue && <span className="value-tag">+{edgePercent}%</span>}
+                                      {oddsValue && (
+                                        <span
+                                          className="odd-info"
+                                          aria-label="Show implied probability"
+                                          role="button"
+                                          tabIndex={0}
+                                          onClick={(e) => handleOddsInfoClick(
+                                            e,
+                                            oddsValue,
+                                            currentMarket.labels[i],
+                                            config.name
+                                          )}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                              handleOddsInfoClick(
+                                                e,
+                                                oddsValue,
+                                                currentMarket.labels[i],
+                                                config.name
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          i
+                                        </span>
+                                      )}
                                     </a>
                                   );
                                 })
@@ -1845,12 +1878,38 @@ function OddsPage() {
                                     url: config.affiliateUrl,
                                   }
                                 )}
-                                title={`Hover for probability • ${oddsToProb(oddsValue).toFixed(1)}%`}
+                                title={`Hover or tap info for probability ${oddsToProb(oddsValue).toFixed(1)}%`}
                               >
                                 {oddsValue ? oddsValue.toFixed(2) : '-'}
                                 {isBest && oddsValue && <span className="best-tag">BEST</span>}
                                 {showEdge && oddsValue && <span className="edge-tag">+{edgePercent}%</span>}
                                 {showValue && oddsValue && <span className="value-tag">+{edgePercent}%</span>}
+                                {oddsValue && (
+                                  <span
+                                    className="odd-info"
+                                    aria-label="Show implied probability"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={(e) => handleOddsInfoClick(
+                                      e,
+                                      oddsValue,
+                                      currentMarket.labels[i],
+                                      config.name
+                                    )}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        handleOddsInfoClick(
+                                          e,
+                                          oddsValue,
+                                          currentMarket.labels[i],
+                                          config.name
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    i
+                                  </span>
+                                )}
                               </a>
                             );
                           })
