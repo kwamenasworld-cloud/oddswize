@@ -145,8 +145,19 @@ const fetchOddsData = async (options = {}) => {
     startTimeFrom,
     startTimeTo,
   } = options;
+  const cachedFallback = bypassCache ? null : readOddsCache(true);
   const parsedLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0;
   const parsedOffset = Number.isFinite(offset) ? Math.max(0, Math.floor(offset)) : 0;
+  const isEmptyOddsPayload = (payload) => {
+    if (!payload || !payload.success) return false;
+    const total = payload?.meta?.total_matches;
+    const hasMatches = Array.isArray(payload?.data)
+      && payload.data.some(league => Array.isArray(league.matches) && league.matches.length > 0);
+    if (Number.isFinite(total)) {
+      return total <= 0 && !hasMatches;
+    }
+    return !hasMatches;
+  };
   const normalizeEpoch = (value) => {
     if (!Number.isFinite(value)) return undefined;
     const normalized = value > 1000000000000 ? Math.floor(value / 1000) : Math.floor(value);
@@ -186,6 +197,16 @@ const fetchOddsData = async (options = {}) => {
       throw new Error(`API error: ${response.status}`);
     }
     const payload = await response.json();
+    if (isEmptyOddsPayload(payload)) {
+      if (cachedFallback?.payload) {
+        return {
+          data: cachedFallback.payload,
+          meta: cachedFallback.payload.meta || {},
+          cache: { source: 'stale', stale: true, storedAt: cachedFallback.storedAt },
+        };
+      }
+      throw new Error('Empty odds payload');
+    }
     return {
       data: payload,
       meta: payload.meta || {},
@@ -233,6 +254,16 @@ const fetchOddsData = async (options = {}) => {
     }
 
     const payload = await response.json();
+    if (isEmptyOddsPayload(payload)) {
+      if (cachedFallback?.payload) {
+        return {
+          data: cachedFallback.payload,
+          meta: cachedFallback.payload.meta || {},
+          cache: { source: 'stale', stale: true, storedAt: cachedFallback.storedAt },
+        };
+      }
+      throw new Error('Empty odds payload');
+    }
     const ttlSeconds = payload?.meta?.cache_ttl;
     const etag = response.headers.get('ETag');
     const saved = saveOddsCache(payload, ttlSeconds, etag);
