@@ -784,8 +784,9 @@ function OddsPage() {
 
   // Convert odds to implied probability
   const oddsToProb = (odds) => {
-    if (!odds || odds <= 1) return 0;
-    return (1 / odds) * 100;
+    const value = Number(odds);
+    if (!Number.isFinite(value) || value <= 1) return 0;
+    return (1 / value) * 100;
   };
 
   const resolveTooltipPosition = (event) => {
@@ -800,11 +801,12 @@ function OddsPage() {
   };
 
   const showOddsTooltip = (event, odds, outcome, bookmaker) => {
-    if (!odds) return;
-    const prob = oddsToProb(odds);
+    const value = Number(odds);
+    if (!Number.isFinite(value) || value <= 0) return;
+    const prob = oddsToProb(value);
     const position = resolveTooltipPosition(event);
     setSelectedOdd({
-      odds,
+      odds: value,
       prob: prob.toFixed(1),
       outcome,
       bookmaker,
@@ -823,13 +825,14 @@ function OddsPage() {
   };
 
   const handleOddsClick = (odds, outcome, bookmaker, meta = {}) => {
+    const safeOdds = Number(odds);
     trackAffiliateClick({
       bookmaker,
       placement: meta.placement || 'odds_cell',
       match: meta.match,
       league: meta.league,
       outcome,
-      odds,
+      odds: Number.isFinite(safeOdds) ? safeOdds : odds,
       valuePercent: meta.valuePercent,
       url: meta.url,
     });
