@@ -1801,9 +1801,18 @@ a {
 }
 
 .empty-icon {
-  font-size: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
   margin-bottom: 0.5rem;
   opacity: 0.5;
+}
+
+.empty-icon svg {
+  width: 48px;
+  height: 48px;
 }
 
 .empty-state p {
@@ -2260,6 +2269,25 @@ a {
   gap: 0.5rem;
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+.comments-icon,
+.no-comments-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comments-icon svg {
+  width: 18px;
+  height: 18px;
+  color: var(--primary);
+}
+
+.no-comments-icon svg {
+  width: 36px;
+  height: 36px;
+  color: #b6b6b6;
 }
 
 .comments-auth {

@@ -153,7 +153,11 @@ function CommentsSection({ matchId, matchName, league }) {
     <div className="comments-section">
       <div className="comments-header">
         <h3>
-          <span className="comments-icon">dY'ª</span>
+          <span className="comments-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+            </svg>
+          </span>
           Match Discussion
           <span className="comments-count">{comments.length}</span>
         </h3>
@@ -226,12 +230,22 @@ function CommentsSection({ matchId, matchName, league }) {
       <div className="comments-list">
         {loading ? (
           <div className="no-comments">
-            <span className="no-comments-icon">dY"-</span>
+            <span className="no-comments-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                <path d="M8 11h8M8 15h5" />
+              </svg>
+            </span>
             <p>Loading comments...</p>
           </div>
         ) : displayComments.length === 0 ? (
           <div className="no-comments">
-            <span className="no-comments-icon">dY'-</span>
+            <span className="no-comments-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                <path d="M9 12h6" />
+              </svg>
+            </span>
             <p>No comments yet. Be the first to share your prediction!</p>
           </div>
         ) : (
