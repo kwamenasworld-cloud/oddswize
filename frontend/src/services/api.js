@@ -136,9 +136,30 @@ const fetchStaticData = async () => {
 };
 
 const fetchOddsData = async (options = {}) => {
-  const { allowStale = true, bypassCache = false, limit, offset } = options;
+  const {
+    allowStale = true,
+    bypassCache = false,
+    limit,
+    offset,
+    windowHours,
+    startTimeFrom,
+    startTimeTo,
+  } = options;
   const parsedLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0;
   const parsedOffset = Number.isFinite(offset) ? Math.max(0, Math.floor(offset)) : 0;
+  const normalizeEpoch = (value) => {
+    if (!Number.isFinite(value)) return undefined;
+    const normalized = value > 1000000000000 ? Math.floor(value / 1000) : Math.floor(value);
+    return normalized >= 0 ? normalized : undefined;
+  };
+  const parsedWindowHours = Number.isFinite(windowHours) && windowHours > 0
+    ? Math.min(Math.floor(windowHours), 168)
+    : 0;
+  const parsedStartFrom = normalizeEpoch(startTimeFrom);
+  const parsedStartTo = normalizeEpoch(startTimeTo);
+  const hasTimeFilter = parsedWindowHours > 0
+    || Number.isFinite(parsedStartFrom)
+    || Number.isFinite(parsedStartTo);
   const isPaged = parsedLimit > 0;
 
   const query = new URLSearchParams();
@@ -148,9 +169,18 @@ const fetchOddsData = async (options = {}) => {
       query.set('offset', String(parsedOffset));
     }
   }
+  if (parsedWindowHours > 0) {
+    query.set('window_hours', String(parsedWindowHours));
+  }
+  if (Number.isFinite(parsedStartFrom)) {
+    query.set('start_time_from', String(parsedStartFrom));
+  }
+  if (Number.isFinite(parsedStartTo)) {
+    query.set('start_time_to', String(parsedStartTo));
+  }
   const endpoint = query.toString() ? `/api/odds?${query.toString()}` : '/api/odds';
 
-  if (isPaged) {
+  if (isPaged || hasTimeFilter) {
     const response = await fetchApi(endpoint, { returnResponse: true, cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);

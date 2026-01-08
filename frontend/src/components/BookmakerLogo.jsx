@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BOOKMAKER_AFFILIATES, getBookmakerConfig } from '../config/affiliates';
 import { getBookmakerLogo, getCachedBookmakerLogo } from '../services/bookmakerLogos';
 
@@ -8,9 +8,35 @@ export function BookmakerLogo({ bookmaker, size = 40, showName = false }) {
   const [logoUrl, setLogoUrl] = useState(getCachedBookmakerLogo(bookmaker));
   const [imgError, setImgError] = useState(false);
   const [loading, setLoading] = useState(!logoUrl);
+  const [isVisible, setIsVisible] = useState(() => typeof window === 'undefined');
+  const logoRef = useRef(null);
+
+  useEffect(() => {
+    if (isVisible) return;
+    const element = logoRef.current;
+    if (!element || typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '160px' }
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [isVisible]);
 
   useEffect(() => {
     let mounted = true;
+    setImgError(false);
 
     const loadLogo = async () => {
       // Check cache first
@@ -18,6 +44,12 @@ export function BookmakerLogo({ bookmaker, size = 40, showName = false }) {
       if (cached) {
         setLogoUrl(cached);
         setLoading(false);
+        return;
+      }
+
+      if (!isVisible) {
+        setLogoUrl(null);
+        setLoading(true);
         return;
       }
 
@@ -40,7 +72,7 @@ export function BookmakerLogo({ bookmaker, size = 40, showName = false }) {
     return () => {
       mounted = false;
     };
-  }, [bookmaker]);
+  }, [bookmaker, isVisible]);
 
   // Fallback gradient badge when image fails or not available
   const FallbackBadge = () => (
@@ -68,7 +100,11 @@ export function BookmakerLogo({ bookmaker, size = 40, showName = false }) {
   // Loading placeholder
   if (loading) {
     return (
-      <div className="bookmaker-logo-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+      <div
+        ref={logoRef}
+        className="bookmaker-logo-wrapper"
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}
+      >
         <div
           style={{
             width: `${size}px`,
@@ -88,7 +124,11 @@ export function BookmakerLogo({ bookmaker, size = 40, showName = false }) {
   }
 
   return (
-    <div className="bookmaker-logo-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+    <div
+      ref={logoRef}
+      className="bookmaker-logo-wrapper"
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}
+    >
       {logoUrl && !imgError ? (
         <img
           src={logoUrl}

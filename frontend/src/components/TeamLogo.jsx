@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getTeamLogo, getCachedLogo } from '../services/teamLogos';
 
 /**
@@ -9,9 +9,35 @@ export function TeamLogo({ teamName, size = 24, className = '' }) {
   const [logoUrl, setLogoUrl] = useState(getCachedLogo(teamName));
   const [loading, setLoading] = useState(!logoUrl);
   const [error, setError] = useState(false);
+  const [isVisible, setIsVisible] = useState(() => typeof window === 'undefined');
+  const logoRef = useRef(null);
+
+  useEffect(() => {
+    if (isVisible) return;
+    const element = logoRef.current;
+    if (!element || typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '160px' }
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [isVisible]);
 
   useEffect(() => {
     let mounted = true;
+    setError(false);
 
     const loadLogo = async () => {
       // Check cache first
@@ -19,6 +45,12 @@ export function TeamLogo({ teamName, size = 24, className = '' }) {
       if (cached) {
         setLogoUrl(cached);
         setLoading(false);
+        return;
+      }
+
+      if (!isVisible) {
+        setLogoUrl(null);
+        setLoading(true);
         return;
       }
 
@@ -42,7 +74,7 @@ export function TeamLogo({ teamName, size = 24, className = '' }) {
     return () => {
       mounted = false;
     };
-  }, [teamName]);
+  }, [teamName, isVisible]);
 
   // Generate initials for fallback
   const getInitials = (name) => {
@@ -75,6 +107,7 @@ export function TeamLogo({ teamName, size = 24, className = '' }) {
   if (loading) {
     return (
       <div
+        ref={logoRef}
         className={`team-logo team-logo-loading ${className}`}
         style={{
           width: size,
@@ -91,6 +124,7 @@ export function TeamLogo({ teamName, size = 24, className = '' }) {
   if (logoUrl && !error) {
     return (
       <img
+        ref={logoRef}
         src={logoUrl}
         alt={`${teamName} logo`}
         className={`team-logo ${className}`}
@@ -109,6 +143,7 @@ export function TeamLogo({ teamName, size = 24, className = '' }) {
   // Fallback to initials
   return (
     <div
+      ref={logoRef}
       className={`team-logo team-logo-fallback ${className}`}
       style={{
         width: size,

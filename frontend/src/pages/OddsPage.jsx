@@ -130,6 +130,7 @@ const LEAGUE_QUERY_TILES = [
 
 // Date filter options
 const DATE_FILTERS = [
+  { id: 'next24', name: 'Next 24h', icon: '24h' },
   { id: 'today', name: 'Today', icon: '📅' },
   { id: 'tomorrow', name: 'Tomorrow', icon: '📆' },
   { id: 'weekend', name: 'Weekend', icon: '🗓️' },
@@ -187,6 +188,11 @@ const matchesDateFilter = (timestamp, filter) => {
   if (filter === 'all') return true;
 
   const matchDate = new Date(timestamp * 1000);
+  if (filter === 'next24') {
+    const nowMs = Date.now();
+    const matchMs = matchDate.getTime();
+    return matchMs >= nowMs && matchMs <= nowMs + 24 * 3600 * 1000;
+  }
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const tomorrow = new Date(today);
@@ -248,7 +254,7 @@ function OddsPage() {
   const [selectedCountry, setSelectedCountry] = useState('all');
   const [selectedMarket, setSelectedMarket] = useState('1x2');
   const [selectedOdd, setSelectedOdd] = useState(null);
-  const [selectedDate, setSelectedDate] = useState('all');
+  const [selectedDate, setSelectedDate] = useState('next24');
   const [enabledBookies, setEnabledBookies] = useState(() =>
     BOOKMAKER_ORDER.reduce((acc, b) => ({ ...acc, [b]: true }), {})
   );
@@ -268,7 +274,7 @@ function OddsPage() {
   const hasFilters =
     Boolean(searchQuery || leagueQuery || selectedLeagues.length > 0 || selectedCountry !== 'all');
   const hasDateFilter = selectedDate !== 'all';
-  const useServerPagination = !hasFilters && !hasDateFilter && selectedSort === 'time';
+  const useServerPagination = !hasFilters && selectedSort === 'time';
   const pageSize = compactView ? PAGE_SIZE_MOBILE : PAGE_SIZE_DESKTOP;
   const loadDataRef = useRef(() => {});
   const oddsContainerRef = useRef(null);
@@ -441,12 +447,57 @@ function OddsPage() {
     return () => clearTimeout(timeoutId);
   }, [matches]);
 
+  const buildTimeFilterOptions = (filter) => {
+    if (filter === 'all') return {};
+    if (filter === 'next24') {
+      const nowMs = Date.now();
+      return {
+        startTimeFrom: Math.floor(nowMs / 1000),
+        startTimeTo: Math.floor((nowMs + 24 * 3600 * 1000) / 1000),
+      };
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dayAfterTomorrow = new Date(today);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+    const daysUntilSaturday = (6 - today.getDay() + 7) % 7;
+    const saturday = new Date(today);
+    saturday.setDate(saturday.getDate() + daysUntilSaturday);
+    const monday = new Date(saturday);
+    monday.setDate(monday.getDate() + 2);
+
+    let range = null;
+    switch (filter) {
+      case 'today':
+        range = { start: today, end: tomorrow };
+        break;
+      case 'tomorrow':
+        range = { start: tomorrow, end: dayAfterTomorrow };
+        break;
+      case 'weekend':
+        range = { start: saturday, end: monday };
+        break;
+      default:
+        return {};
+    }
+
+    const startTimeFrom = Math.floor(range.start.getTime() / 1000);
+    const endExclusive = Math.floor(range.end.getTime() / 1000);
+    const startTimeTo = Math.max(endExclusive - 1, startTimeFrom);
+    return { startTimeFrom, startTimeTo };
+  };
+
   const loadData = async (opts = {}) => {
     const silent = opts?.silent;
     const forceWorker = Boolean(opts?.forceWorker);
     const bypassCache = Boolean(opts?.bypassCache);
     const pageLimit = useServerPagination ? pageSize : undefined;
     const pageOffset = useServerPagination ? pageIndex * pageSize : undefined;
+    const timeFilters = buildTimeFilterOptions(selectedDate);
     setError(null);
     try {
       let statusData = null;
@@ -458,6 +509,7 @@ function OddsPage() {
             bypassCache,
             limit: pageLimit,
             offset: pageOffset,
+            ...timeFilters,
           }),
           getStatus(),
         ]);
@@ -552,8 +604,15 @@ function OddsPage() {
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
+    if (useServerPagination && pageIndex !== 0) return;
     loadDataRef.current({ silent: true });
-  }, [useServerPagination]);
+  }, [useServerPagination, selectedDate, pageIndex]);
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    if (useServerPagination) return;
+    loadDataRef.current({ silent: true });
+  }, [selectedDate, useServerPagination]);
 
   useEffect(() => {
     if (!useServerPagination || !hasLoadedRef.current) return;
@@ -828,7 +887,7 @@ function OddsPage() {
     setLeagueQuery('');
     setSelectedLeagues([]);
     setSelectedCountry('all');
-    setSelectedDate('all');
+    setSelectedDate('next24');
     setShowAllMatches(true);
   };
 

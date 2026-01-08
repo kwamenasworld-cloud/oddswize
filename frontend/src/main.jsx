@@ -1,8 +1,25 @@
 import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
+import './critical.css'
 import './mobile-performance.css'
 import App from './App.jsx'
+
+let fullStylesLoaded = false;
+const loadFullStyles = () => {
+  if (fullStylesLoaded) return;
+  fullStylesLoaded = true;
+  import('./index.css');
+};
+
+if (typeof window !== 'undefined') {
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(() => loadFullStyles(), { timeout: 2000 });
+  } else {
+    setTimeout(loadFullStyles, 0);
+  }
+} else {
+  loadFullStyles();
+}
 
 // Error boundary to catch and display runtime errors
 class ErrorBoundary extends Component {

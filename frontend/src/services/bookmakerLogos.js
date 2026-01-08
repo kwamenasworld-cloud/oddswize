@@ -76,6 +76,30 @@ const saveCache = (logos) => {
 // In-memory cache
 let logoCache = loadCache();
 
+const LOGO_CONCURRENCY_LIMIT = 4;
+let activeLogoFetches = 0;
+const logoFetchQueue = [];
+const pendingLogoPromises = new Map();
+
+const runNextLogoFetch = () => {
+  if (activeLogoFetches >= LOGO_CONCURRENCY_LIMIT) return;
+  const next = logoFetchQueue.shift();
+  if (!next) return;
+  activeLogoFetches += 1;
+  next.task()
+    .then(next.resolve)
+    .catch(next.reject)
+    .finally(() => {
+      activeLogoFetches -= 1;
+      runNextLogoFetch();
+    });
+};
+
+const enqueueLogoFetch = (task) => new Promise((resolve, reject) => {
+  logoFetchQueue.push({ task, resolve, reject });
+  runNextLogoFetch();
+});
+
 /**
  * Get domain for a bookmaker
  */
@@ -113,26 +137,39 @@ const fetchBookmakerLogo = async (bookmakerName) => {
     return null;
   }
 
-  // Try DuckDuckGo Icons API first (good quality, always works)
-  const duckduckgoUrl = `${DUCKDUCKGO_ICON_API}/${domain}.ico`;
-
-  try {
-    const isValid = await testLogoUrl(duckduckgoUrl);
-    if (isValid) {
-      logoCache[cacheKey] = duckduckgoUrl;
-      saveCache(logoCache);
-      return duckduckgoUrl;
-    }
-  } catch (e) {
-    // DuckDuckGo failed, fallback to Google
+  if (pendingLogoPromises.has(cacheKey)) {
+    return pendingLogoPromises.get(cacheKey);
   }
 
-  // Fall back to Google Favicon API
-  const googleUrl = `${GOOGLE_FAVICON_API}?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=128`;
+  const queuedPromise = enqueueLogoFetch(async () => {
+    // Try DuckDuckGo Icons API first (good quality, always works)
+    const duckduckgoUrl = `${DUCKDUCKGO_ICON_API}/${domain}.ico`;
 
-  logoCache[cacheKey] = googleUrl;
-  saveCache(logoCache);
-  return googleUrl;
+    try {
+      const isValid = await testLogoUrl(duckduckgoUrl);
+      if (isValid) {
+        logoCache[cacheKey] = duckduckgoUrl;
+        saveCache(logoCache);
+        return duckduckgoUrl;
+      }
+    } catch (e) {
+      // DuckDuckGo failed, fallback to Google
+    }
+
+    // Fall back to Google Favicon API
+    const googleUrl = `${GOOGLE_FAVICON_API}?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://${domain}&size=128`;
+
+    logoCache[cacheKey] = googleUrl;
+    saveCache(logoCache);
+    return googleUrl;
+  });
+
+  pendingLogoPromises.set(cacheKey, queuedPromise);
+  try {
+    return await queuedPromise;
+  } finally {
+    pendingLogoPromises.delete(cacheKey);
+  }
 };
 
 /**

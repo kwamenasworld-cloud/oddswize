@@ -499,6 +499,63 @@ function sliceOddsData(
   };
 }
 
+type OddsTimeFilter = {
+  startTimeFrom?: number;
+  startTimeTo?: number;
+  windowHours?: number;
+};
+
+function parseEpochSeconds(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  const normalized = parsed > 1_000_000_000_000 ? Math.floor(parsed / 1000) : Math.floor(parsed);
+  return normalized >= 0 ? normalized : undefined;
+}
+
+function filterOddsDataByTime(
+  response: OddsResponse,
+  filter: OddsTimeFilter
+): OddsResponse {
+  const hasFrom = Number.isFinite(filter.startTimeFrom);
+  const hasTo = Number.isFinite(filter.startTimeTo);
+  if (!hasFrom && !hasTo) return response;
+
+  const startFrom = filter.startTimeFrom ?? 0;
+  const startTo = filter.startTimeTo ?? Number.POSITIVE_INFINITY;
+  const filteredLeagues: LeagueGroup[] = [];
+  let total = 0;
+
+  for (const league of response.data || []) {
+    const matches = (league.matches || []).filter((match) => {
+      if (!match || !Number.isFinite(match.start_time)) return false;
+      if (hasFrom && match.start_time < startFrom) return false;
+      if (hasTo && match.start_time > startTo) return false;
+      return true;
+    });
+
+    if (matches.length > 0) {
+      filteredLeagues.push({ ...league, matches });
+      total += matches.length;
+    }
+  }
+
+  const totalAll = response.meta?.total_matches ?? total;
+
+  return {
+    ...response,
+    data: filteredLeagues,
+    meta: {
+      ...response.meta,
+      total_matches: total,
+      total_matches_all: totalAll,
+      window_hours: filter.windowHours,
+      start_time_from: hasFrom ? startFrom : undefined,
+      start_time_to: hasTo ? startTo : undefined,
+    },
+  };
+}
+
 /**
  * Update odds data (called by external scraper or scheduled job)
  */
@@ -571,14 +628,38 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (path === '/api/odds' && request.method === 'GET') {
       const limitParam = url.searchParams.get('limit');
       const offsetParam = url.searchParams.get('offset');
+      const windowHoursParam = url.searchParams.get('window_hours');
+      const startFromParam = url.searchParams.get('start_time_from');
+      const startToParam = url.searchParams.get('start_time_to');
       const parsedLimit = limitParam ? parseInt(limitParam, 10) : 0;
       const parsedOffset = offsetParam ? parseInt(offsetParam, 10) : 0;
       const limit = Number.isFinite(parsedLimit) ? Math.max(0, Math.min(parsedLimit, 500)) : 0;
       const offset = Number.isFinite(parsedOffset) ? Math.max(0, parsedOffset) : 0;
+      const parsedWindowHours = windowHoursParam ? Number(windowHoursParam) : NaN;
+      const windowHours = Number.isFinite(parsedWindowHours) && parsedWindowHours > 0
+        ? Math.min(parsedWindowHours, 168)
+        : undefined;
+      const startFrom = parseEpochSeconds(startFromParam);
+      const startTo = parseEpochSeconds(startToParam);
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const startTimeFrom = windowHours ? nowSeconds : startFrom;
+      const startTimeTo = windowHours ? nowSeconds + Math.round(windowHours * 3600) : startTo;
 
       const data = await getOddsData(env);
-      const responseData = limit > 0 ? sliceOddsData(data, offset, limit) : data;
-      const cachePrefix = limit > 0 ? `odds-${offset}-${limit}` : 'odds';
+      const filteredData = filterOddsDataByTime(data, {
+        startTimeFrom,
+        startTimeTo,
+        windowHours,
+      });
+      const responseData = limit > 0 ? sliceOddsData(filteredData, offset, limit) : filteredData;
+      const cacheParts = ['odds'];
+      if (Number.isFinite(startTimeFrom)) cacheParts.push(`from-${startTimeFrom}`);
+      if (Number.isFinite(startTimeTo)) cacheParts.push(`to-${startTimeTo}`);
+      if (Number.isFinite(windowHours)) cacheParts.push(`window-${windowHours}`);
+      if (limit > 0) {
+        cacheParts.push(`offset-${offset}`, `limit-${limit}`);
+      }
+      const cachePrefix = cacheParts.join('-');
       const cacheHeaders = buildCacheHeaders(cachePrefix, responseData.meta);
       const etag = cacheHeaders['ETag'];
       if (etag && request.headers.get('If-None-Match') === etag) {

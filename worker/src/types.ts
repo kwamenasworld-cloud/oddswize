@@ -47,6 +47,10 @@ export interface OddsResponse {
     offset?: number;
     limit?: number;
     returned_matches?: number;
+    total_matches_all?: number;
+    window_hours?: number;
+    start_time_from?: number;
+    start_time_to?: number;
   };
 }
 

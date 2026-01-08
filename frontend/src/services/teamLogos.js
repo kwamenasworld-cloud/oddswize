@@ -45,6 +45,30 @@ const saveCache = (logos) => {
 // In-memory cache
 let logoCache = loadCache();
 
+const LOGO_CONCURRENCY_LIMIT = 4;
+let activeLogoFetches = 0;
+const logoFetchQueue = [];
+const pendingLogoPromises = new Map();
+
+const runNextLogoFetch = () => {
+  if (activeLogoFetches >= LOGO_CONCURRENCY_LIMIT) return;
+  const next = logoFetchQueue.shift();
+  if (!next) return;
+  activeLogoFetches += 1;
+  next.task()
+    .then(next.resolve)
+    .catch(next.reject)
+    .finally(() => {
+      activeLogoFetches -= 1;
+      runNextLogoFetch();
+    });
+};
+
+const enqueueLogoFetch = (task) => new Promise((resolve, reject) => {
+  logoFetchQueue.push({ task, resolve, reject });
+  runNextLogoFetch();
+});
+
 // Common team name mappings for better matching
 // Includes variations from different bookmakers (SportyBet, Betway, 1xBet, etc.)
 const TEAM_NAME_MAPPINGS = {
@@ -548,50 +572,58 @@ const fetchTeamLogo = async (teamName) => {
     return staticLogo;
   }
 
-  // Fetch from API with proper timeout using AbortController
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  if (pendingLogoPromises.has(cacheKey)) {
+    return pendingLogoPromises.get(cacheKey);
+  }
 
-  try {
+  const queuedPromise = enqueueLogoFetch(async () => {
+    // Fetch from API with proper timeout using AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const response = await fetch(
-      `${SPORTSDB_API}/searchteams.php?t=${encodeURIComponent(searchName)}`,
-      { signal: controller.signal }
-    );
+    try {
+      const response = await fetch(
+        `${SPORTSDB_API}/searchteams.php?t=${encodeURIComponent(searchName)}`,
+        { signal: controller.signal }
+      );
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.teams && data.teams.length > 0) {
-      // Get the first matching team
-      const team = data.teams[0];
-      // API uses strBadge (not strTeamBadge)
-      const logoUrl = team.strBadge || team.strLogo || team.strTeamBadge || null;
-
-      if (logoUrl) {
-        // Cache the result
-        logoCache[cacheKey] = logoUrl;
-        saveCache(logoCache);
-        return logoUrl;
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
       }
-    }
 
-    // Don't cache null for API failures - allow retry
-    return null;
+      const data = await response.json();
 
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      // Request timeout
-    } else {
-      console.error(`[TeamLogos] Failed to fetch logo for ${teamName}:`, error.message);
+      if (data.teams && data.teams.length > 0) {
+        // Get the first matching team
+        const team = data.teams[0];
+        // API uses strBadge (not strTeamBadge)
+        const logoUrl = team.strBadge || team.strLogo || team.strTeamBadge || null;
+
+        if (logoUrl) {
+          // Cache the result
+          logoCache[cacheKey] = logoUrl;
+          saveCache(logoCache);
+          return logoUrl;
+        }
+      }
+
+      // Don't cache null for API failures - allow retry
+      return null;
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error(`[TeamLogos] Failed to fetch logo for ${teamName}:`, error.message);
+      }
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return null;
+  });
+
+  pendingLogoPromises.set(cacheKey, queuedPromise);
+  try {
+    return await queuedPromise;
+  } finally {
+    pendingLogoPromises.delete(cacheKey);
   }
 };
 
