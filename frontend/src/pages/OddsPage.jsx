@@ -788,17 +788,34 @@ function OddsPage() {
     return (1 / odds) * 100;
   };
 
-  // Handle odds click to show probability
-  const handleOddsClick = (e, odds, outcome, bookmaker, meta = {}) => {
+  const resolveTooltipPosition = (event) => {
+    if (event?.clientX || event?.clientY) {
+      return { x: event.clientX || 0, y: event.clientY || 0 };
+    }
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    if (rect) {
+      return { x: rect.left + rect.width / 2, y: rect.top };
+    }
+    return { x: 0, y: 0 };
+  };
+
+  const showOddsTooltip = (event, odds, outcome, bookmaker) => {
+    if (!odds) return;
     const prob = oddsToProb(odds);
+    const position = resolveTooltipPosition(event);
     setSelectedOdd({
       odds,
       prob: prob.toFixed(1),
       outcome,
       bookmaker,
-      x: e?.clientX || 0,
-      y: e?.clientY || 0,
+      x: position.x,
+      y: position.y,
     });
+  };
+
+  const hideOddsTooltip = () => setSelectedOdd(null);
+
+  const handleOddsClick = (odds, outcome, bookmaker, meta = {}) => {
     trackAffiliateClick({
       bookmaker,
       placement: meta.placement || 'odds_cell',
@@ -810,14 +827,6 @@ function OddsPage() {
       url: meta.url,
     });
   };
-
-  // Cleanup timeout for probability tooltip
-  useEffect(() => {
-    if (selectedOdd) {
-      const timer = setTimeout(() => setSelectedOdd(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedOdd]);
 
   const searchLeagueId = useMemo(() => {
     const query = searchQuery.trim();
@@ -1665,8 +1674,21 @@ function OddsPage() {
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
-                                      onClick={(e) => handleOddsClick(
+                                      onMouseEnter={(e) => showOddsTooltip(
                                         e,
+                                        oddsValue,
+                                        currentMarket.labels[i],
+                                        config.name
+                                      )}
+                                      onMouseLeave={hideOddsTooltip}
+                                      onFocus={(e) => showOddsTooltip(
+                                        e,
+                                        oddsValue,
+                                        currentMarket.labels[i],
+                                        config.name
+                                      )}
+                                      onBlur={hideOddsTooltip}
+                                      onClick={() => handleOddsClick(
                                         oddsValue,
                                         currentMarket.labels[i],
                                         config.name,
@@ -1678,7 +1700,7 @@ function OddsPage() {
                                           url: config.affiliateUrl,
                                         }
                                       )}
-                                      title={`Click for probability  ${oddsToProb(oddsValue).toFixed(1)}%`}
+                                      title={`Hover for probability ${oddsToProb(oddsValue).toFixed(1)}%`}
                                     >
                                       <span className="odds-card-odd-label">{currentMarket.labels[i]}</span>
                                       <span className="odds-card-odd-value">{oddsValue ? oddsValue.toFixed(2) : '-'}</span>
@@ -1797,7 +1819,20 @@ function OddsPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
-                                onClick={(e) => handleOddsClick(
+                                onMouseEnter={(e) => showOddsTooltip(
+                                  oddsValue,
+                                  currentMarket.labels[i],
+                                  config.name
+                                )}
+                                onMouseLeave={hideOddsTooltip}
+                                onFocus={(e) => showOddsTooltip(
+                                  e,
+                                  oddsValue,
+                                  currentMarket.labels[i],
+                                  config.name
+                                )}
+                                onBlur={hideOddsTooltip}
+                                onClick={() => handleOddsClick(
                                   e,
                                   oddsValue,
                                   currentMarket.labels[i],
@@ -1810,7 +1845,7 @@ function OddsPage() {
                                     url: config.affiliateUrl,
                                   }
                                 )}
-                                title={`Click for probability • ${oddsToProb(oddsValue).toFixed(1)}%`}
+                                title={`Hover for probability • ${oddsToProb(oddsValue).toFixed(1)}%`}
                               >
                                 {oddsValue ? oddsValue.toFixed(2) : '-'}
                                 {isBest && oddsValue && <span className="best-tag">BEST</span>}
