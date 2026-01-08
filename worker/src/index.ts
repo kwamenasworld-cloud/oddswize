@@ -437,6 +437,21 @@ async function getOddsData(env: Env): Promise<OddsResponse> {
       };
     }
 
+    // Fall back to last known odds if the hot cache expired
+    const backup = await env.ODDS_CACHE.get('last_odds', 'json');
+    if (backup) {
+      const backupResponse = backup as OddsResponse;
+      return {
+        ...backupResponse,
+        meta: {
+          ...backupResponse.meta,
+          cache_ttl: 60,
+          stale: true,
+        },
+        data: attachLeagueKeys(backupResponse.data || []),
+      };
+    }
+
     // If no cache, return empty data
     // In production, this would fetch from external APIs or scraped data
     const emptyResponse: OddsResponse = {
@@ -586,6 +601,8 @@ async function updateOddsData(
     await env.ODDS_CACHE.put('all_odds', JSON.stringify(oddsResponse), {
       expirationTtl: 3600, // 1 hour
     });
+    // Keep a persistent backup in case the scheduled scrape fails
+    await env.ODDS_CACHE.put('last_odds', JSON.stringify(oddsResponse));
 
     return {
       success: true,

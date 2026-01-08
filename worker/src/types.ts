@@ -44,6 +44,7 @@ export interface OddsResponse {
     total_bookmakers: number;
     last_updated: string;
     cache_ttl: number;
+    stale?: boolean;
     offset?: number;
     limit?: number;
     returned_matches?: number;
