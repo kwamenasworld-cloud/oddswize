@@ -1558,19 +1558,22 @@ a {
 
 .odd-info {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
+  bottom: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.15);
-  color: #222;
-  font-size: 0.6rem;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #555;
+  font-size: 0.55rem;
   font-weight: 700;
   display: none;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .odd-info:focus {
@@ -1579,12 +1582,19 @@ a {
 }
 
 .odd-info:active {
-  transform: scale(0.96);
+  transform: scale(0.94);
+}
+
+.odd:hover .odd-info,
+.odd:focus-within .odd-info {
+  display: flex;
+  opacity: 0.9;
 }
 
 @media (hover: none) and (pointer: coarse) {
   .odd-info {
     display: flex;
+    opacity: 0.5;
   }
 }
 
@@ -1688,14 +1698,15 @@ a {
 
 /* Probability Tooltip */
 .probability-tooltip {
-  background: white;
+  background: #111827;
+  color: #f9fafb;
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-  padding: 0.75rem 1rem;
-  min-width: 160px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
+  padding: 0.65rem 0.8rem;
+  min-width: 150px;
   animation: tooltip-in 0.2s ease-out;
   cursor: pointer;
-  border: 1px solid #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 @keyframes tooltip-in {
@@ -1718,11 +1729,11 @@ a {
 
 .prob-outcome {
   font-weight: 600;
-  color: #333;
+  color: #f9fafb;
 }
 
 .prob-bookie {
-  color: #888;
+  color: #9ca3af;
 }
 
 .prob-main {
@@ -1736,24 +1747,24 @@ a {
 .prob-odds {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--primary);
+  color: #93c5fd;
 }
 
 .prob-arrow {
   font-size: 1rem;
-  color: #888;
+  color: #9ca3af;
 }
 
 .prob-percent {
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--success);
+  color: #34d399;
 }
 
 .prob-label {
   text-align: center;
   font-size: 0.7rem;
-  color: #888;
+  color: #9ca3af;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
