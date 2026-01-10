@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { trackEvent } from '../services/analytics';
 
 function ShareButton({ home_team, away_team, league, time, bestHome, bestDraw, bestAway, shareLink }) {
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -41,12 +42,26 @@ Find the best betting odds in Ghana.`;
     const text = formatShareText();
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, '_blank');
+    trackEvent('share', {
+      method: 'whatsapp',
+      placement: 'odds_match_share',
+      match: `${home_team} vs ${away_team}`,
+      league,
+      link_url: shareLink,
+    });
     setShowShareMenu(false);
   };
 
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareLink);
+      trackEvent('share', {
+        method: 'copy_link',
+        placement: 'odds_match_share',
+        match: `${home_team} vs ${away_team}`,
+        league,
+        link_url: shareLink,
+      });
       setCopied(true);
       setTimeout(() => {
         setCopied(false);
@@ -61,6 +76,13 @@ Find the best betting odds in Ghana.`;
     try {
       const text = formatShareText();
       await navigator.clipboard.writeText(text);
+      trackEvent('share', {
+        method: 'copy_text',
+        placement: 'odds_match_share',
+        match: `${home_team} vs ${away_team}`,
+        league,
+        link_url: shareLink,
+      });
       setCopied(true);
       setTimeout(() => {
         setCopied(false);

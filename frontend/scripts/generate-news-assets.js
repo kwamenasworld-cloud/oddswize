@@ -239,7 +239,7 @@ const renderLandingPage = ({ title, description, canonical, heading, intro, sect
     ${sectionsHtml}
   </main>
   <footer class="footer">
-    <p>OddsWize compares odds across Ghana bookmakers. Always gamble responsibly.</p>
+    <p>OddsWize compares odds across Ghana and Nigeria bookmakers. Always gamble responsibly.</p>
   </footer>
 </body>
 </html>`;
@@ -334,6 +334,96 @@ const renderBookmakerPage = (config) => {
     sectionsHtml,
     ctaLabel,
     ctaUrl,
+  });
+};
+
+const getCountryLeagues = (countryId) => (
+  Object.values(LEAGUES)
+    .filter((league) => league.country === countryId)
+    .sort((a, b) => (a.tier || 9) - (b.tier || 9))
+);
+
+const renderCountryOddsPage = ({ countryId, slug, headline, intro, ctaUrl }) => {
+  const country = COUNTRIES[countryId];
+  const countryName = country?.name || 'Country';
+  const title = `${countryName} Odds Comparison | Best Bookmakers in ${countryName}`;
+  const description = `Compare odds from ${countryName} bookmakers and find the best prices across top leagues.`;
+  const canonical = `${SITE_URL}/${slug}/`;
+  const heading = headline || `${countryName} Odds Comparison`;
+  const leagueList = getCountryLeagues(countryId)
+    .map((league) => {
+      const name = league.name === 'Premier League'
+        ? `${countryName} Premier League`
+        : league.name;
+      return `<li>${escapeHtml(name)}</li>`;
+    })
+    .join('');
+  const bookmakersList = BOOKMAKER_ORDER.map((bookie) => {
+    const name = BOOKMAKER_AFFILIATES[bookie]?.name || bookie;
+    return `<li>${escapeHtml(name)}</li>`;
+  }).join('');
+  const sectionsHtml = `
+    <section class="card">
+      <h2>Compare odds in ${escapeHtml(countryName)}</h2>
+      <p>OddsWize brings together prices from ${escapeHtml(countryName)}-focused bookmakers so you can see the best value before you bet.</p>
+      <p>We cover local fixtures plus the biggest European competitions that Ghanaian and Nigerian bettors follow.</p>
+    </section>
+    <section class="card">
+      <h2>Popular ${escapeHtml(countryName)} leagues</h2>
+      <ul class="list">${leagueList || '<li>Premier League fixtures</li>'}</ul>
+    </section>
+    <section class="card">
+      <h2>Bookmakers we track</h2>
+      <ul class="list">${bookmakersList}</ul>
+    </section>
+  `;
+
+  return renderLandingPage({
+    title,
+    description,
+    canonical,
+    heading,
+    intro: intro || `Compare odds for ${countryName} fixtures and get the best price quickly.`,
+    sectionsHtml,
+    ctaLabel: `View ${countryName} odds`,
+    ctaUrl: ctaUrl || `${SITE_URL}/odds?country=${countryId}`,
+  });
+};
+
+const renderCountryLeaguePage = ({ countryId, leagueId, slug, leagueName }) => {
+  const country = COUNTRIES[countryId];
+  const countryName = country?.name || 'Country';
+  const league = LEAGUES[leagueId];
+  const displayName = leagueName || league?.name || 'League';
+  const title = `${displayName} Odds | ${countryName} Bookmakers`;
+  const description = `Compare ${displayName} odds from ${countryName} bookmakers. Find the best prices for upcoming fixtures.`;
+  const canonical = `${SITE_URL}/${slug}/`;
+  const heading = `${displayName} Odds Comparison`;
+  const sectionsHtml = `
+    <section class="card">
+      <h2>Best ${escapeHtml(displayName)} odds</h2>
+      <p>Compare ${escapeHtml(displayName)} odds across ${escapeHtml(countryName)} bookmakers and spot value quickly.</p>
+      <p>We update frequently to keep odds and coverage fresh.</p>
+    </section>
+    <section class="card">
+      <h2>Get more value from every bet</h2>
+      <ol class="list">
+        <li>Check at least three bookmakers for each outcome.</li>
+        <li>Look for lines that are 5%+ above the market average.</li>
+        <li>Move quickly when you see a price gap.</li>
+      </ol>
+    </section>
+  `;
+
+  return renderLandingPage({
+    title,
+    description,
+    canonical,
+    heading,
+    intro: `Compare ${displayName} fixtures across the top ${countryName} bookmakers.`,
+    sectionsHtml,
+    ctaLabel: `View ${displayName} odds`,
+    ctaUrl: `${SITE_URL}/odds?league=${leagueId}`,
   });
 };
 
@@ -487,6 +577,62 @@ for (const config of Object.values(BOOKMAKER_AFFILIATES)) {
   });
 }
 
+const COUNTRY_LANDINGS = [
+  {
+    countryId: 'ghana',
+    slug: 'ghana-odds',
+    headline: 'Ghana Odds Comparison',
+    intro: 'Compare odds from Ghana bookmakers and find the best price fast.',
+    ctaUrl: `${SITE_URL}/odds?country=ghana`,
+  },
+  {
+    countryId: 'nigeria',
+    slug: 'nigeria-odds',
+    headline: 'Nigeria Odds Comparison',
+    intro: 'Compare odds from Nigeria bookmakers and track top fixtures daily.',
+    ctaUrl: `${SITE_URL}/odds?country=nigeria`,
+  },
+];
+
+const COUNTRY_LEAGUE_LANDINGS = [
+  {
+    countryId: 'ghana',
+    leagueId: 'ghana',
+    slug: 'ghana-premier-league-odds',
+    leagueName: 'Ghana Premier League',
+  },
+  {
+    countryId: 'nigeria',
+    leagueId: 'nigeria',
+    slug: 'npfl-odds',
+    leagueName: 'Nigeria Premier League (NPFL)',
+  },
+];
+
+const countryEntries = [];
+for (const landing of COUNTRY_LANDINGS) {
+  if (!landing?.countryId || !landing?.slug) continue;
+  await writePage(landing.slug, renderCountryOddsPage(landing));
+  countryEntries.push({
+    loc: `${SITE_URL}/${landing.slug}/`,
+    lastmod: latestIso,
+    changefreq: 'weekly',
+    priority: '0.7',
+  });
+}
+
+const countryLeagueEntries = [];
+for (const landing of COUNTRY_LEAGUE_LANDINGS) {
+  if (!landing?.countryId || !landing?.leagueId || !landing?.slug) continue;
+  await writePage(landing.slug, renderCountryLeaguePage(landing));
+  countryLeagueEntries.push({
+    loc: `${SITE_URL}/${landing.slug}/`,
+    lastmod: latestIso,
+    changefreq: 'weekly',
+    priority: '0.7',
+  });
+}
+
 const oddsData = await readOddsData();
 const valuePicks = buildValuePicks(oddsData?.matches || []);
 const updatedAt = oddsData?.last_updated || now.toISOString();
@@ -530,6 +676,8 @@ const sitemapEntries = [
     changefreq: 'weekly',
     priority: '0.7',
   })),
+  ...countryEntries,
+  ...countryLeagueEntries,
   ...leagueEntries,
   ...bookmakerEntries,
 ];

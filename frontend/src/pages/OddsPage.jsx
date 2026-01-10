@@ -80,6 +80,7 @@ const POPULAR_LEAGUES = [
   { ...LEAGUES.eredivisie, name: 'Eredivisie' },
   { ...LEAGUES.portugal, name: 'Primeira Liga' },
   { ...LEAGUES.ghana, name: 'Ghana PL' },
+  { ...LEAGUES.nigeria, name: 'NPFL' },
   { ...LEAGUES.facup, name: 'FA Cup' },
   { ...LEAGUES.eflcup, name: 'EFL Cup' },
   { ...LEAGUES.laliga2, name: 'La Liga 2' },
@@ -93,7 +94,7 @@ const POPULAR_LEAGUES = [
 const COUNTRY_FILTERS = [
   { id: 'all', name: 'All Countries' },
   ...Object.values(COUNTRIES)
-    .filter(c => ['england', 'spain', 'germany', 'italy', 'france', 'portugal', 'netherlands', 'scotland', 'ghana', 'europe'].includes(c.id))
+    .filter(c => ['england', 'spain', 'germany', 'italy', 'france', 'portugal', 'netherlands', 'scotland', 'ghana', 'nigeria', 'europe'].includes(c.id))
     .map(c => ({ id: c.id, name: c.name, flag: c.flag })),
 ];
 
@@ -229,6 +230,7 @@ const MARKET_FIELDS = {
 function OddsPage() {
   const [searchParams] = useSearchParams();
   const preferCanonical = searchParams.get('source') === 'canonical';
+  const countryParam = searchParams.get('country');
   const [matches, setMatches] = useState([]);
   const [canonicalLeagues, setCanonicalLeagues] = useState([]);
   const [useCanonical, setUseCanonical] = useState(false);
@@ -251,7 +253,12 @@ function OddsPage() {
     }
     return [];
   });
-  const [selectedCountry, setSelectedCountry] = useState('all');
+  const [selectedCountry, setSelectedCountry] = useState(() => {
+    if (countryParam && (countryParam === 'all' || COUNTRIES[countryParam])) {
+      return countryParam;
+    }
+    return 'all';
+  });
   const [selectedMarket, setSelectedMarket] = useState('1x2');
   const [selectedOdd, setSelectedOdd] = useState(null);
   const [selectedDate, setSelectedDate] = useState('next24');
@@ -411,6 +418,13 @@ function OddsPage() {
         // Also reset country filter to show all when filtering by league from URL
         setSelectedCountry('all');
       }
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const urlCountry = searchParams.get('country');
+    if (urlCountry && (urlCountry === 'all' || COUNTRIES[urlCountry])) {
+      setSelectedCountry(urlCountry);
     }
   }, [searchParams]);
 
@@ -794,6 +808,49 @@ function OddsPage() {
 
     if (!best) return null;
     return best;
+  };
+
+  const getBestMarketOffer = (oddsByBookie, marketFields, labels, activeBookmakers) => {
+    if (!oddsByBookie || !activeBookmakers.length) return null;
+    let best = null;
+    activeBookmakers.forEach((bookmaker) => {
+      const odds = oddsByBookie.get(bookmaker);
+      if (!odds) return;
+      marketFields.forEach((field, index) => {
+        const value = Number(odds[field]);
+        if (!Number.isFinite(value) || value <= 0) return;
+        if (!best || value > best.odds) {
+          best = {
+            bookmaker,
+            odds: value,
+            outcome: labels[index],
+          };
+        }
+      });
+    });
+    return best;
+  };
+
+  const getBookmakerBestPrice = (odds, marketFields) => {
+    if (!odds) return -1;
+    let best = -1;
+    marketFields.forEach((field) => {
+      const value = Number(odds[field]);
+      if (Number.isFinite(value) && value > best) {
+        best = value;
+      }
+    });
+    return best;
+  };
+
+  const rankBookmakersByPrice = (activeBookmakersList, oddsByBookie, marketFields) => {
+    const orderIndex = new Map(activeBookmakersList.map((bookmaker, index) => [bookmaker, index]));
+    return [...activeBookmakersList].sort((a, b) => {
+      const aOdds = getBookmakerBestPrice(oddsByBookie.get(a), marketFields);
+      const bOdds = getBookmakerBestPrice(oddsByBookie.get(b), marketFields);
+      if (bOdds !== aOdds) return bOdds - aOdds;
+      return (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0);
+    });
   };
 
   // Convert odds to implied probability
@@ -1628,13 +1685,31 @@ function OddsPage() {
               const best1x2Away = getBestOdds(match, 'away_odds');
 
               const matchLabel = `${match.home_team} vs ${match.away_team}`;
+              const oddsByBookie = new Map((match.odds || []).map((odds) => [odds.bookmaker, odds]));
+              const bestMarketOffer = getBestMarketOffer(
+                oddsByBookie,
+                marketFields,
+                currentMarket.labels,
+                activeBookmakers
+              );
               const bestValue = getBestValueOffer(match, marketFields, currentMarket.labels, activeBookmakers);
               const bestValueConfig = bestValue ? BOOKMAKER_AFFILIATES[bestValue.bookmaker] : null;
               const bestValuePercent = bestValue ? Math.round(bestValue.edge) : 0;
               const hasBestValue = Boolean(bestValue && bestValueConfig && bestValuePercent > 0);
+              const ctaOffer = hasBestValue ? bestValue : bestMarketOffer;
+              const ctaConfig = ctaOffer ? BOOKMAKER_AFFILIATES[ctaOffer.bookmaker] : null;
+              const showCta = Boolean(ctaOffer && ctaConfig && ctaConfig.affiliateUrl);
+              const ctaMeta = hasBestValue && bestValueConfig
+                ? `${bestValueConfig.name} +${bestValuePercent}% vs avg`
+                : ctaConfig && ctaOffer
+                  ? `${ctaConfig.name} @ ${Number.isFinite(ctaOffer.odds) ? ctaOffer.odds.toFixed(2) : '-'}`
+                  : '';
 
               // Create share link for this specific match
-              const shareLink = `${window.location.origin}/odds?match=${encodeURIComponent(matchLabel)}`;
+              const shareLink = `${window.location.origin}/odds?match=${encodeURIComponent(matchLabel)}&ref=share`;
+              const rankedBookmakers = compactView
+                ? rankBookmakersByPrice(activeBookmakers, oddsByBookie, marketFields)
+                : activeBookmakers;
 
               if (compactView) {
                 return (
@@ -1675,28 +1750,26 @@ function OddsPage() {
                       </div>
                     </div>
 
-                    {hasBestValue && (
+                    {showCta && (
                       <div className="odds-card-cta">
                         <div className="odds-card-cta-info">
-                          <span className="odds-card-cta-label">Best {bestValue.outcome} odds</span>
-                          <span className="odds-card-cta-meta">
-                            {bestValueConfig.name} +{bestValuePercent}% vs avg
-                          </span>
+                          <span className="odds-card-cta-label">Best {ctaOffer.outcome} odds</span>
+                          <span className="odds-card-cta-meta">{ctaMeta}</span>
                         </div>
                         <a
-                          href={bestValueConfig.affiliateUrl}
+                          href={ctaConfig.affiliateUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="odds-card-cta-btn"
                           onClick={() => trackAffiliateClick({
-                            bookmaker: bestValueConfig.name,
+                            bookmaker: ctaConfig.name,
                             placement: 'odds_card_cta',
                             match: matchLabel,
                             league: match.league,
-                            outcome: bestValue.outcome,
-                            odds: bestValue.odds,
-                            valuePercent: bestValuePercent,
-                            url: bestValueConfig.affiliateUrl,
+                            outcome: ctaOffer.outcome,
+                            odds: ctaOffer.odds,
+                            valuePercent: hasBestValue ? bestValuePercent : undefined,
+                            url: ctaConfig.affiliateUrl,
                           })}
                         >
                           Bet Now
@@ -1705,8 +1778,8 @@ function OddsPage() {
                     )}
 
                     <div className="odds-card-odds">
-                      {activeBookmakers.map((bookmaker) => {
-                        const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
+                      {rankedBookmakers.map((bookmaker) => {
+                        const bookieOdds = oddsByBookie.get(bookmaker);
                         const config = BOOKMAKER_AFFILIATES[bookmaker];
 
                         return (
@@ -1863,28 +1936,26 @@ function OddsPage() {
                         Discuss
                       </button>
                     </div>
-                    {hasBestValue && (
+                    {showCta && (
                       <div className="match-cta">
                         <div className="match-cta-info">
-                          <span className="match-cta-label">Best {bestValue.outcome} odds</span>
-                          <span className="match-cta-meta">
-                            {bestValueConfig.name} +{bestValuePercent}% vs avg
-                          </span>
+                          <span className="match-cta-label">Best {ctaOffer.outcome} odds</span>
+                          <span className="match-cta-meta">{ctaMeta}</span>
                         </div>
                         <a
-                          href={bestValueConfig.affiliateUrl}
+                          href={ctaConfig.affiliateUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="match-cta-btn"
                           onClick={() => trackAffiliateClick({
-                            bookmaker: bestValueConfig.name,
+                            bookmaker: ctaConfig.name,
                             placement: 'odds_match_cta',
                             match: matchLabel,
                             league: match.league,
-                            outcome: bestValue.outcome,
-                            odds: bestValue.odds,
-                            valuePercent: bestValuePercent,
-                            url: bestValueConfig.affiliateUrl,
+                            outcome: ctaOffer.outcome,
+                            odds: ctaOffer.odds,
+                            valuePercent: hasBestValue ? bestValuePercent : undefined,
+                            url: ctaConfig.affiliateUrl,
                           })}
                         >
                           Bet Now
@@ -1900,7 +1971,7 @@ function OddsPage() {
 
                   {/* Odds for each bookmaker */}
                   {activeBookmakers.map((bookmaker) => {
-                    const bookieOdds = match.odds?.find((o) => o.bookmaker === bookmaker);
+                    const bookieOdds = oddsByBookie.get(bookmaker);
                     const config = BOOKMAKER_AFFILIATES[bookmaker];
 
                     return (

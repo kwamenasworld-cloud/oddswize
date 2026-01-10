@@ -7,7 +7,7 @@ import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getBookmakerConfig } from '../co
 import { LEAGUES, matchLeague, getLeagueTier } from '../config/leagues';
 import { getTeamPopularityScore } from '../config/popularity';
 import { getLatestArticles, formatArticleDate } from '../data/articles';
-import { trackAffiliateClick } from '../services/analytics';
+import { trackAffiliateClick, trackEvent } from '../services/analytics';
 import { clearOddsCacheMemory, getCachedOdds, getMatchesByLeague } from '../services/api';
 
 const SITE_URL = 'https://oddswize.com';
@@ -84,6 +84,8 @@ const POPULAR_LEAGUES = [
   LEAGUES.ucl,
   LEAGUES.seriea,
   LEAGUES.bundesliga,
+  LEAGUES.ghana,
+  LEAGUES.nigeria,
 ];
 
 // Deep links to key pages/leagues for discoverability
@@ -97,6 +99,8 @@ const SEO_LINKS = [
   { to: '/odds?league=bundesliga', label: 'Bundesliga Odds' },
   { to: '/odds?league=ligue1', label: 'Ligue 1 Odds' },
   { to: '/odds?league=ucl', label: 'Champions League Odds' },
+  { to: '/odds?country=ghana', label: 'Ghana Odds' },
+  { to: '/odds?country=nigeria', label: 'Nigeria Odds' },
 ];
 function HomePage() {
   const [featuredMatches, setFeaturedMatches] = useState([]);
@@ -108,7 +112,7 @@ function HomePage() {
   const latestArticles = useMemo(() => getLatestArticles(4), []);
 
   const shareMessage = 'Compare odds across Ghana bookmakers with OddsWize. Find better value before you bet.';
-  const shareUrl = SITE_URL;
+  const shareUrl = `${SITE_URL}/?ref=share`;
 
   const handleShareSite = async () => {
     const payload = {
@@ -290,6 +294,42 @@ function HomePage() {
       clearOddsCacheMemory();
       setLoading(false);
     }
+  };
+
+  const buildValueShareText = (pick) => {
+    const match = pick.match;
+    const offer = pick.offer;
+    const config = getBookmakerConfig(offer.bookmaker);
+    const matchLabel = `${match.home_team} vs ${match.away_team}`;
+    const valuePercent = Math.round(offer.edge);
+    const shareLink = `${SITE_URL}/odds?match=${encodeURIComponent(matchLabel)}&ref=whatsapp`;
+
+    return {
+      shareLink,
+      text: `Value pick: ${matchLabel}
+League: ${match.league}
+Kickoff: ${formatTime(match.start_time)}
+Best value: ${offer.label} at ${config.name} (+${valuePercent}% edge)
+
+Compare odds on OddsWize:
+${shareLink}`,
+    };
+  };
+
+  const handleShareValuePick = (pick) => {
+    const match = pick.match;
+    const { text, shareLink } = buildValueShareText(pick);
+    const matchLabel = `${match.home_team} vs ${match.away_team}`;
+    const valuePercent = Math.round(pick.offer.edge);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    trackEvent('share', {
+      method: 'whatsapp',
+      placement: 'home_value_pick',
+      match: matchLabel,
+      league: match.league,
+      value_percent: valuePercent,
+      link_url: shareLink,
+    });
   };
 
   useEffect(() => {
@@ -542,24 +582,34 @@ function HomePage() {
                       <span className="value-odds">{formatOddValue(offer.odds)}</span>
                     </div>
                   </div>
-                  <a
-                    href={config.affiliateUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="value-cta"
-                    onClick={() => trackAffiliateClick({
-                      bookmaker: config.name,
-                      placement: 'home_value_pick',
-                      match: matchLabel,
-                      league: match.league,
-                      outcome: offer.label,
-                      odds: offer.odds,
-                      valuePercent,
-                      url: config.affiliateUrl,
-                    })}
-                  >
-                    Bet with {config.name}
-                  </a>
+                  <div className="value-actions">
+                    <a
+                      href={config.affiliateUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="value-cta"
+                      onClick={() => trackAffiliateClick({
+                        bookmaker: config.name,
+                        placement: 'home_value_pick',
+                        match: matchLabel,
+                        league: match.league,
+                        outcome: offer.label,
+                        odds: offer.odds,
+                        valuePercent,
+                        url: config.affiliateUrl,
+                      })}
+                    >
+                      Bet with {config.name}
+                    </a>
+                    <button
+                      type="button"
+                      className="value-share"
+                      onClick={() => handleShareValuePick(pick)}
+                      aria-label={`Share ${matchLabel} value pick`}
+                    >
+                      Share
+                    </button>
+                  </div>
                 </div>
               );
             })
