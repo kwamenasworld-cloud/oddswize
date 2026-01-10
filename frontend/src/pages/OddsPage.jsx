@@ -264,6 +264,7 @@ function OddsPage() {
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [discussionMatch, setDiscussionMatch] = useState(null);
   const [pageIndex, setPageIndex] = useState(0);
+  const tooltipPinnedRef = useRef(false);
   const [compactView, setCompactView] = useState(() => {
     if (typeof window === 'undefined') return false;
     if (window.matchMedia) {
@@ -800,11 +801,12 @@ function OddsPage() {
     return { x: 0, y: 0 };
   };
 
-  const showOddsTooltip = (event, odds, outcome, bookmaker) => {
+  const showOddsTooltip = (event, odds, outcome, bookmaker, pin = false) => {
     const value = Number(odds);
     if (!Number.isFinite(value) || value <= 0) return;
     const prob = oddsToProb(value);
     const position = resolveTooltipPosition(event);
+    tooltipPinnedRef.current = Boolean(pin);
     setSelectedOdd({
       odds: value,
       prob: prob.toFixed(1),
@@ -815,13 +817,21 @@ function OddsPage() {
     });
   };
 
-  const hideOddsTooltip = () => setSelectedOdd(null);
+  const clearOddsTooltip = () => {
+    tooltipPinnedRef.current = false;
+    setSelectedOdd(null);
+  };
+
+  const hideOddsTooltip = () => {
+    if (tooltipPinnedRef.current) return;
+    clearOddsTooltip();
+  };
 
   const handleOddsInfoClick = (event, odds, outcome, bookmaker) => {
     if (!event) return;
     event.preventDefault();
     event.stopPropagation();
-    showOddsTooltip(event, odds, outcome, bookmaker);
+    showOddsTooltip(event, odds, outcome, bookmaker, true);
   };
 
   const handleOddsClick = (odds, outcome, bookmaker, meta = {}) => {
@@ -1881,6 +1891,7 @@ function OddsPage() {
                                 rel="noopener noreferrer"
                                 className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
                                 onMouseEnter={(e) => showOddsTooltip(
+                                  e,
                                   oddsValue,
                                   currentMarket.labels[i],
                                   config.name
@@ -1894,7 +1905,6 @@ function OddsPage() {
                                 )}
                                 onBlur={hideOddsTooltip}
                                 onClick={() => handleOddsClick(
-                                  e,
                                   oddsValue,
                                   currentMarket.labels[i],
                                   config.name,
@@ -2056,7 +2066,7 @@ function OddsPage() {
             top: selectedOdd.y - 80,
             zIndex: 1000,
           }}
-          onClick={() => setSelectedOdd(null)}
+          onClick={clearOddsTooltip}
         >
           <div className="prob-header">
             <span className="prob-outcome">{selectedOdd.outcome}</span>
