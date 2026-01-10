@@ -976,6 +976,15 @@ function OddsPage() {
     });
   }, [matches, searchQuery, leagueQuery, selectedLeagues, selectedCountry, selectedDate, useCanonical, canonicalLeagues]);
 
+  useEffect(() => {
+    if (loading) return;
+    if (selectedDate === 'all') return;
+    if (selectedLeagues.length === 0 && !leagueQuery) return;
+    if (matches.length === 0) return;
+    if (filteredMatches.length > 0) return;
+    setSelectedDate('all');
+  }, [loading, selectedDate, selectedLeagues, leagueQuery, matches.length, filteredMatches.length]);
+
   const paginationTotal = useServerPagination ? totalMatchCount : filteredMatches.length;
   const totalPages = paginationTotal > 0 ? Math.ceil(paginationTotal / pageSize) : 0;
   const safePageIndex = Math.min(pageIndex, Math.max(totalPages - 1, 0));
