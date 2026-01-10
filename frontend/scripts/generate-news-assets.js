@@ -541,8 +541,7 @@ ${sitemapEntries.map((entry) => `  <url>
     <lastmod>${escapeXml(entry.lastmod)}</lastmod>
     <changefreq>${escapeXml(entry.changefreq)}</changefreq>
     <priority>${escapeXml(entry.priority)}</priority>
-  </url>`).join('
-')}
+  </url>`).join('\n')}
 </urlset>
 `;
 
@@ -576,8 +575,7 @@ const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
     <description>Betting news, odds analysis, and guides for Ghanaian bettors.</description>
     <language>en-GH</language>
     <lastBuildDate>${toRfc822(latestArticleDate, now)}</lastBuildDate>
-${rssItems.join('
-')}
+${rssItems.join('\n')}
   </channel>
 </rss>
 `;
