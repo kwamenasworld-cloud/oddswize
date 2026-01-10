@@ -22,8 +22,10 @@ const toDate = (value) => {
 };
 
 const toIsoDate = (value, fallback) => {
-  const date = toDate(value) || fallback || new Date();
-  return date.toISOString().slice(0, 10);
+  const fallbackDate = toDate(fallback) || new Date();
+  const date = toDate(value) || fallbackDate;
+  const clamped = date > fallbackDate ? fallbackDate : date;
+  return clamped.toISOString().slice(0, 10);
 };
 
 const toRfc822 = (value, fallback) => {
@@ -74,7 +76,86 @@ const formatKickoff = (timestamp) => {
   });
 };
 
-const renderLandingPage = ({ title, description, canonical, heading, intro, sectionsHtml, ctaLabel, ctaUrl }) => {
+const renderLinkSection = (heading, links) => {
+  if (!Array.isArray(links) || !links.length) return '';
+  const linksHtml = links
+    .filter((link) => link?.href && link?.label)
+    .map((link) => `<a class="pill-link" href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`)
+    .join('');
+  if (!linksHtml) return '';
+  return `
+    <section class="card">
+      <h2>${escapeHtml(heading)}</h2>
+      <div class="link-grid">${linksHtml}</div>
+    </section>
+  `;
+};
+
+const renderFaqSection = (items, heading = 'FAQ') => {
+  if (!Array.isArray(items) || !items.length) return { html: '', jsonLd: null };
+  const faqHtml = items
+    .filter((item) => item?.question && item?.answer)
+    .map((item) => `
+      <div class="faq-item">
+        <h3>${escapeHtml(item.question)}</h3>
+        <p>${escapeHtml(item.answer)}</p>
+      </div>
+    `)
+    .join('');
+  if (!faqHtml) return { html: '', jsonLd: null };
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items
+      .filter((item) => item?.question && item?.answer)
+      .map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+  };
+  return {
+    html: `
+      <section class="card">
+        <h2>${escapeHtml(heading)}</h2>
+        <div class="faq">${faqHtml}</div>
+      </section>
+    `,
+    jsonLd,
+  };
+};
+
+const renderInfoSection = ({ title, paragraphs, list, ordered }) => {
+  const titleHtml = title ? `<h2>${escapeHtml(title)}</h2>` : '';
+  const paragraphsHtml = Array.isArray(paragraphs)
+    ? paragraphs.map((text) => `<p>${escapeHtml(text)}</p>`).join('')
+    : '';
+  const listHtml = Array.isArray(list) && list.length
+    ? `<${ordered ? 'ol' : 'ul'} class="list">${list.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</${ordered ? 'ol' : 'ul'}>`
+    : '';
+  return `
+    <section class="card">
+      ${titleHtml}
+      ${paragraphsHtml}
+      ${listHtml}
+    </section>
+  `;
+};
+
+const renderLandingPage = ({
+  title,
+  description,
+  canonical,
+  heading,
+  intro,
+  sectionsHtml,
+  ctaLabel,
+  ctaUrl,
+  extraJsonLd,
+}) => {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
   const safeCanonical = escapeHtml(canonical);
@@ -97,6 +178,10 @@ const renderLandingPage = ({ title, description, canonical, heading, intro, sect
       },
     },
   };
+  const jsonLdBlocks = [jsonLd, ...(Array.isArray(extraJsonLd) ? extraJsonLd : [])].filter(Boolean);
+  const jsonLdScripts = jsonLdBlocks
+    .map((block) => `<script type="application/ld+json">${escapeHtml(JSON.stringify(block))}</script>`)
+    .join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -228,6 +313,43 @@ const renderLandingPage = ({ title, description, canonical, heading, intro, sect
     .pick-link:hover {
       text-decoration: underline;
     }
+    .link-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .pill-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      background: #eef2ff;
+      border: 1px solid #dbe2ff;
+      color: #1e3a8a;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .pill-link:hover {
+      background: #e0e7ff;
+    }
+    .faq {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .faq-item {
+      border-top: 1px solid #edf0f5;
+      padding-top: 0.75rem;
+    }
+    .faq-item:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+    .faq-item h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1rem;
+    }
     .footer {
       padding: 1.5rem;
       text-align: center;
@@ -247,7 +369,7 @@ const renderLandingPage = ({ title, description, canonical, heading, intro, sect
       }
     }
   </style>
-  <script type="application/ld+json">${escapeHtml(JSON.stringify(jsonLd))}</script>
+  ${jsonLdScripts}
 </head>
 <body>
   <header class="hero">
@@ -272,21 +394,47 @@ const renderLeaguePage = (league) => {
   const slug = slugify(league.id || league.name);
   const leagueName = league.name || 'League';
   const countryName = COUNTRIES[league.country]?.name || 'International';
-  const title = `${leagueName} Odds in Ghana | Compare ${leagueName} Bookmakers`;
-  const description = `Compare ${leagueName} odds from top Ghana bookmakers. Find the best prices for ${leagueName} matches and bet with confidence.`;
+  const isPriorityRegion = league.country === 'ghana' || league.country === 'nigeria';
+  const regionLabel = isPriorityRegion ? countryName : 'Ghana & Nigeria';
+  const regionText = isPriorityRegion ? countryName : 'Ghana and Nigeria';
+  const title = `${leagueName} Odds Today | ${regionLabel} Bookmakers`;
+  const description = `Compare ${leagueName} odds today across ${regionText} bookmakers. Find the best prices before kickoff.`;
   const canonical = `${SITE_URL}/odds/${slug}/`;
-  const heading = `${leagueName} Odds Comparison`;
-  const intro = `Compare ${leagueName} odds from Ghana bookmakers and spot the best value quickly.`;
+  const heading = `${leagueName} Odds Today`;
+  const intro = `Compare ${leagueName} odds across ${regionText} bookmakers and spot the best value quickly.`;
   const bookmakersList = BOOKMAKER_ORDER.map((bookie) => {
     const name = BOOKMAKER_AFFILIATES[bookie]?.name || bookie;
     return `<li>${escapeHtml(name)}</li>`;
   }).join('');
+  const popularLinks = [
+    { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+    { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+    { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+    { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+    { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
+  ];
+  const faqItems = [
+    {
+      question: `Where can I find ${leagueName} odds today?`,
+      answer: `OddsWize compares ${leagueName} prices from ${regionText} bookmakers in one place so you can spot the best price fast.`,
+    },
+    {
+      question: 'Why do odds differ between bookmakers?',
+      answer: 'Each bookmaker sets prices independently based on demand and risk, so comparing them helps you find the best value.',
+    },
+    {
+      question: `How do I spot value in ${leagueName} markets?`,
+      answer: 'Compare the top odds against the market average and look for gaps of 5% or more before kickoff.',
+    },
+  ];
+  const { html: faqHtml, jsonLd: faqJsonLd } = renderFaqSection(faqItems);
+  const popularLinksHtml = renderLinkSection('Popular searches', popularLinks);
 
   const sectionsHtml = `
     <section class="card">
-      <h2>Best ${escapeHtml(leagueName)} odds</h2>
-      <p>OddsWize compares ${escapeHtml(leagueName)} markets across Ghana's licensed bookmakers. Use the odds table to find the best price before you place a bet.</p>
-      <p>Country focus: ${escapeHtml(countryName)}. We track major fixtures, derbies, and high profile matchups.</p>
+      <h2>Best ${escapeHtml(leagueName)} odds today</h2>
+      <p>OddsWize compares ${escapeHtml(leagueName)} markets across ${escapeHtml(regionText)} bookmakers. Use the odds table to find the best price before you place a bet.</p>
+      <p>We track major fixtures, derbies, and high profile matchups that bettors follow daily.</p>
     </section>
     <section class="card">
       <h2>Bookmakers we compare</h2>
@@ -300,6 +448,8 @@ const renderLeaguePage = (league) => {
         <li>Prioritize bookmakers with the strongest bonuses.</li>
       </ol>
     </section>
+    ${popularLinksHtml}
+    ${faqHtml}
   `;
 
   return renderLandingPage({
@@ -311,6 +461,7 @@ const renderLeaguePage = (league) => {
     sectionsHtml,
     ctaLabel: `View ${leagueName} odds`,
     ctaUrl: `${SITE_URL}/odds?league=${league.id || slug}`,
+    extraJsonLd: faqJsonLd ? [faqJsonLd] : [],
   });
 };
 
@@ -369,10 +520,10 @@ const getCountryLeagues = (countryId) => (
 const renderCountryOddsPage = ({ countryId, slug, headline, intro, ctaUrl }) => {
   const country = COUNTRIES[countryId];
   const countryName = country?.name || 'Country';
-  const title = `${countryName} Odds Comparison | Best Bookmakers in ${countryName}`;
-  const description = `Compare odds from ${countryName} bookmakers and find the best prices across top leagues.`;
+  const title = `${countryName} Odds Today | Compare ${countryName} Bookmakers`;
+  const description = `Compare ${countryName} odds today across top bookmakers and find the best prices across local and European leagues.`;
   const canonical = `${SITE_URL}/${slug}/`;
-  const heading = headline || `${countryName} Odds Comparison`;
+  const heading = headline || `${countryName} Odds Today`;
   const leagueList = getCountryLeagues(countryId)
     .map((league) => {
       const name = league.name === 'Premier League'
@@ -381,10 +532,38 @@ const renderCountryOddsPage = ({ countryId, slug, headline, intro, ctaUrl }) => 
       return `<li>${escapeHtml(name)}</li>`;
     })
     .join('');
+  const localLeagueSlug = countryId === 'ghana'
+    ? 'ghana-premier-league-odds'
+    : countryId === 'nigeria'
+      ? 'npfl-odds'
+      : null;
   const bookmakersList = BOOKMAKER_ORDER.map((bookie) => {
     const name = BOOKMAKER_AFFILIATES[bookie]?.name || bookie;
     return `<li>${escapeHtml(name)}</li>`;
   }).join('');
+  const popularLinks = [
+    localLeagueSlug ? { label: `${countryName} Premier League odds`, href: `${SITE_URL}/${localLeagueSlug}/` } : null,
+    { label: 'Premier League odds today', href: `${SITE_URL}/odds/premier/` },
+    { label: 'Champions League odds', href: `${SITE_URL}/odds/ucl/` },
+    { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+    { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+  ].filter(Boolean);
+  const faqItems = [
+    {
+      question: `Which ${countryName} bookmakers have the best odds today?`,
+      answer: `OddsWize compares prices from top ${countryName}-focused bookmakers so you can spot the best price before you bet.`,
+    },
+    {
+      question: `Do you cover ${countryName} Premier League fixtures?`,
+      answer: `Yes. We track ${countryName} Premier League matches alongside popular European competitions that local bettors follow.`,
+    },
+    {
+      question: 'How often are odds updated?',
+      answer: 'Odds refresh throughout the day, especially near kickoff. Always check the live odds table before placing a bet.',
+    },
+  ];
+  const { html: faqHtml, jsonLd: faqJsonLd } = renderFaqSection(faqItems);
+  const popularLinksHtml = renderLinkSection('Popular searches', popularLinks);
   const sectionsHtml = `
     <section class="card">
       <h2>Compare odds in ${escapeHtml(countryName)}</h2>
@@ -399,6 +578,8 @@ const renderCountryOddsPage = ({ countryId, slug, headline, intro, ctaUrl }) => 
       <h2>Bookmakers we track</h2>
       <ul class="list">${bookmakersList}</ul>
     </section>
+    ${popularLinksHtml}
+    ${faqHtml}
   `;
 
   return renderLandingPage({
@@ -410,6 +591,7 @@ const renderCountryOddsPage = ({ countryId, slug, headline, intro, ctaUrl }) => 
     sectionsHtml,
     ctaLabel: `View ${countryName} odds`,
     ctaUrl: ctaUrl || `${SITE_URL}/odds?country=${countryId}`,
+    extraJsonLd: faqJsonLd ? [faqJsonLd] : [],
   });
 };
 
@@ -418,13 +600,35 @@ const renderCountryLeaguePage = ({ countryId, leagueId, slug, leagueName }) => {
   const countryName = country?.name || 'Country';
   const league = LEAGUES[leagueId];
   const displayName = leagueName || league?.name || 'League';
-  const title = `${displayName} Odds | ${countryName} Bookmakers`;
-  const description = `Compare ${displayName} odds from ${countryName} bookmakers. Find the best prices for upcoming fixtures.`;
+  const title = `${displayName} Odds Today | ${countryName} Bookmakers`;
+  const description = `Compare ${displayName} odds today from ${countryName} bookmakers and find the best prices for upcoming fixtures.`;
   const canonical = `${SITE_URL}/${slug}/`;
-  const heading = `${displayName} Odds Comparison`;
+  const heading = `${displayName} Odds Today`;
+  const popularLinks = [
+    { label: `${countryName} odds today`, href: `${SITE_URL}/${countryId}-odds/` },
+    { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+    { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+    { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
+  ];
+  const faqItems = [
+    {
+      question: `Do you cover ${displayName} odds today?`,
+      answer: `Yes. OddsWize tracks ${displayName} fixtures and compares prices across ${countryName} bookmakers.`,
+    },
+    {
+      question: 'How can I get the best odds?',
+      answer: 'Compare at least three bookmakers, watch for late movement, and choose the top price before kickoff.',
+    },
+    {
+      question: 'Do odds move before kickoff?',
+      answer: 'Yes. Odds can shift with team news and betting volume, so check the live table before betting.',
+    },
+  ];
+  const { html: faqHtml, jsonLd: faqJsonLd } = renderFaqSection(faqItems);
+  const popularLinksHtml = renderLinkSection('Popular searches', popularLinks);
   const sectionsHtml = `
     <section class="card">
-      <h2>Best ${escapeHtml(displayName)} odds</h2>
+      <h2>Best ${escapeHtml(displayName)} odds today</h2>
       <p>Compare ${escapeHtml(displayName)} odds across ${escapeHtml(countryName)} bookmakers and spot value quickly.</p>
       <p>We update frequently to keep odds and coverage fresh.</p>
     </section>
@@ -436,6 +640,8 @@ const renderCountryLeaguePage = ({ countryId, leagueId, slug, leagueName }) => {
         <li>Move quickly when you see a price gap.</li>
       </ol>
     </section>
+    ${popularLinksHtml}
+    ${faqHtml}
   `;
 
   return renderLandingPage({
@@ -447,6 +653,7 @@ const renderCountryLeaguePage = ({ countryId, leagueId, slug, leagueName }) => {
     sectionsHtml,
     ctaLabel: `View ${displayName} odds`,
     ctaUrl: `${SITE_URL}/odds?league=${leagueId}`,
+    extraJsonLd: faqJsonLd ? [faqJsonLd] : [],
   });
 };
 
@@ -570,10 +777,10 @@ const renderMatchPage = (match, slug) => {
   const away = match.away_team || 'Away';
   const league = match.league || 'Match';
   const kickoff = formatKickoff(match.start_time);
-  const title = `${home} vs ${away} Odds | ${league}`;
-  const description = `Compare ${home} vs ${away} odds across Ghana and Nigeria bookmakers. Find the best prices before kickoff.`;
+  const title = `${home} vs ${away} Odds Today | ${league}`;
+  const description = `Compare ${home} vs ${away} odds today across Ghana and Nigeria bookmakers. Find the best prices before kickoff.`;
   const canonical = `${SITE_URL}/odds/match/${slug}/`;
-  const heading = `${home} vs ${away} Odds`;
+  const heading = `${home} vs ${away} Odds Today`;
   const intro = `Compare ${home} vs ${away} odds across Ghana and Nigeria bookmakers and spot the best value quickly.`;
   const bestHome = getBestOddsByField(match.odds, 'home_odds');
   const bestDraw = getBestOddsByField(match.odds, 'draw_odds');
@@ -590,6 +797,50 @@ const renderMatchPage = (match, slug) => {
       <li>${escapeHtml(away)} win: ${bestAway.value ? bestAway.value.toFixed(2) : 'N/A'}${bestAway.bookmaker ? ` (${escapeHtml(bestAway.bookmaker)})` : ''}</li>
     </ul>
   `;
+  const popularLinks = [
+    { label: 'All odds today', href: `${SITE_URL}/odds` },
+    { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+    { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+    { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
+    { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
+  ];
+  const faqItems = [
+    {
+      question: `Where can I see live odds for ${home} vs ${away}?`,
+      answer: 'Use the Compare all odds button to see live prices from Ghana and Nigeria bookmakers in one place.',
+    },
+    {
+      question: 'Why do odds change close to kickoff?',
+      answer: 'Team news, injuries, and betting volume move prices, so check the live odds table before betting.',
+    },
+  ];
+  const { html: faqHtml, jsonLd: faqJsonLd } = renderFaqSection(faqItems);
+  const popularLinksHtml = renderLinkSection('Popular searches', popularLinks);
+  const startIso = Number.isFinite(match.start_time) ? new Date(match.start_time * 1000).toISOString() : null;
+  const sportsEventJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SportsEvent',
+    name: `${home} vs ${away}`,
+    url: canonical,
+    sport: 'Soccer',
+    description: `${home} vs ${away} odds and markets from Ghana and Nigeria bookmakers.`,
+    organizer: {
+      '@type': 'Organization',
+      name: 'OddsWize',
+      url: SITE_URL,
+    },
+    homeTeam: {
+      '@type': 'SportsTeam',
+      name: home,
+    },
+    awayTeam: {
+      '@type': 'SportsTeam',
+      name: away,
+    },
+  };
+  if (startIso) {
+    sportsEventJsonLd.startDate = startIso;
+  }
 
   const sectionsHtml = `
     <section class="card">
@@ -606,6 +857,8 @@ const renderMatchPage = (match, slug) => {
       <h2>Bookmakers we compare</h2>
       <ul class="list">${bookmakersList}</ul>
     </section>
+    ${popularLinksHtml}
+    ${faqHtml}
   `;
 
   return renderLandingPage({
@@ -617,6 +870,27 @@ const renderMatchPage = (match, slug) => {
     sectionsHtml,
     ctaLabel: 'Compare all odds',
     ctaUrl: oddsLink,
+    extraJsonLd: [sportsEventJsonLd, faqJsonLd].filter(Boolean),
+  });
+};
+
+const renderGuidePage = (guide) => {
+  const sectionsHtml = Array.isArray(guide?.sections)
+    ? guide.sections.map((section) => renderInfoSection(section)).join('')
+    : '';
+  const linksHtml = renderLinkSection('Popular searches', guide?.links || []);
+  const { html: faqHtml, jsonLd: faqJsonLd } = renderFaqSection(guide?.faqs || []);
+
+  return renderLandingPage({
+    title: guide.title,
+    description: guide.description,
+    canonical: `${SITE_URL}/${guide.slug}/`,
+    heading: guide.heading,
+    intro: guide.intro,
+    sectionsHtml: `${sectionsHtml}${linksHtml}${faqHtml}`,
+    ctaLabel: guide.ctaLabel || 'Compare all odds',
+    ctaUrl: guide.ctaUrl || `${SITE_URL}/odds`,
+    extraJsonLd: faqJsonLd ? [faqJsonLd] : [],
   });
 };
 
@@ -702,6 +976,183 @@ const COUNTRY_LEAGUE_LANDINGS = [
     leagueName: 'Nigeria Premier League (NPFL)',
   },
 ];
+
+const GUIDE_PAGES = [
+  {
+    slug: 'guides/compare-odds',
+    title: 'How to Compare Betting Odds in Ghana & Nigeria | OddsWize',
+    description: 'Learn how to compare betting odds across Ghana and Nigeria bookmakers to find the best price before kickoff.',
+    heading: 'How to Compare Betting Odds',
+    intro: 'Odds comparison is the fastest way to improve your returns. A small price difference adds up over time.',
+    sections: [
+      {
+        title: 'Why comparing odds matters',
+        paragraphs: [
+          'Different bookmakers offer different prices for the same match. The best price gives you a higher payout for the same stake.',
+          'Comparing odds is especially useful in Ghana and Nigeria where price gaps can be meaningful on popular fixtures.',
+        ],
+      },
+      {
+        title: 'Step-by-step comparison',
+        list: [
+          'Open the same match across at least three bookmakers.',
+          'Compare 1X2 odds and any market you plan to bet.',
+          'Choose the highest odds for your intended outcome.',
+          'Recheck the price close to kickoff for late movement.',
+        ],
+        ordered: true,
+      },
+      {
+        title: 'Common mistakes to avoid',
+        list: [
+          'Betting on the first price you see.',
+          'Ignoring odds movement when team news drops.',
+          'Chasing small edges without checking multiple markets.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'What does it mean to compare odds?',
+        answer: 'It means checking multiple bookmakers for the same match and choosing the highest price for your outcome.',
+      },
+      {
+        question: 'Do different bookmakers show different odds?',
+        answer: 'Yes. Each bookmaker sets prices independently, so the same match can have different odds.',
+      },
+      {
+        question: 'Is it better to bet early or late?',
+        answer: 'There is no single rule. Early odds can be better, but late line movement can create value near kickoff.',
+      },
+    ],
+    links: [
+      { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+      { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+      { label: 'Premier League odds', href: `${SITE_URL}/odds/premier/` },
+      { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+      { label: 'All odds', href: `${SITE_URL}/odds` },
+    ],
+  },
+  {
+    slug: 'guides/implied-probability',
+    title: 'Implied Probability Explained | Betting Odds Guide',
+    description: 'Understand implied probability and how to use it to compare betting odds in Ghana and Nigeria.',
+    heading: 'Implied Probability Explained',
+    intro: 'Implied probability turns odds into a percentage, helping you spot when a price looks too high or too low.',
+    sections: [
+      {
+        title: 'Implied probability basics',
+        paragraphs: [
+          'Decimal odds can be converted into a simple percentage. Higher odds mean a lower implied probability.',
+          'This helps you compare prices quickly across bookmakers and markets.',
+        ],
+      },
+      {
+        title: 'Quick calculation',
+        list: [
+          'Use 1 / odds to get the implied probability.',
+          'Multiply by 100 to turn it into a percentage.',
+          'Compare that number across bookmakers.',
+        ],
+        ordered: true,
+      },
+      {
+        title: 'How to use it',
+        list: [
+          'Look for odds that imply a lower probability than you believe is realistic.',
+          'Compare implied probability to recent form and match context.',
+          'Use it with odds comparison to find value bets.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'What is implied probability?',
+        answer: 'It is the probability of an outcome based on the bookmaker odds, shown as a percentage.',
+      },
+      {
+        question: 'Does implied probability include the bookmaker margin?',
+        answer: 'Yes. The implied probability reflects the bookmaker margin, so the total may exceed 100%.',
+      },
+      {
+        question: 'How does this help me bet better?',
+        answer: 'It helps you compare prices and decide whether the odds are higher than the true chance of an outcome.',
+      },
+    ],
+    links: [
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
+      { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+      { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+      { label: 'All odds', href: `${SITE_URL}/odds` },
+    ],
+  },
+  {
+    slug: 'guides/value-bets',
+    title: 'Value Bets Explained | Find Better Odds',
+    description: 'Learn what a value bet is and how to spot value odds across Ghana and Nigeria bookmakers.',
+    heading: 'Value Bets Explained',
+    intro: 'A value bet is any price that is higher than the true chance of an outcome. Comparing odds helps you find them.',
+    sections: [
+      {
+        title: 'What is a value bet?',
+        paragraphs: [
+          'Value appears when the odds are bigger than the real probability. You can still lose individual bets, but value wins over time.',
+        ],
+      },
+      {
+        title: 'How to spot value quickly',
+        list: [
+          'Compare odds across multiple bookmakers.',
+          'Look for prices that are 5%+ above the market average.',
+          'Use implied probability to sanity-check the price.',
+        ],
+        ordered: true,
+      },
+      {
+        title: 'Manage your risk',
+        list: [
+          'Stake consistently instead of chasing losses.',
+          'Avoid betting too many markets at once.',
+          'Focus on leagues you watch regularly.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'Can I still lose a value bet?',
+        answer: 'Yes. Value is about long-term edge, not guaranteed wins on a single match.',
+      },
+      {
+        question: 'How do I measure value quickly?',
+        answer: 'Compare odds across bookmakers and look for prices that are higher than the market average.',
+      },
+      {
+        question: 'Is value betting possible in Ghana and Nigeria?',
+        answer: 'Yes. Price gaps between bookmakers create value opportunities when you compare odds.',
+      },
+    ],
+    links: [
+      { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+      { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+      { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+    ],
+  },
+];
+
+const guideEntries = [];
+for (const guide of GUIDE_PAGES) {
+  if (!guide?.slug || !guide?.title) continue;
+  await writePage(guide.slug, renderGuidePage(guide));
+  guideEntries.push({
+    loc: `${SITE_URL}/${guide.slug}/`,
+    lastmod: latestIso,
+    changefreq: 'weekly',
+    priority: '0.6',
+  });
+}
 
 const countryEntries = [];
 for (const landing of COUNTRY_LANDINGS) {
@@ -796,6 +1247,7 @@ const sitemapEntries = [
     priority: '0.7',
   })),
   ...matchEntries,
+  ...guideEntries,
   ...countryEntries,
   ...countryLeagueEntries,
   ...leagueEntries,
