@@ -8,7 +8,7 @@ import { LEAGUES, matchLeague, getLeagueTier } from '../config/leagues';
 import { getTeamPopularityScore } from '../config/popularity';
 import { getLatestArticles, formatArticleDate } from '../data/articles';
 import { trackAffiliateClick } from '../services/analytics';
-import { getCachedOdds, getMatchesByLeague } from '../services/api';
+import { clearOddsCacheMemory, getCachedOdds, getMatchesByLeague } from '../services/api';
 
 const SITE_URL = 'https://oddswize.com';
 const VALUE_MARKET_FIELDS = ['home_odds', 'draw_odds', 'away_odds'];
@@ -287,6 +287,7 @@ function HomePage() {
       setTotalMatches(0);
       setValuePicks([]);
     } finally {
+      clearOddsCacheMemory();
       setLoading(false);
     }
   };
@@ -295,6 +296,7 @@ function HomePage() {
     const cached = getCachedOdds();
     if (cached?.data?.data?.length) {
       applyHomeData(cached.data.data);
+      clearOddsCacheMemory();
       setLoading(false);
       const run = () => loadMatches();
       if (typeof window !== 'undefined' && window.requestIdleCallback) {

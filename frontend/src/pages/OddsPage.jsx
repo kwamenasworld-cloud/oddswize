@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getCachedOdds, getMatchesByLeague, getStatus, triggerScan } from '../services/api';
+import { clearOddsCacheMemory, getCachedOdds, getMatchesByLeague, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague, matchLeagueFuzzy } from '../config/leagues';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
-import { preloadTeamLogos, clearLogoCache } from '../services/teamLogos';
+import { preloadTeamLogos } from '../services/teamLogos';
 import ShareButton from '../components/ShareButton';
 import { trackAffiliateClick } from '../services/analytics';
 import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
@@ -315,6 +315,7 @@ function OddsPage() {
           totalMatches: cached.meta.total_matches,
         });
       }
+      clearOddsCacheMemory();
       setLoading(false);
       loadData({ silent: true });
       hasLoadedRef.current = true;
@@ -434,19 +435,6 @@ function OddsPage() {
       loadData({ silent: true, forceWorker: true });
     }
   }, [selectedLeagues, useCanonical, matches, loading]);
-
-  // Preload team logos when matches change
-  useEffect(() => {
-    if (matches.length === 0 || typeof window === 'undefined') return undefined;
-    const teamNames = matches.flatMap(m => [m.home_team, m.away_team]);
-    const run = () => preloadTeamLogos(teamNames.slice(0, 40));
-    if (window.requestIdleCallback) {
-      const idleId = window.requestIdleCallback(run, { timeout: 2000 });
-      return () => window.cancelIdleCallback && window.cancelIdleCallback(idleId);
-    }
-    const timeoutId = setTimeout(run, 800);
-    return () => clearTimeout(timeoutId);
-  }, [matches]);
 
   const buildTimeFilterOptions = (filter) => {
     if (filter === 'all') return {};
@@ -598,6 +586,7 @@ function OddsPage() {
       setMatches([]);
       setTotalMatchCount(0);
     } finally {
+      clearOddsCacheMemory();
       if (!silent) setLoading(false);
     }
   };
@@ -644,16 +633,35 @@ function OddsPage() {
 
   const enrichMatches = (rawMatches) => {
     const nowMs = Date.now();
+    const normalizeOdd = (value) => {
+      const numberValue = Number(value);
+      return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
+    };
     return (rawMatches || []).map(match => {
-      const oddsArr = match.odds?.map(odds => ({
-        ...odds,
-        // Generate synthetic double chance and over/under if not present
-        home_draw: odds.home_draw || calculateDoubleChance(odds.home_odds, odds.draw_odds),
-        draw_away: odds.draw_away || calculateDoubleChance(odds.draw_odds, odds.away_odds),
-        home_away: odds.home_away || calculateDoubleChance(odds.home_odds, odds.away_odds),
-        over_25: odds.over_25 || generateOverUnder(odds.home_odds, odds.away_odds, true),
-        under_25: odds.under_25 || generateOverUnder(odds.home_odds, odds.away_odds, false),
-      })) || [];
+      const baseOdds = Array.isArray(match.odds) ? match.odds : [];
+      const oddsArr = baseOdds.map(odds => {
+        if (!odds?.bookmaker) return null;
+        const homeOdds = normalizeOdd(odds.home_odds);
+        const drawOdds = normalizeOdd(odds.draw_odds);
+        const awayOdds = normalizeOdd(odds.away_odds);
+        const homeDraw = normalizeOdd(odds.home_draw);
+        const drawAway = normalizeOdd(odds.draw_away);
+        const homeAway = normalizeOdd(odds.home_away);
+        const over25 = normalizeOdd(odds.over_25);
+        const under25 = normalizeOdd(odds.under_25);
+        return {
+          bookmaker: odds.bookmaker,
+          home_odds: homeOdds,
+          draw_odds: drawOdds,
+          away_odds: awayOdds,
+          // Generate synthetic double chance and over/under if not present
+          home_draw: homeDraw || calculateDoubleChance(homeOdds, drawOdds),
+          draw_away: drawAway || calculateDoubleChance(drawOdds, awayOdds),
+          home_away: homeAway || calculateDoubleChance(homeOdds, awayOdds),
+          over_25: over25 || generateOverUnder(homeOdds, awayOdds, true),
+          under_25: under25 || generateOverUnder(homeOdds, awayOdds, false),
+        };
+      }).filter(Boolean);
 
       const startMs = (match.start_time || 0) * 1000;
       const hasOdds = oddsArr.length > 0;
@@ -663,10 +671,15 @@ function OddsPage() {
         : true;
       const pendingOdds = hasOdds && missingBookies && withinWindow;
 
-      const derivedKey = match.league_key || matchLeague(match.league)?.id || null;
+      const leagueName = match.league || '';
+      const derivedKey = match.league_key || matchLeague(leagueName)?.id || null;
 
       return {
-        ...match,
+        id: match.id,
+        home_team: match.home_team,
+        away_team: match.away_team,
+        league: leagueName,
+        start_time: match.start_time,
         odds: oddsArr,
         pendingOdds,
         league_key: derivedKey,
@@ -1126,6 +1139,21 @@ function OddsPage() {
       : groupedMatchesAll),
     [groupedMatchesAll, pageStart, pageEnd, shouldSlice]
   );
+
+  // Preload team logos for visible matches only
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const pageMatches = Object.values(pagedGroupedMatches).flat();
+    if (pageMatches.length === 0) return undefined;
+    const teamNames = pageMatches.flatMap(m => [m.home_team, m.away_team]);
+    const run = () => preloadTeamLogos(teamNames.slice(0, 32));
+    if (window.requestIdleCallback) {
+      const idleId = window.requestIdleCallback(run, { timeout: 2000 });
+      return () => window.cancelIdleCallback && window.cancelIdleCallback(idleId);
+    }
+    const timeoutId = setTimeout(run, 800);
+    return () => clearTimeout(timeoutId);
+  }, [pagedGroupedMatches]);
 
   const totalLeagueCount = useMemo(
     () => Object.keys(groupedMatchesAll).length,

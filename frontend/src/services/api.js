@@ -8,8 +8,19 @@ const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://o
 const STATIC_DATA_URL = '/data/odds_data.json';
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS) || 10000;
 
-const ODDS_CACHE_KEY = 'oddswize_odds_cache_v1';
+const ODDS_CACHE_KEY = 'oddswize_odds_cache_v2';
 const ODDS_CACHE_DEFAULT_TTL_MS = 15 * 60 * 1000;
+const ODDS_CACHE_MAX_CHARS = Number(import.meta.env.VITE_ODDS_CACHE_MAX_CHARS) || 1500000;
+const ODDS_SLIM_FIELDS = [
+  'home_odds',
+  'draw_odds',
+  'away_odds',
+  'home_draw',
+  'draw_away',
+  'home_away',
+  'over_25',
+  'under_25',
+];
 let oddsCacheMemory = null;
 let oddsFetchPromise = null;
 
@@ -29,11 +40,68 @@ const isPremierLeagueMatch = (home, away) => {
   return PREMIER_TEAMS.has(h) && PREMIER_TEAMS.has(a);
 };
 
+const slimOddsPayload = (payload) => {
+  if (!payload || !Array.isArray(payload.data)) return payload;
+
+  const slimLeagues = payload.data.map((league) => {
+    const matches = Array.isArray(league?.matches) ? league.matches : [];
+    let leagueName = league?.league || '';
+
+    if (!leagueName) {
+      const matchLeagueName = matches.find((m) => m?.league)?.league;
+      if (matchLeagueName) {
+        leagueName = matchLeagueName;
+      } else if (matches.length > 0 && matches.every((m) => isPremierLeagueMatch(m?.home_team, m?.away_team))) {
+        leagueName = 'Premier League';
+      }
+    }
+
+    const slimMatches = matches
+      .map((match) => {
+        if (!match) return null;
+        const matchLeague = match.league || leagueName
+          || (isPremierLeagueMatch(match.home_team, match.away_team) ? 'Premier League' : '');
+        const odds = Array.isArray(match.odds)
+          ? match.odds.map((oddsEntry) => {
+            if (!oddsEntry?.bookmaker) return null;
+            const slimOdds = { bookmaker: oddsEntry.bookmaker };
+            ODDS_SLIM_FIELDS.forEach((field) => {
+              const value = oddsEntry[field];
+              if (value !== undefined && value !== null) {
+                slimOdds[field] = value;
+              }
+            });
+            return slimOdds;
+          }).filter(Boolean)
+          : [];
+
+        return {
+          id: match.id,
+          home_team: match.home_team,
+          away_team: match.away_team,
+          start_time: match.start_time,
+          league: matchLeague,
+          odds,
+        };
+      })
+      .filter(Boolean);
+
+    const slimLeague = { matches: slimMatches };
+    if (leagueName) {
+      slimLeague.league = leagueName;
+    }
+    return slimLeague;
+  });
+
+  return { ...payload, data: slimLeagues };
+};
+
 const readOddsCache = (allowExpired = false) => {
   if (oddsCacheMemory) {
     if (allowExpired || oddsCacheMemory.expiresAt > Date.now()) {
       return oddsCacheMemory;
     }
+    oddsCacheMemory = null;
   }
 
   try {
@@ -62,9 +130,14 @@ const saveOddsCache = (payload, ttlSeconds, etag) => {
     expiresAt: storedAt + ttlMs,
     etag: etag || null,
   };
-  oddsCacheMemory = cache;
   try {
-    localStorage.setItem(ODDS_CACHE_KEY, JSON.stringify(cache));
+    const serialized = JSON.stringify(cache);
+    if (serialized.length > ODDS_CACHE_MAX_CHARS) {
+      oddsCacheMemory = null;
+      return { storedAt, expiresAt: cache.expiresAt, skipped: true };
+    }
+    oddsCacheMemory = cache;
+    localStorage.setItem(ODDS_CACHE_KEY, serialized);
   } catch (error) {
     // Ignore storage failures (private mode/quota)
   }
@@ -197,7 +270,8 @@ const fetchOddsData = async (options = {}) => {
       throw new Error(`API error: ${response.status}`);
     }
     const payload = await response.json();
-    if (isEmptyOddsPayload(payload)) {
+    const slimPayload = slimOddsPayload(payload);
+    if (isEmptyOddsPayload(slimPayload)) {
       if (cachedFallback?.payload) {
         return {
           data: cachedFallback.payload,
@@ -208,8 +282,8 @@ const fetchOddsData = async (options = {}) => {
       throw new Error('Empty odds payload');
     }
     return {
-      data: payload,
-      meta: payload.meta || {},
+      data: slimPayload,
+      meta: slimPayload.meta || {},
       cache: { source: 'network', stale: false },
     };
   }
@@ -254,7 +328,8 @@ const fetchOddsData = async (options = {}) => {
     }
 
     const payload = await response.json();
-    if (isEmptyOddsPayload(payload)) {
+    const slimPayload = slimOddsPayload(payload);
+    if (isEmptyOddsPayload(slimPayload)) {
       if (cachedFallback?.payload) {
         return {
           data: cachedFallback.payload,
@@ -264,13 +339,13 @@ const fetchOddsData = async (options = {}) => {
       }
       throw new Error('Empty odds payload');
     }
-    const ttlSeconds = payload?.meta?.cache_ttl;
+    const ttlSeconds = slimPayload?.meta?.cache_ttl;
     const etag = response.headers.get('ETag');
-    const saved = saveOddsCache(payload, ttlSeconds, etag);
+    const saved = saveOddsCache(slimPayload, ttlSeconds, etag);
 
     return {
-      data: payload,
-      meta: payload.meta || {},
+      data: slimPayload,
+      meta: slimPayload.meta || {},
       cache: { source: 'network', stale: false, storedAt: saved.storedAt },
     };
   })();
@@ -309,6 +384,10 @@ export const getCachedOdds = () => {
       storedAt: cached.storedAt,
     },
   };
+};
+
+export const clearOddsCacheMemory = () => {
+  oddsCacheMemory = null;
 };
 
 /**
@@ -599,6 +678,7 @@ export const triggerScan = async () => {
 // Default export for backward compatibility
 export default {
   getCachedOdds,
+  clearOddsCacheMemory,
   getMatches,
   getMatchesByLeague,
   getArbitrage,
