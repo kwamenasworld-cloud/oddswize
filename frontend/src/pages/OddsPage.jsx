@@ -231,6 +231,7 @@ function OddsPage() {
   const [searchParams] = useSearchParams();
   const preferCanonical = searchParams.get('source') === 'canonical';
   const countryParam = searchParams.get('country');
+  const matchParam = searchParams.get('match');
   const [matches, setMatches] = useState([]);
   const [canonicalLeagues, setCanonicalLeagues] = useState([]);
   const [useCanonical, setUseCanonical] = useState(false);
@@ -427,6 +428,11 @@ function OddsPage() {
       setSelectedCountry(urlCountry);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!matchParam) return;
+    setSearchQuery((prev) => prev || matchParam);
+  }, [matchParam]);
 
   // Drop canonical-only selections when falling back to non-canonical data
   useEffect(() => {
@@ -936,11 +942,16 @@ function OddsPage() {
 
       const searchLeagueKey = searchLeagueId;
       const matchLeagueKey = match.league_key || matchLeague(match.league)?.id || null;
+      const queryParts = searchLower.split(' vs ').map(part => part.trim()).filter(Boolean);
+      const matchesPair = queryParts.length === 2
+        && match.home_team.toLowerCase().includes(queryParts[0])
+        && match.away_team.toLowerCase().includes(queryParts[1]);
       const matchesSearch =
         !searchQuery ||
         match.home_team.toLowerCase().includes(searchLower) ||
         match.away_team.toLowerCase().includes(searchLower) ||
         leagueLower.includes(searchLower) ||
+        matchesPair ||
         (searchLeagueKey && matchLeagueKey === searchLeagueKey);
 
       const matchesLeagueText =

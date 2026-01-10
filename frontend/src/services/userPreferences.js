@@ -16,6 +16,7 @@ const DEFAULT_PREFS = {
     bigEdges: true,
     favoriteTeams: true,
     dailyDigest: false,
+    push: false,
   },
   display: {
     defaultView: 'all', // 'all', 'favorites', 'edges'

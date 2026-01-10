@@ -4348,6 +4348,170 @@ body.modal-open {
   text-decoration: underline;
 }
 
+/* Daily Digest */
+.digest-section {
+  background: #fff;
+}
+
+.digest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.digest-card {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 1.25rem;
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.digest-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.digest-date {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.digest-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #333;
+  line-height: 1.5;
+}
+
+.digest-list li {
+  margin-bottom: 0.4rem;
+}
+
+.digest-empty {
+  color: #666;
+  margin: 0;
+}
+
+.digest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.digest-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  color: #333;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.digest-action:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.digest-action.whatsapp {
+  background: #25d366;
+  border-color: #25d366;
+  color: white;
+}
+
+.digest-action.whatsapp:hover {
+  background: #20ba5a;
+  border-color: #20ba5a;
+  color: white;
+}
+
+.digest-action.secondary {
+  background: #1a1a2e;
+  border-color: #1a1a2e;
+  color: white;
+}
+
+.digest-action.secondary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.digest-action.link {
+  background: transparent;
+  border-color: transparent;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.digest-signup h3 {
+  margin: 0;
+}
+
+.digest-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.digest-input {
+  flex: 1 1 180px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #d7dbe0;
+  font-size: 0.9rem;
+}
+
+.digest-submit {
+  flex: 1 1 150px;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.digest-error {
+  color: #c62828;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.digest-success {
+  color: #1b5e20;
+  font-weight: 600;
+}
+
+.digest-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.digest-status {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.digest-note,
+.digest-footnote {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #666;
+}
+
 /* Popular Leagues */
 .leagues-grid {
   display: grid;

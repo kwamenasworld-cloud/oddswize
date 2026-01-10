@@ -8,6 +8,7 @@ import { LEAGUES, matchLeague, getLeagueTier } from '../config/leagues';
 import { getTeamPopularityScore } from '../config/popularity';
 import { getLatestArticles, formatArticleDate } from '../data/articles';
 import { trackAffiliateClick, trackEvent } from '../services/analytics';
+import { getPreferences, getUser, logIn, updateNotificationSetting } from '../services/userPreferences';
 import { clearOddsCacheMemory, getCachedOdds, getMatchesByLeague } from '../services/api';
 
 const SITE_URL = 'https://oddswize.com';
@@ -99,8 +100,10 @@ const SEO_LINKS = [
   { to: '/odds?league=bundesliga', label: 'Bundesliga Odds' },
   { to: '/odds?league=ligue1', label: 'Ligue 1 Odds' },
   { to: '/odds?league=ucl', label: 'Champions League Odds' },
-  { to: '/odds?country=ghana', label: 'Ghana Odds' },
-  { to: '/odds?country=nigeria', label: 'Nigeria Odds' },
+  { to: '/ghana-odds', label: 'Ghana Odds' },
+  { to: '/nigeria-odds', label: 'Nigeria Odds' },
+  { to: '/ghana-premier-league-odds', label: 'Ghana Premier League Odds' },
+  { to: '/npfl-odds', label: 'NPFL Odds' },
 ];
 function HomePage() {
   const [featuredMatches, setFeaturedMatches] = useState([]);
@@ -109,9 +112,15 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [valuePicks, setValuePicks] = useState([]);
   const [shareCopied, setShareCopied] = useState(false);
+  const [digestIdentifier, setDigestIdentifier] = useState('');
+  const [digestError, setDigestError] = useState('');
+  const [digestCopied, setDigestCopied] = useState(false);
+  const [digestUser, setDigestUser] = useState(() => getUser());
+  const [digestPrefs, setDigestPrefs] = useState(() => getPreferences());
+  const [pushStatus, setPushStatus] = useState('');
   const latestArticles = useMemo(() => getLatestArticles(4), []);
 
-  const shareMessage = 'Compare odds across Ghana bookmakers with OddsWize. Find better value before you bet.';
+  const shareMessage = 'Compare odds across Ghana and Nigeria bookmakers with OddsWize. Find better value before you bet.';
   const shareUrl = `${SITE_URL}/?ref=share`;
 
   const handleShareSite = async () => {
@@ -296,6 +305,123 @@ function HomePage() {
     }
   };
 
+  const validateIdentifier = (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    const isEmail = trimmed.includes('@');
+    const isPhone = /^\+?[\d\s-]{10,}$/.test(trimmed.replace(/\s/g, ''));
+    return isEmail || isPhone;
+  };
+
+  const digestDateLabel = new Date().toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  const digestLink = `${SITE_URL}/odds?ref=digest`;
+  const digestWhatsappLink = `${SITE_URL}/odds?ref=whatsapp_digest`;
+
+  const buildDigestText = (picks, link) => {
+    const shareLink = link || digestLink;
+    if (!picks || picks.length === 0) {
+      return `OddsWize Daily Digest (${digestDateLabel})
+
+No top value picks right now. Check back later.
+
+Compare all odds:
+${shareLink}`;
+    }
+
+    const lines = picks.slice(0, 5).map((pick, index) => {
+      const match = pick.match;
+      const offer = pick.offer;
+      const config = getBookmakerConfig(offer.bookmaker);
+      const valuePercent = Math.round(offer.edge);
+      return `${index + 1}. ${match.home_team} vs ${match.away_team} (${match.league}) - ${offer.label} @ ${config.name} +${valuePercent}% (${formatTime(match.start_time)})`;
+    });
+
+    return `OddsWize Daily Digest (${digestDateLabel})
+
+${lines.join('\n')}
+
+Compare all odds:
+${shareLink}`;
+  };
+
+  const handleCopyDigest = async () => {
+    try {
+      const text = buildDigestText(valuePicks, digestLink);
+      await navigator.clipboard.writeText(text);
+      setDigestCopied(true);
+      trackEvent('share', {
+        method: 'copy_text',
+        placement: 'daily_digest',
+        link_url: digestLink,
+      });
+      setTimeout(() => setDigestCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy digest:', error);
+    }
+  };
+
+  const handleShareDigest = () => {
+    const text = buildDigestText(valuePicks, digestWhatsappLink);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    trackEvent('share', {
+      method: 'whatsapp',
+      placement: 'daily_digest',
+      link_url: digestWhatsappLink,
+    });
+  };
+
+  const handleDigestSignup = (event) => {
+    event.preventDefault();
+    setDigestError('');
+    const identifier = digestIdentifier.trim();
+    if (!validateIdentifier(identifier)) {
+      setDigestError('Enter a valid email or phone number.');
+      return;
+    }
+    const user = logIn(identifier);
+    updateNotificationSetting('dailyDigest', true);
+    const prefs = getPreferences();
+    setDigestUser(user);
+    setDigestPrefs(prefs);
+    setDigestIdentifier('');
+    trackEvent('digest_signup', {
+      method: identifier.includes('@') ? 'email' : 'phone',
+      placement: 'home_digest',
+    });
+  };
+
+  const handleEnablePush = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setPushStatus('unsupported');
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        updateNotificationSetting('push', true);
+        setDigestPrefs(getPreferences());
+        setPushStatus('enabled');
+        trackEvent('push_opt_in', {
+          result: 'granted',
+          placement: 'home_digest',
+        });
+      } else {
+        setPushStatus(permission === 'denied' ? 'denied' : 'default');
+        trackEvent('push_opt_in', {
+          result: permission,
+          placement: 'home_digest',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to enable alerts:', error);
+      setPushStatus('error');
+    }
+  };
+
   const buildValueShareText = (pick) => {
     const match = pick.match;
     const offer = pick.offer;
@@ -430,6 +556,9 @@ ${shareLink}`,
     return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ` ${timeStr}`;
   };
 
+  const digestEnabled = Boolean(digestPrefs?.notifications?.dailyDigest);
+  const pushEnabled = Boolean(digestPrefs?.notifications?.push);
+
   return (
     <div className="home-page">
       {/* Hero Section */}
@@ -540,7 +669,7 @@ ${shareLink}`,
       <section className="home-section value-section">
         <div className="section-header">
           <h2>Value Picks Today</h2>
-          <span className="section-subtitle">Best edges across Ghana bookmakers</span>
+          <span className="section-subtitle">Best edges across Ghana and Nigeria bookmakers</span>
         </div>
         <div className="value-grid">
           {loading ? (
@@ -619,6 +748,93 @@ ${shareLink}`,
               <Link to="/odds" className="value-empty-link">View all odds</Link>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Daily Digest */}
+      <section className="home-section digest-section">
+        <div className="section-header">
+          <h2>Daily Odds Digest</h2>
+          <span className="section-subtitle">Copy or share the daily draft and grow the community</span>
+        </div>
+        <div className="digest-grid">
+          <div className="digest-card">
+            <div className="digest-preview">
+              <span className="digest-date">Digest for {digestDateLabel}</span>
+              {valuePicks.length > 0 ? (
+                <ol className="digest-list">
+                  {valuePicks.slice(0, 5).map((pick, idx) => {
+                    const match = pick.match;
+                    const offer = pick.offer;
+                    const config = getBookmakerConfig(offer.bookmaker);
+                    const valuePercent = Math.round(offer.edge);
+                    return (
+                      <li key={`${match.home_team}-${match.away_team}-${idx}`}>
+                        <strong>{match.home_team} vs {match.away_team}</strong> ({match.league}) - {offer.label} @ {config.name} +{valuePercent}%
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <p className="digest-empty">No value picks right now. Check back later.</p>
+              )}
+            </div>
+            <div className="digest-actions">
+              <button type="button" className="digest-action whatsapp" onClick={handleShareDigest}>
+                Share to WhatsApp
+              </button>
+              <button type="button" className="digest-action" onClick={handleCopyDigest}>
+                {digestCopied ? 'Copied!' : 'Copy Digest'}
+              </button>
+              <a className="digest-action link" href="/news/value-picks">
+                View value picks
+              </a>
+            </div>
+          </div>
+          <div className="digest-card digest-signup">
+            <h3>Get the daily digest</h3>
+            <p className="digest-note">Free updates stored on this device. No spam, unsubscribe anytime.</p>
+            {digestEnabled ? (
+              <div className="digest-success">
+                Digest enabled for {digestUser?.email || digestUser?.phone || 'this device'}.
+              </div>
+            ) : (
+              <form className="digest-form" onSubmit={handleDigestSignup}>
+                <input
+                  type="text"
+                  value={digestIdentifier}
+                  onChange={(e) => {
+                    setDigestIdentifier(e.target.value);
+                    if (digestError) setDigestError('');
+                  }}
+                  placeholder="Email or phone"
+                  aria-label="Email or phone for daily digest"
+                  className="digest-input"
+                />
+                <button type="submit" className="digest-submit">
+                  Enable daily digest
+                </button>
+              </form>
+            )}
+            {digestError && <p className="digest-error">{digestError}</p>}
+            <div className="digest-alerts">
+              <button
+                type="button"
+                className="digest-action secondary"
+                onClick={handleEnablePush}
+                disabled={pushEnabled}
+              >
+                {pushEnabled ? 'Browser alerts enabled' : 'Enable browser alerts'}
+              </button>
+              {pushStatus === 'unsupported' && (
+                <span className="digest-status">Browser alerts not supported here.</span>
+              )}
+              {pushStatus === 'denied' && (
+                <span className="digest-status">Browser alerts blocked in settings.</span>
+              )}
+            </div>
+            <p className="digest-footnote">Alerts require browser permission and work on this device.</p>
+          </div>
         </div>
       </section>
 

@@ -11,6 +11,8 @@ const __dirname = path.dirname(__filename);
 const SITE_URL = 'https://oddswize.com';
 const PUBLIC_DIR = path.resolve(__dirname, '../public');
 const VALUE_EDGE_MIN = 5;
+const MAX_MATCH_PAGES = 400;
+const MATCH_LOOKAHEAD_DAYS = 7;
 
 const toDate = (value) => {
   if (!value) return null;
@@ -47,6 +49,17 @@ const slugify = (value) => (
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 );
+
+const buildMatchSlug = (match) => {
+  if (!match?.home_team || !match?.away_team || !Number.isFinite(match.start_time)) return '';
+  const date = new Date(match.start_time * 1000);
+  if (Number.isNaN(date.getTime())) return '';
+  const dateLabel = date.toISOString().slice(0, 10);
+  const homeSlug = slugify(match.home_team);
+  const awaySlug = slugify(match.away_team);
+  if (!homeSlug || !awaySlug) return '';
+  return `${homeSlug}-vs-${awaySlug}-${dateLabel}`;
+};
 
 const formatKickoff = (timestamp) => {
   if (!Number.isFinite(timestamp)) return 'TBD';
@@ -204,6 +217,16 @@ const renderLandingPage = ({ title, description, canonical, heading, intro, sect
     .pick-edge {
       font-weight: 700;
       color: #16a34a;
+    }
+    .pick-link {
+      display: inline-flex;
+      margin-top: 0.5rem;
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .pick-link:hover {
+      text-decoration: underline;
     }
     .footer {
       padding: 1.5rem;
@@ -491,6 +514,10 @@ const renderValuePicksPage = (picks, updatedAt) => {
     const match = pick.match;
     const offer = pick.offer;
     const valuePercent = Math.round(offer.edge);
+    const matchSlug = buildMatchSlug(match);
+    const matchUrl = matchSlug
+      ? `${SITE_URL}/odds/match/${matchSlug}/`
+      : `${SITE_URL}/odds?match=${encodeURIComponent(`${match.home_team} vs ${match.away_team}`)}`;
 
     return `
       <div class="card pick-card">
@@ -499,6 +526,7 @@ const renderValuePicksPage = (picks, updatedAt) => {
         <p>Kickoff: ${escapeHtml(formatKickoff(match.start_time))}</p>
         <p><span class="pick-edge">+${valuePercent}%</span> on ${escapeHtml(offer.label)} at ${escapeHtml(offer.bookmaker)}</p>
         <p>Odds: ${Number.isFinite(offer.odds) ? offer.odds.toFixed(2) : 'N/A'}</p>
+        <a class="pick-link" href="${escapeHtml(matchUrl)}">View match odds</a>
       </div>
     `;
   }).join('');
@@ -516,13 +544,79 @@ const renderValuePicksPage = (picks, updatedAt) => {
 
   return renderLandingPage({
     title: 'Value Picks Today | OddsWize',
-    description: 'Auto-generated value picks based on the largest odds edges across Ghana bookmakers.',
+    description: 'Auto-generated value picks based on the largest odds edges across Ghana and Nigeria bookmakers.',
     canonical: `${SITE_URL}/news/value-picks/`,
     heading: 'Value Picks Today',
-    intro: 'Auto-generated picks based on the largest odds edges across Ghana bookmakers.',
+    intro: 'Auto-generated picks based on the largest odds edges across Ghana and Nigeria bookmakers.',
     sectionsHtml,
     ctaLabel: 'Compare all odds',
     ctaUrl: `${SITE_URL}/odds`,
+  });
+};
+
+const getBestOddsByField = (odds, field) => {
+  const valid = (odds || [])
+    .map((bookie) => ({
+      bookmaker: bookie.bookmaker,
+      value: Number(bookie[field]),
+    }))
+    .filter((item) => Number.isFinite(item.value) && item.value > 1);
+  if (!valid.length) return { value: null, bookmaker: null };
+  return valid.reduce((best, item) => (item.value > best.value ? item : best), valid[0]);
+};
+
+const renderMatchPage = (match, slug) => {
+  const home = match.home_team || 'Home';
+  const away = match.away_team || 'Away';
+  const league = match.league || 'Match';
+  const kickoff = formatKickoff(match.start_time);
+  const title = `${home} vs ${away} Odds | ${league}`;
+  const description = `Compare ${home} vs ${away} odds across Ghana and Nigeria bookmakers. Find the best prices before kickoff.`;
+  const canonical = `${SITE_URL}/odds/match/${slug}/`;
+  const heading = `${home} vs ${away} Odds`;
+  const intro = `Compare ${home} vs ${away} odds across Ghana and Nigeria bookmakers and spot the best value quickly.`;
+  const bestHome = getBestOddsByField(match.odds, 'home_odds');
+  const bestDraw = getBestOddsByField(match.odds, 'draw_odds');
+  const bestAway = getBestOddsByField(match.odds, 'away_odds');
+  const oddsLink = `${SITE_URL}/odds?match=${encodeURIComponent(`${home} vs ${away}`)}&ref=match_page`;
+  const bookmakersList = BOOKMAKER_ORDER.map((bookie) => {
+    const name = BOOKMAKER_AFFILIATES[bookie]?.name || bookie;
+    return `<li>${escapeHtml(name)}</li>`;
+  }).join('');
+  const bestOddsRows = `
+    <ul class="list">
+      <li>${escapeHtml(home)} win: ${bestHome.value ? bestHome.value.toFixed(2) : 'N/A'}${bestHome.bookmaker ? ` (${escapeHtml(bestHome.bookmaker)})` : ''}</li>
+      <li>Draw: ${bestDraw.value ? bestDraw.value.toFixed(2) : 'N/A'}${bestDraw.bookmaker ? ` (${escapeHtml(bestDraw.bookmaker)})` : ''}</li>
+      <li>${escapeHtml(away)} win: ${bestAway.value ? bestAway.value.toFixed(2) : 'N/A'}${bestAway.bookmaker ? ` (${escapeHtml(bestAway.bookmaker)})` : ''}</li>
+    </ul>
+  `;
+
+  const sectionsHtml = `
+    <section class="card">
+      <h2>Match details</h2>
+      <p>League: ${escapeHtml(league)}</p>
+      <p>Kickoff: ${escapeHtml(kickoff)}</p>
+    </section>
+    <section class="card">
+      <h2>Best odds right now</h2>
+      ${bestOddsRows}
+      <p>Odds change fast near kickoff, so check the live table before placing your bet.</p>
+    </section>
+    <section class="card">
+      <h2>Bookmakers we compare</h2>
+      <ul class="list">${bookmakersList}</ul>
+    </section>
+  `;
+
+  return renderLandingPage({
+    title,
+    description,
+    canonical,
+    heading,
+    intro,
+    sectionsHtml,
+    ctaLabel: 'Compare all odds',
+    ctaUrl: oddsLink,
   });
 };
 
@@ -644,6 +738,31 @@ const valuePicksEntry = {
   priority: '0.7',
 };
 
+const matchEntries = [];
+if (Array.isArray(oddsData?.matches)) {
+  const nowSeconds = Date.now() / 1000;
+  const cutoff = nowSeconds + MATCH_LOOKAHEAD_DAYS * 24 * 60 * 60;
+  const matches = oddsData.matches
+    .filter((match) => Number.isFinite(match?.start_time))
+    .filter((match) => match.start_time >= nowSeconds - 6 * 60 * 60 && match.start_time <= cutoff)
+    .sort((a, b) => (a.start_time || 0) - (b.start_time || 0));
+
+  const seen = new Set();
+  for (const match of matches) {
+    if (matchEntries.length >= MAX_MATCH_PAGES) break;
+    const slug = buildMatchSlug(match);
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    await writePage(`odds/match/${slug}`, renderMatchPage(match, slug));
+    matchEntries.push({
+      loc: `${SITE_URL}/odds/match/${slug}/`,
+      lastmod: toIsoDate(match.start_time * 1000, now),
+      changefreq: 'daily',
+      priority: '0.55',
+    });
+  }
+}
+
 const sitemapEntries = [
   {
     loc: `${SITE_URL}/`,
@@ -676,6 +795,7 @@ const sitemapEntries = [
     changefreq: 'weekly',
     priority: '0.7',
   })),
+  ...matchEntries,
   ...countryEntries,
   ...countryLeagueEntries,
   ...leagueEntries,

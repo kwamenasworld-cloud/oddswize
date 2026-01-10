@@ -13,7 +13,7 @@ function ShareButton({ home_team, away_team, league, time, bestHome, bestDraw, b
     return Number.isFinite(numberValue) ? numberValue.toFixed(2) : '-';
   };
 
-  const formatShareText = () => {
+  const formatShareText = (linkOverride) => {
     // Extract values and bookmakers (handle both old and new format)
     const homeValue = bestHome?.value || bestHome || null;
     const homeBookie = bestHome?.bookmaker || '';
@@ -21,6 +21,7 @@ function ShareButton({ home_team, away_team, league, time, bestHome, bestDraw, b
     const drawBookie = bestDraw?.bookmaker || '';
     const awayValue = bestAway?.value || bestAway || null;
     const awayBookie = bestAway?.bookmaker || '';
+    const link = linkOverride || shareLink;
 
     return `Match: ${home_team} vs ${away_team}
 
@@ -33,13 +34,25 @@ Draw: ${formatOddValue(drawValue)}${drawBookie ? ` (${drawBookie})` : ''}
 ${away_team}: ${formatOddValue(awayValue)}${awayBookie ? ` (${awayBookie})` : ''}
 
 Compare all odds on OddsWize:
-${shareLink}
+${link}
 
-Find the best betting odds in Ghana.`;
+Find the best betting odds in Ghana and Nigeria.`;
+  };
+
+  const withReferral = (link, ref) => {
+    if (!link) return link;
+    try {
+      const url = new URL(link);
+      url.searchParams.set('ref', ref);
+      return url.toString();
+    } catch (error) {
+      return link;
+    }
   };
 
   const handleWhatsAppShare = () => {
-    const text = formatShareText();
+    const whatsappLink = withReferral(shareLink, 'whatsapp');
+    const text = formatShareText(whatsappLink);
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, '_blank');
     trackEvent('share', {
@@ -47,20 +60,21 @@ Find the best betting odds in Ghana.`;
       placement: 'odds_match_share',
       match: `${home_team} vs ${away_team}`,
       league,
-      link_url: shareLink,
+      link_url: whatsappLink,
     });
     setShowShareMenu(false);
   };
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareLink);
+      const copyLink = withReferral(shareLink, 'copy');
+      await navigator.clipboard.writeText(copyLink);
       trackEvent('share', {
         method: 'copy_link',
         placement: 'odds_match_share',
         match: `${home_team} vs ${away_team}`,
         league,
-        link_url: shareLink,
+        link_url: copyLink,
       });
       setCopied(true);
       setTimeout(() => {
@@ -74,14 +88,15 @@ Find the best betting odds in Ghana.`;
 
   const handleCopyText = async () => {
     try {
-      const text = formatShareText();
+      const shareTextLink = withReferral(shareLink, 'share');
+      const text = formatShareText(shareTextLink);
       await navigator.clipboard.writeText(text);
       trackEvent('share', {
         method: 'copy_text',
         placement: 'odds_match_share',
         match: `${home_team} vs ${away_team}`,
         league,
-        link_url: shareLink,
+        link_url: shareTextLink,
       });
       setCopied(true);
       setTimeout(() => {
