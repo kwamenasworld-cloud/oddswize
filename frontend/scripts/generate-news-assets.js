@@ -145,6 +145,71 @@ const renderInfoSection = ({ title, paragraphs, list, ordered }) => {
   `;
 };
 
+const renderOddsCalculator = () => `
+  <section class="card">
+    <h2>Odds Calculator</h2>
+    <p>Enter your decimal odds and stake to see potential return, profit, and implied probability.</p>
+    <div class="calc-grid" data-odds-calculator>
+      <label class="calc-field">
+        Decimal odds
+        <input class="calc-input" type="number" step="0.01" min="1.01" value="2.50" data-odds-input />
+      </label>
+      <label class="calc-field">
+        Stake (GHS)
+        <input class="calc-input" type="number" step="0.1" min="1" value="10" data-stake-input />
+      </label>
+      <div class="calc-field calc-output">
+        <div class="calc-label">Return</div>
+        <div class="calc-value" data-return-output>--</div>
+      </div>
+      <div class="calc-field calc-output">
+        <div class="calc-label">Profit</div>
+        <div class="calc-value" data-profit-output>--</div>
+      </div>
+      <div class="calc-field calc-output">
+        <div class="calc-label">Implied probability</div>
+        <div class="calc-value" data-prob-output>--</div>
+      </div>
+    </div>
+  </section>
+  <script>
+    (() => {
+      const calc = document.querySelector('[data-odds-calculator]');
+      if (!calc) return;
+      const oddsInput = calc.querySelector('[data-odds-input]');
+      const stakeInput = calc.querySelector('[data-stake-input]');
+      const returnOutput = calc.querySelector('[data-return-output]');
+      const profitOutput = calc.querySelector('[data-profit-output]');
+      const probOutput = calc.querySelector('[data-prob-output]');
+      const formatMoney = (value) => (Number.isFinite(value) ? value.toFixed(2) : '--');
+      const formatPercent = (value) => (Number.isFinite(value) ? value.toFixed(1) + '%' : '--');
+      const parseValue = (value) => {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : null;
+      };
+      const update = () => {
+        const odds = parseValue(oddsInput.value);
+        const stake = parseValue(stakeInput.value);
+        if (!odds || odds <= 1 || !stake || stake <= 0) {
+          returnOutput.textContent = '--';
+          profitOutput.textContent = '--';
+          probOutput.textContent = '--';
+          return;
+        }
+        const totalReturn = odds * stake;
+        const profit = totalReturn - stake;
+        const implied = (1 / odds) * 100;
+        returnOutput.textContent = 'GHS ' + formatMoney(totalReturn);
+        profitOutput.textContent = 'GHS ' + formatMoney(profit);
+        probOutput.textContent = formatPercent(implied);
+      };
+      oddsInput.addEventListener('input', update);
+      stakeInput.addEventListener('input', update);
+      update();
+    })();
+  </script>
+`;
+
 const renderLandingPage = ({
   title,
   description,
@@ -350,6 +415,41 @@ const renderLandingPage = ({
       margin: 0 0 0.4rem;
       font-size: 1rem;
     }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+    .calc-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .calc-input {
+      border: 1px solid #d6dbe6;
+      border-radius: 10px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.95rem;
+    }
+    .calc-output {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 0.75rem;
+      font-weight: 700;
+    }
+    .calc-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .calc-value {
+      font-size: 1.05rem;
+    }
     .footer {
       padding: 1.5rem;
       text-align: center;
@@ -411,6 +511,7 @@ const renderLeaguePage = (league) => {
     { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
     { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
     { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+    { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
     { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
   ];
   const faqItems = [
@@ -547,6 +648,7 @@ const renderCountryOddsPage = ({ countryId, slug, headline, intro, ctaUrl }) => 
     { label: 'Champions League odds', href: `${SITE_URL}/odds/ucl/` },
     { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
     { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+    { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
   ].filter(Boolean);
   const faqItems = [
     {
@@ -608,6 +710,7 @@ const renderCountryLeaguePage = ({ countryId, leagueId, slug, leagueName }) => {
     { label: `${countryName} odds today`, href: `${SITE_URL}/${countryId}-odds/` },
     { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
     { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+    { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
     { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
   ];
   const faqItems = [
@@ -737,6 +840,29 @@ const renderValuePicksPage = (picks, updatedAt) => {
       </div>
     `;
   }).join('');
+  const popularLinks = [
+    { label: 'Compare all odds', href: `${SITE_URL}/odds` },
+    { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+    { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+    { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+    { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
+  ];
+  const faqItems = [
+    {
+      question: 'What are value picks?',
+      answer: 'Value picks highlight odds that are higher than the market average for the same outcome.',
+    },
+    {
+      question: 'How often do value picks update?',
+      answer: 'We update throughout the day as bookmakers adjust their prices, especially near kickoff.',
+    },
+    {
+      question: 'Do value picks guarantee wins?',
+      answer: 'No. They indicate potential value, but outcomes are never guaranteed in betting.',
+    },
+  ];
+  const { html: faqHtml, jsonLd: faqJsonLd } = renderFaqSection(faqItems);
+  const popularLinksHtml = renderLinkSection('Popular searches', popularLinks);
 
   const sectionsHtml = `
     <section class="card">
@@ -747,6 +873,8 @@ const renderValuePicksPage = (picks, updatedAt) => {
     <section class="grid">
       ${cards || '<div class="card">No value picks available right now. Check back later.</div>'}
     </section>
+    ${popularLinksHtml}
+    ${faqHtml}
   `;
 
   return renderLandingPage({
@@ -758,6 +886,7 @@ const renderValuePicksPage = (picks, updatedAt) => {
     sectionsHtml,
     ctaLabel: 'Compare all odds',
     ctaUrl: `${SITE_URL}/odds`,
+    extraJsonLd: faqJsonLd ? [faqJsonLd] : [],
   });
 };
 
@@ -801,6 +930,7 @@ const renderMatchPage = (match, slug) => {
     { label: 'All odds today', href: `${SITE_URL}/odds` },
     { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
     { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+    { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
     { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
     { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
   ];
@@ -878,6 +1008,7 @@ const renderGuidePage = (guide) => {
   const sectionsHtml = Array.isArray(guide?.sections)
     ? guide.sections.map((section) => renderInfoSection(section)).join('')
     : '';
+  const extraHtml = guide?.extraHtml ? guide.extraHtml : '';
   const linksHtml = renderLinkSection('Popular searches', guide?.links || []);
   const { html: faqHtml, jsonLd: faqJsonLd } = renderFaqSection(guide?.faqs || []);
 
@@ -887,7 +1018,7 @@ const renderGuidePage = (guide) => {
     canonical: `${SITE_URL}/${guide.slug}/`,
     heading: guide.heading,
     intro: guide.intro,
-    sectionsHtml: `${sectionsHtml}${linksHtml}${faqHtml}`,
+    sectionsHtml: `${sectionsHtml}${extraHtml}${linksHtml}${faqHtml}`,
     ctaLabel: guide.ctaLabel || 'Compare all odds',
     ctaUrl: guide.ctaUrl || `${SITE_URL}/odds`,
     extraJsonLd: faqJsonLd ? [faqJsonLd] : [],
@@ -1137,6 +1268,184 @@ const GUIDE_PAGES = [
       { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
       { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
       { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+      { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+    ],
+  },
+  {
+    slug: 'guides/odds-calculator',
+    title: 'Odds Calculator | Payout, Profit, Implied Probability',
+    description: 'Use this odds calculator to estimate payout, profit, and implied probability for any decimal odds.',
+    heading: 'Odds Calculator',
+    intro: 'Calculate payout, profit, and implied probability from decimal odds in seconds.',
+    sections: [
+      {
+        title: 'How the calculator works',
+        paragraphs: [
+          'The calculator uses decimal odds and your stake to estimate return and profit.',
+          'Implied probability shows the chance of an outcome based on the odds price.',
+        ],
+      },
+      {
+        title: 'Quick formula',
+        list: [
+          'Return = odds x stake',
+          'Profit = return - stake',
+          'Implied probability = 1 / odds',
+        ],
+      },
+    ],
+    extraHtml: renderOddsCalculator(),
+    faqs: [
+      {
+        question: 'What are decimal odds?',
+        answer: 'Decimal odds show the total return for each unit staked, including your stake.',
+      },
+      {
+        question: 'Why is implied probability useful?',
+        answer: 'It helps you compare odds across bookmakers and see when a price looks too high or too low.',
+      },
+      {
+        question: 'Do the results include bonus offers?',
+        answer: 'No. The calculator uses only the odds and stake you enter.',
+      },
+    ],
+    links: [
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
+      { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
+      { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+      { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+    ],
+  },
+  {
+    slug: 'guides/double-chance',
+    title: 'Double Chance Bets Explained | 1X, X2, 12 Markets',
+    description: 'Learn what double chance bets are, how 1X, X2, and 12 markets work, and when to use them.',
+    heading: 'Double Chance Bets Explained',
+    intro: 'Double chance covers two outcomes instead of one, which lowers risk but reduces payout.',
+    sections: [
+      {
+        title: 'How double chance works',
+        paragraphs: [
+          'Double chance combines two results in a single bet: home or draw (1X), away or draw (X2), or home or away (12).',
+          'Because you cover two outcomes, odds are lower than a standard 1X2 bet.',
+        ],
+      },
+      {
+        title: 'When to use it',
+        list: [
+          'When you expect a tight match and want protection against a draw.',
+          'When backing an underdog but still want cover on the favorite.',
+          'When you want safer odds for accumulators.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'Is double chance safer?',
+        answer: 'It reduces risk by covering two outcomes, but the odds are lower than a single result.',
+      },
+      {
+        question: 'What does 12 mean in double chance?',
+        answer: 'It means home win or away win, so the only losing result is a draw.',
+      },
+      {
+        question: 'Do all bookmakers offer double chance?',
+        answer: 'Most major Ghana and Nigeria bookmakers include double chance markets for popular leagues.',
+      },
+    ],
+    links: [
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+      { label: 'Premier League odds', href: `${SITE_URL}/odds/premier/` },
+      { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+    ],
+  },
+  {
+    slug: 'guides/over-under-bets',
+    title: 'Over/Under Bets Explained | Totals Betting Guide',
+    description: 'Understand over/under bets, totals markets, and how to compare odds before placing a bet.',
+    heading: 'Over/Under Bets Explained',
+    intro: 'Totals betting focuses on goals scored, not match winners. It is one of the most popular markets.',
+    sections: [
+      {
+        title: 'Totals market basics',
+        paragraphs: [
+          'Over/under bets are based on whether total goals go above or below a set line like 2.5.',
+          'If the line is 2.5, over wins with 3+ goals and under wins with 0-2 goals.',
+        ],
+      },
+      {
+        title: 'How to find better odds',
+        list: [
+          'Compare the same totals line across multiple bookmakers.',
+          'Check team scoring trends and recent goal totals.',
+          'Avoid betting without checking late team news.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'What does over 2.5 mean?',
+        answer: 'It means the bet wins if the match finishes with 3 or more total goals.',
+      },
+      {
+        question: 'Are totals bets available for most leagues?',
+        answer: 'Yes. Over/under markets are common for popular leagues and international fixtures.',
+      },
+      {
+        question: 'Can odds move on totals markets?',
+        answer: 'Yes. Totals odds can shift based on injuries, lineups, or betting volume.',
+      },
+    ],
+    links: [
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
+      { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+      { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+    ],
+  },
+  {
+    slug: 'guides/accumulator-bets',
+    title: 'Accumulator Bets Explained | Multiple Odds Guide',
+    description: 'Learn how accumulator bets work, how payouts are calculated, and how to manage risk.',
+    heading: 'Accumulator Bets Explained',
+    intro: 'Accumulators combine multiple selections into one bet, increasing payout and risk.',
+    sections: [
+      {
+        title: 'How accumulators work',
+        paragraphs: [
+          'All selections must win for the bet to pay out. One loss means the accumulator loses.',
+          'Odds multiply together, which can produce large returns from small stakes.',
+        ],
+      },
+      {
+        title: 'Tips for building smarter accumulators',
+        list: [
+          'Keep legs focused on leagues you follow closely.',
+          'Avoid combining too many long shots in one ticket.',
+          'Compare odds to get the best price on each leg.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'Are accumulators worth it?',
+        answer: 'They can offer high payouts, but the probability drops with each added selection.',
+      },
+      {
+        question: 'How is accumulator payout calculated?',
+        answer: 'The odds for each leg are multiplied, then multiplied by your stake.',
+      },
+      {
+        question: 'Can I cash out early?',
+        answer: 'Some bookmakers offer cash out, but terms vary by provider.',
+      },
+    ],
+    links: [
+      { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
       { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
     ],
   },

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Odds Calculator | Payout, Profit, Implied Probability</title>
+  <meta name="description" content="Use this odds calculator to estimate payout, profit, and implied probability for any decimal odds." />
+  <link rel="canonical" href="https://oddswize.com/guides/odds-calculator/" />
+  <meta property="og:title" content="Odds Calculator | Payout, Profit, Implied Probability" />
+  <meta property="og:description" content="Use this odds calculator to estimate payout, profit, and implied probability for any decimal odds." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://oddswize.com/guides/odds-calculator/" />
+  <meta property="og:image" content="https://oddswize.com/logo.png" />
+  <meta name="twitter:card" content="summary" />
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #0f5fc5;
+      --ink: #0f172a;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --bg: #f4f6fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Lucida Sans', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    a { color: inherit; }
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1a1a2e 100%);
+      color: #fff;
+      padding: 3.5rem 1.5rem;
+    }
+    .hero-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .brand {
+      text-decoration: none;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: 2.4rem;
+      line-height: 1.2;
+    }
+    .hero p {
+      margin: 0;
+      font-size: 1.05rem;
+      color: rgba(255, 255, 255, 0.75);
+    }
+    .cta {
+      align-self: flex-start;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      text-decoration: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+    .content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+      border: 1px solid #e6e8ee;
+    }
+    .card h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.3rem;
+    }
+    .card p {
+      margin: 0 0 0.75rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .list {
+      margin: 0.75rem 0 0;
+      padding-left: 1.2rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .pick-card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+    }
+    .pick-meta {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .pick-edge {
+      font-weight: 700;
+      color: #16a34a;
+    }
+    .pick-link {
+      display: inline-flex;
+      margin-top: 0.5rem;
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .pick-link:hover {
+      text-decoration: underline;
+    }
+    .link-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .pill-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      background: #eef2ff;
+      border: 1px solid #dbe2ff;
+      color: #1e3a8a;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .pill-link:hover {
+      background: #e0e7ff;
+    }
+    .faq {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .faq-item {
+      border-top: 1px solid #edf0f5;
+      padding-top: 0.75rem;
+    }
+    .faq-item:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+    .faq-item h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1rem;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+    .calc-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .calc-input {
+      border: 1px solid #d6dbe6;
+      border-radius: 10px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.95rem;
+    }
+    .calc-output {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 0.75rem;
+      font-weight: 700;
+    }
+    .calc-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .calc-value {
+      font-size: 1.05rem;
+    }
+    .footer {
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    @media (max-width: 720px) {
+      .hero {
+        padding: 2.5rem 1.25rem;
+      }
+      .hero h1 {
+        font-size: 1.8rem;
+      }
+      .cta {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+  <script type="application/ld+json">{&quot;@context&quot;:&quot;https://schema.org&quot;,&quot;@type&quot;:&quot;WebPage&quot;,&quot;name&quot;:&quot;Odds Calculator | Payout, Profit, Implied Probability&quot;,&quot;description&quot;:&quot;Use this odds calculator to estimate payout, profit, and implied probability for any decimal odds.&quot;,&quot;url&quot;:&quot;https://oddswize.com/guides/odds-calculator/&quot;,&quot;publisher&quot;:{&quot;@type&quot;:&quot;Organization&quot;,&quot;name&quot;:&quot;OddsWize&quot;,&quot;logo&quot;:{&quot;@type&quot;:&quot;ImageObject&quot;,&quot;url&quot;:&quot;https://oddswize.com/logo.png&quot;}}}</script>
+<script type="application/ld+json">{&quot;@context&quot;:&quot;https://schema.org&quot;,&quot;@type&quot;:&quot;FAQPage&quot;,&quot;mainEntity&quot;:[{&quot;@type&quot;:&quot;Question&quot;,&quot;name&quot;:&quot;What are decimal odds?&quot;,&quot;acceptedAnswer&quot;:{&quot;@type&quot;:&quot;Answer&quot;,&quot;text&quot;:&quot;Decimal odds show the total return for each unit staked, including your stake.&quot;}},{&quot;@type&quot;:&quot;Question&quot;,&quot;name&quot;:&quot;Why is implied probability useful?&quot;,&quot;acceptedAnswer&quot;:{&quot;@type&quot;:&quot;Answer&quot;,&quot;text&quot;:&quot;It helps you compare odds across bookmakers and see when a price looks too high or too low.&quot;}},{&quot;@type&quot;:&quot;Question&quot;,&quot;name&quot;:&quot;Do the results include bonus offers?&quot;,&quot;acceptedAnswer&quot;:{&quot;@type&quot;:&quot;Answer&quot;,&quot;text&quot;:&quot;No. The calculator uses only the odds and stake you enter.&quot;}}]}</script>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <a class="brand" href="https://oddswize.com/">OddsWize</a>
+      <h1>Odds Calculator</h1>
+      <p>Calculate payout, profit, and implied probability from decimal odds in seconds.</p>
+      <a class="cta" href="https://oddswize.com/odds">Compare all odds</a>
+    </div>
+  </header>
+  <main class="content">
+    
+    <section class="card">
+      <h2>How the calculator works</h2>
+      <p>The calculator uses decimal odds and your stake to estimate return and profit.</p><p>Implied probability shows the chance of an outcome based on the odds price.</p>
+      
+    </section>
+  
+    <section class="card">
+      <h2>Quick formula</h2>
+      
+      <ul class="list"><li>Return = odds x stake</li><li>Profit = return - stake</li><li>Implied probability = 1 / odds</li></ul>
+    </section>
+  
+  <section class="card">
+    <h2>Odds Calculator</h2>
+    <p>Enter your decimal odds and stake to see potential return, profit, and implied probability.</p>
+    <div class="calc-grid" data-odds-calculator>
+      <label class="calc-field">
+        Decimal odds
+        <input class="calc-input" type="number" step="0.01" min="1.01" value="2.50" data-odds-input />
+      </label>
+      <label class="calc-field">
+        Stake (GHS)
+        <input class="calc-input" type="number" step="0.1" min="1" value="10" data-stake-input />
+      </label>
+      <div class="calc-field calc-output">
+        <div class="calc-label">Return</div>
+        <div class="calc-value" data-return-output>--</div>
+      </div>
+      <div class="calc-field calc-output">
+        <div class="calc-label">Profit</div>
+        <div class="calc-value" data-profit-output>--</div>
+      </div>
+      <div class="calc-field calc-output">
+        <div class="calc-label">Implied probability</div>
+        <div class="calc-value" data-prob-output>--</div>
+      </div>
+    </div>
+  </section>
+  <script>
+    (() => {
+      const calc = document.querySelector('[data-odds-calculator]');
+      if (!calc) return;
+      const oddsInput = calc.querySelector('[data-odds-input]');
+      const stakeInput = calc.querySelector('[data-stake-input]');
+      const returnOutput = calc.querySelector('[data-return-output]');
+      const profitOutput = calc.querySelector('[data-profit-output]');
+      const probOutput = calc.querySelector('[data-prob-output]');
+      const formatMoney = (value) => (Number.isFinite(value) ? value.toFixed(2) : '--');
+      const formatPercent = (value) => (Number.isFinite(value) ? value.toFixed(1) + '%' : '--');
+      const parseValue = (value) => {
+        const num = Number(value);
+        return Number.isFinite(num) ? num : null;
+      };
+      const update = () => {
+        const odds = parseValue(oddsInput.value);
+        const stake = parseValue(stakeInput.value);
+        if (!odds || odds <= 1 || !stake || stake <= 0) {
+          returnOutput.textContent = '--';
+          profitOutput.textContent = '--';
+          probOutput.textContent = '--';
+          return;
+        }
+        const totalReturn = odds * stake;
+        const profit = totalReturn - stake;
+        const implied = (1 / odds) * 100;
+        returnOutput.textContent = 'GHS ' + formatMoney(totalReturn);
+        profitOutput.textContent = 'GHS ' + formatMoney(profit);
+        probOutput.textContent = formatPercent(implied);
+      };
+      oddsInput.addEventListener('input', update);
+      stakeInput.addEventListener('input', update);
+      update();
+    })();
+  </script>
+
+    <section class="card">
+      <h2>Popular searches</h2>
+      <div class="link-grid"><a class="pill-link" href="https://oddswize.com/guides/compare-odds/">Compare odds</a><a class="pill-link" href="https://oddswize.com/guides/implied-probability/">Implied probability</a><a class="pill-link" href="https://oddswize.com/guides/value-bets/">Value bets explained</a><a class="pill-link" href="https://oddswize.com/ghana-odds/">Ghana odds today</a><a class="pill-link" href="https://oddswize.com/nigeria-odds/">Nigeria odds today</a></div>
+    </section>
+  
+      <section class="card">
+        <h2>FAQ</h2>
+        <div class="faq">
+      <div class="faq-item">
+        <h3>What are decimal odds?</h3>
+        <p>Decimal odds show the total return for each unit staked, including your stake.</p>
+      </div>
+    
+      <div class="faq-item">
+        <h3>Why is implied probability useful?</h3>
+        <p>It helps you compare odds across bookmakers and see when a price looks too high or too low.</p>
+      </div>
+    
+      <div class="faq-item">
+        <h3>Do the results include bonus offers?</h3>
+        <p>No. The calculator uses only the odds and stake you enter.</p>
+      </div>
+    </div>
+      </section>
+    
+  </main>
+  <footer class="footer">
+    <p>OddsWize compares odds across Ghana and Nigeria bookmakers. Always gamble responsibly.</p>
+  </footer>
+</body>
+</html>

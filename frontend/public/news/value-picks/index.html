@@ -165,6 +165,41 @@
       margin: 0 0 0.4rem;
       font-size: 1rem;
     }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+    .calc-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .calc-input {
+      border: 1px solid #d6dbe6;
+      border-radius: 10px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.95rem;
+    }
+    .calc-output {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 0.75rem;
+      font-weight: 700;
+    }
+    .calc-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .calc-value {
+      font-size: 1.05rem;
+    }
     .footer {
       padding: 1.5rem;
       text-align: center;
@@ -185,6 +220,7 @@
     }
   </style>
   <script type="application/ld+json">{&quot;@context&quot;:&quot;https://schema.org&quot;,&quot;@type&quot;:&quot;WebPage&quot;,&quot;name&quot;:&quot;Value Picks Today | OddsWize&quot;,&quot;description&quot;:&quot;Auto-generated value picks based on the largest odds edges across Ghana and Nigeria bookmakers.&quot;,&quot;url&quot;:&quot;https://oddswize.com/news/value-picks/&quot;,&quot;publisher&quot;:{&quot;@type&quot;:&quot;Organization&quot;,&quot;name&quot;:&quot;OddsWize&quot;,&quot;logo&quot;:{&quot;@type&quot;:&quot;ImageObject&quot;,&quot;url&quot;:&quot;https://oddswize.com/logo.png&quot;}}}</script>
+<script type="application/ld+json">{&quot;@context&quot;:&quot;https://schema.org&quot;,&quot;@type&quot;:&quot;FAQPage&quot;,&quot;mainEntity&quot;:[{&quot;@type&quot;:&quot;Question&quot;,&quot;name&quot;:&quot;What are value picks?&quot;,&quot;acceptedAnswer&quot;:{&quot;@type&quot;:&quot;Answer&quot;,&quot;text&quot;:&quot;Value picks highlight odds that are higher than the market average for the same outcome.&quot;}},{&quot;@type&quot;:&quot;Question&quot;,&quot;name&quot;:&quot;How often do value picks update?&quot;,&quot;acceptedAnswer&quot;:{&quot;@type&quot;:&quot;Answer&quot;,&quot;text&quot;:&quot;We update throughout the day as bookmakers adjust their prices, especially near kickoff.&quot;}},{&quot;@type&quot;:&quot;Question&quot;,&quot;name&quot;:&quot;Do value picks guarantee wins?&quot;,&quot;acceptedAnswer&quot;:{&quot;@type&quot;:&quot;Answer&quot;,&quot;text&quot;:&quot;No. They indicate potential value, but outcomes are never guaranteed in betting.&quot;}}]}</script>
 </head>
 <body>
   <header class="hero">
@@ -205,6 +241,33 @@
     <section class="grid">
       <div class="card">No value picks available right now. Check back later.</div>
     </section>
+    
+    <section class="card">
+      <h2>Popular searches</h2>
+      <div class="link-grid"><a class="pill-link" href="https://oddswize.com/odds">Compare all odds</a><a class="pill-link" href="https://oddswize.com/ghana-odds/">Ghana odds today</a><a class="pill-link" href="https://oddswize.com/nigeria-odds/">Nigeria odds today</a><a class="pill-link" href="https://oddswize.com/guides/odds-calculator/">Odds calculator</a><a class="pill-link" href="https://oddswize.com/guides/value-bets/">Value bets explained</a></div>
+    </section>
+  
+    
+      <section class="card">
+        <h2>FAQ</h2>
+        <div class="faq">
+      <div class="faq-item">
+        <h3>What are value picks?</h3>
+        <p>Value picks highlight odds that are higher than the market average for the same outcome.</p>
+      </div>
+    
+      <div class="faq-item">
+        <h3>How often do value picks update?</h3>
+        <p>We update throughout the day as bookmakers adjust their prices, especially near kickoff.</p>
+      </div>
+    
+      <div class="faq-item">
+        <h3>Do value picks guarantee wins?</h3>
+        <p>No. They indicate potential value, but outcomes are never guaranteed in betting.</p>
+      </div>
+    </div>
+      </section>
+    
   
   </main>
   <footer class="footer">
