@@ -2,6 +2,17 @@
 // Contains all naming variations from different bookmakers/APIs
 // This ensures consistent league matching across the app
 
+const flagFromIso = (iso2) => {
+  if (!iso2 || iso2.length !== 2) return '';
+  const chars = iso2.toUpperCase().split('');
+  if (chars.some((char) => char < 'A' || char > 'Z')) return '';
+  return String.fromCodePoint(
+    ...chars.map((char) => 0x1f1e6 + char.charCodeAt(0) - 65)
+  );
+};
+
+const symbolFromCodePoint = (codePoint) => String.fromCodePoint(codePoint);
+
 export const LEAGUES = {
   // Premier League (England)
   premier: {
@@ -859,60 +870,60 @@ export const LEAGUES = {
 // Countries for filtering
 export const COUNTRIES = {
   // Europe
-  england: { id: 'england', name: 'England', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-  spain: { id: 'spain', name: 'Spain', flag: '🇪🇸' },
-  italy: { id: 'italy', name: 'Italy', flag: '🇮🇹' },
-  germany: { id: 'germany', name: 'Germany', flag: '🇩🇪' },
-  france: { id: 'france', name: 'France', flag: '🇫🇷' },
-  netherlands: { id: 'netherlands', name: 'Netherlands', flag: '🇳🇱' },
-  portugal: { id: 'portugal', name: 'Portugal', flag: '🇵🇹' },
-  scotland: { id: 'scotland', name: 'Scotland', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
-  belgium: { id: 'belgium', name: 'Belgium', flag: '🇧🇪' },
-  turkey: { id: 'turkey', name: 'Turkey', flag: '🇹🇷' },
+  england: { id: 'england', name: 'England', flag: flagFromIso('GB')},
+  spain: { id: 'spain', name: 'Spain', flag: flagFromIso('ES')},
+  italy: { id: 'italy', name: 'Italy', flag: flagFromIso('IT')},
+  germany: { id: 'germany', name: 'Germany', flag: flagFromIso('DE')},
+  france: { id: 'france', name: 'France', flag: flagFromIso('FR')},
+  netherlands: { id: 'netherlands', name: 'Netherlands', flag: flagFromIso('NL')},
+  portugal: { id: 'portugal', name: 'Portugal', flag: flagFromIso('PT')},
+  scotland: { id: 'scotland', name: 'Scotland', flag: flagFromIso('GB')},
+  belgium: { id: 'belgium', name: 'Belgium', flag: flagFromIso('BE')},
+  turkey: { id: 'turkey', name: 'Turkey', flag: flagFromIso('TR')},
 
   // Africa
-  ghana: { id: 'ghana', name: 'Ghana', flag: '🇬🇭' },
-  kenya: { id: 'kenya', name: 'Kenya', flag: '🇰🇪' },
-  uganda: { id: 'uganda', name: 'Uganda', flag: '🇺🇬' },
-  tanzania: { id: 'tanzania', name: 'Tanzania', flag: '🇹🇿' },
-  nigeria: { id: 'nigeria', name: 'Nigeria', flag: '🇳🇬' },
-  southafrica: { id: 'southafrica', name: 'South Africa', flag: '🇿🇦' },
-  egypt: { id: 'egypt', name: 'Egypt', flag: '🇪🇬' },
-  morocco: { id: 'morocco', name: 'Morocco', flag: '🇲🇦' },
-  algeria: { id: 'algeria', name: 'Algeria', flag: '🇩🇿' },
-  tunisia: { id: 'tunisia', name: 'Tunisia', flag: '🇹🇳' },
-  zambia: { id: 'zambia', name: 'Zambia', flag: '🇿🇲' },
-  zimbabwe: { id: 'zimbabwe', name: 'Zimbabwe', flag: '🇿🇼' },
-  rwanda: { id: 'rwanda', name: 'Rwanda', flag: '🇷🇼' },
-  botswana: { id: 'botswana', name: 'Botswana', flag: '🇧🇼' },
-  ethiopia: { id: 'ethiopia', name: 'Ethiopia', flag: '🇪🇹' },
-  ivorycoast: { id: 'ivorycoast', name: 'Ivory Coast', flag: '🇨🇮' },
-  senegal: { id: 'senegal', name: 'Senegal', flag: '🇸🇳' },
-  cameroon: { id: 'cameroon', name: 'Cameroon', flag: '🇨🇲' },
+  ghana: { id: 'ghana', name: 'Ghana', flag: flagFromIso('GH')},
+  kenya: { id: 'kenya', name: 'Kenya', flag: flagFromIso('KE')},
+  uganda: { id: 'uganda', name: 'Uganda', flag: flagFromIso('UG')},
+  tanzania: { id: 'tanzania', name: 'Tanzania', flag: flagFromIso('TZ')},
+  nigeria: { id: 'nigeria', name: 'Nigeria', flag: flagFromIso('NG')},
+  southafrica: { id: 'southafrica', name: 'South Africa', flag: flagFromIso('ZA')},
+  egypt: { id: 'egypt', name: 'Egypt', flag: flagFromIso('EG')},
+  morocco: { id: 'morocco', name: 'Morocco', flag: flagFromIso('MA')},
+  algeria: { id: 'algeria', name: 'Algeria', flag: flagFromIso('DZ')},
+  tunisia: { id: 'tunisia', name: 'Tunisia', flag: flagFromIso('TN')},
+  zambia: { id: 'zambia', name: 'Zambia', flag: flagFromIso('ZM')},
+  zimbabwe: { id: 'zimbabwe', name: 'Zimbabwe', flag: flagFromIso('ZW')},
+  rwanda: { id: 'rwanda', name: 'Rwanda', flag: flagFromIso('RW')},
+  botswana: { id: 'botswana', name: 'Botswana', flag: flagFromIso('BW')},
+  ethiopia: { id: 'ethiopia', name: 'Ethiopia', flag: flagFromIso('ET')},
+  ivorycoast: { id: 'ivorycoast', name: 'Ivory Coast', flag: flagFromIso('CI')},
+  senegal: { id: 'senegal', name: 'Senegal', flag: flagFromIso('SN')},
+  cameroon: { id: 'cameroon', name: 'Cameroon', flag: flagFromIso('CM')},
 
   // Americas
-  usa: { id: 'usa', name: 'USA', flag: '🇺🇸' },
-  brazil: { id: 'brazil', name: 'Brazil', flag: '🇧🇷' },
-  argentina: { id: 'argentina', name: 'Argentina', flag: '🇦🇷' },
-  mexico: { id: 'mexico', name: 'Mexico', flag: '🇲🇽' },
-  colombia: { id: 'colombia', name: 'Colombia', flag: '🇨🇴' },
-  chile: { id: 'chile', name: 'Chile', flag: '🇨🇱' },
+  usa: { id: 'usa', name: 'USA', flag: flagFromIso('US')},
+  brazil: { id: 'brazil', name: 'Brazil', flag: flagFromIso('BR')},
+  argentina: { id: 'argentina', name: 'Argentina', flag: flagFromIso('AR')},
+  mexico: { id: 'mexico', name: 'Mexico', flag: flagFromIso('MX')},
+  colombia: { id: 'colombia', name: 'Colombia', flag: flagFromIso('CO')},
+  chile: { id: 'chile', name: 'Chile', flag: flagFromIso('CL')},
 
   // Asia & Oceania
-  japan: { id: 'japan', name: 'Japan', flag: '🇯🇵' },
-  china: { id: 'china', name: 'China', flag: '🇨🇳' },
-  korea: { id: 'korea', name: 'South Korea', flag: '🇰🇷' },
-  australia: { id: 'australia', name: 'Australia', flag: '🇦🇺' },
-  india: { id: 'india', name: 'India', flag: '🇮🇳' },
+  japan: { id: 'japan', name: 'Japan', flag: flagFromIso('JP')},
+  china: { id: 'china', name: 'China', flag: flagFromIso('CN')},
+  korea: { id: 'korea', name: 'South Korea', flag: flagFromIso('KR')},
+  australia: { id: 'australia', name: 'Australia', flag: flagFromIso('AU')},
+  india: { id: 'india', name: 'India', flag: flagFromIso('IN')},
 
   // Middle East
-  saudi: { id: 'saudi', name: 'Saudi Arabia', flag: '🇸🇦' },
+  saudi: { id: 'saudi', name: 'Saudi Arabia', flag: flagFromIso('SA')},
 
   // Regions
-  europe: { id: 'europe', name: 'Europe', flag: '🇪🇺' },
-  international: { id: 'international', name: 'International', flag: '🌍' },
-  africa: { id: 'africa', name: 'Africa', flag: '🌍' },
-  southamerica: { id: 'southamerica', name: 'South America', flag: '🌎' },
+  europe: { id: 'europe', name: 'Europe', flag: flagFromIso('EU')},
+  international: { id: 'international', name: 'International', flag: symbolFromCodePoint(0x1f310)},
+  africa: { id: 'africa', name: 'Africa', flag: symbolFromCodePoint(0x1f30d)},
+  southamerica: { id: 'southamerica', name: 'South America', flag: symbolFromCodePoint(0x1f30e)},
 };
 
 // Popular leagues for quick filters (ordered by popularity)

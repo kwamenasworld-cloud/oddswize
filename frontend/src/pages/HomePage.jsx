@@ -3,36 +3,78 @@ import { Link } from 'react-router-dom';
 import { TeamLogo } from '../components/TeamLogo';
 import { BookmakerLogo } from '../components/BookmakerLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
-import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
+import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, getBookmakerConfig } from '../config/affiliates';
 import { LEAGUES, matchLeague, getLeagueTier } from '../config/leagues';
 import { getTeamPopularityScore } from '../config/popularity';
 import { getLatestArticles, formatArticleDate } from '../data/articles';
 import { trackAffiliateClick } from '../services/analytics';
 import { getCachedOdds, getMatchesByLeague } from '../services/api';
 
+const SITE_URL = 'https://oddswize.com';
+const VALUE_MARKET_FIELDS = ['home_odds', 'draw_odds', 'away_odds'];
+const MIN_VALUE_EDGE = 5;
+
 // Betting tips for engagement
 const BETTING_TIPS = [
   {
-    icon: '📊',
+    id: 'compare',
     title: 'Compare Before You Bet',
     description: 'Always compare odds across multiple bookmakers. A 0.10 difference can significantly impact your returns.',
   },
   {
-    icon: '💰',
+    id: 'value',
     title: 'Understand Value Betting',
     description: 'Value betting means finding odds that are higher than the true probability. Our highlights show you where the value is.',
   },
   {
-    icon: '🏆',
+    id: 'knowledge',
     title: 'Bet on What You Know',
     description: 'Focus on leagues and teams you follow closely. Better knowledge leads to better predictions and more informed bets.',
   },
   {
-    icon: '🎯',
+    id: 'bankroll',
     title: 'Bankroll Management',
     description: 'Never bet more than 2-5% of your bankroll on a single bet. Consistent staking leads to long-term success.',
   },
 ];
+
+const TipIcon = ({ id }) => {
+  switch (id) {
+    case 'compare':
+      return (
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 3v18h18" />
+          <path d="M7 15l3-3 3 3 5-6" />
+        </svg>
+      );
+    case 'value':
+      return (
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 1v22" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H7" />
+        </svg>
+      );
+    case 'knowledge':
+      return (
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 20v-6" />
+          <path d="M12 4a8 8 0 0 0-4 15" />
+          <path d="M12 4a8 8 0 0 1 4 15" />
+          <circle cx="12" cy="10" r="2" />
+        </svg>
+      );
+    case 'bankroll':
+      return (
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="6" width="18" height="12" rx="2" />
+          <circle cx="12" cy="12" r="3" />
+          <path d="M3 10h3M18 10h3" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
 
 // Popular leagues for navigation - using centralized config
 const POPULAR_LEAGUES = [
@@ -61,7 +103,130 @@ function HomePage() {
   const [leagueMatchCounts, setLeagueMatchCounts] = useState({});
   const [totalMatches, setTotalMatches] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [valuePicks, setValuePicks] = useState([]);
+  const [shareCopied, setShareCopied] = useState(false);
   const latestArticles = useMemo(() => getLatestArticles(4), []);
+
+  const shareMessage = 'Compare odds across Ghana bookmakers with OddsWize. Find better value before you bet.';
+  const shareUrl = SITE_URL;
+
+  const handleShareSite = async () => {
+    const payload = {
+      title: 'OddsWize',
+      text: shareMessage,
+      url: shareUrl,
+    };
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(payload);
+        return;
+      } catch (error) {
+        // Ignore share cancel and fall back
+      }
+    }
+    handleCopySite();
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = `${shareMessage}\n\n${shareUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleCopySite = async () => {
+    const text = shareUrl;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else if (typeof window !== 'undefined') {
+        window.prompt('Copy this link:', text);
+      }
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+    }
+  };
+
+  const formatOddValue = (value) => {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue.toFixed(2) : '-';
+  };
+
+  const getMarketAverage = (match, field) => {
+    const odds = match.odds || [];
+    const values = odds
+      .map(o => Number(o[field]))
+      .filter(value => Number.isFinite(value) && value > 1);
+    if (!values.length) return 0;
+    const sum = values.reduce((acc, value) => acc + value, 0);
+    return sum / values.length;
+  };
+
+  const getBestValueOffer = (match) => {
+    const odds = match.odds || [];
+    if (!odds.length) return null;
+    const averages = VALUE_MARKET_FIELDS.map(field => getMarketAverage(match, field));
+    const labels = [
+      match.home_team ? `${match.home_team} win` : 'Home win',
+      'Draw',
+      match.away_team ? `${match.away_team} win` : 'Away win',
+    ];
+    let best = null;
+
+    odds.forEach((bookie) => {
+      VALUE_MARKET_FIELDS.forEach((field, index) => {
+        const value = Number(bookie[field]);
+        const average = averages[index];
+        if (!Number.isFinite(value) || value <= 1 || !average) return;
+        const edge = ((value - average) / average) * 100;
+        if (edge < MIN_VALUE_EDGE) return;
+        if (!best || edge > best.edge) {
+          best = {
+            bookmaker: bookie.bookmaker,
+            odds: value,
+            edge,
+            label: labels[index],
+          };
+        }
+      });
+    });
+
+    return best;
+  };
+
+  const buildValuePicks = (leagues, nowSeconds) => {
+    const picks = [];
+    const windowEnd = nowSeconds + (24 * 60 * 60);
+
+    (leagues || []).forEach((league) => {
+      const leagueMatches = league.matches || [];
+      leagueMatches.forEach((match) => {
+        const matchData = {
+          ...match,
+          league: league.league || match.league,
+        };
+        const startTime = Number(matchData.start_time || 0);
+        if (!startTime || startTime < nowSeconds || startTime > windowEnd) return;
+        if ((matchData.odds?.length || 0) < 2) return;
+        const offer = getBestValueOffer(matchData);
+        if (!offer) return;
+        const popularityScore = getPopularityScore(matchData, nowSeconds);
+        picks.push({
+          match: matchData,
+          offer,
+          score: offer.edge + popularityScore * 0.2,
+        });
+      });
+    });
+
+    return picks
+      .sort((a, b) => {
+        const edgeDiff = b.offer.edge - a.offer.edge;
+        if (edgeDiff !== 0) return edgeDiff;
+        return b.score - a.score;
+      })
+      .slice(0, 4);
+  };
 
   const applyHomeData = (leagues) => {
     const now = new Date();
@@ -105,6 +270,7 @@ function HomePage() {
       return (a.match.start_time || 0) - (b.match.start_time || 0);
     });
 
+    setValuePicks(buildValuePicks(leagues, nowSeconds));
     setFeaturedMatches(scored.slice(0, 6).map(item => item.match));
     setLeagueMatchCounts(counts);
     setTotalMatches(total);
@@ -119,6 +285,7 @@ function HomePage() {
       setFeaturedMatches([]);
       setLeagueMatchCounts({});
       setTotalMatches(0);
+      setValuePicks([]);
     } finally {
       setLoading(false);
     }
@@ -270,7 +437,12 @@ function HomePage() {
       <section className="home-section featured-section">
         <div className="section-header">
           <h2>Today's Top Matches</h2>
-          <Link to="/odds" className="see-all">View All Matches →</Link>
+          <Link to="/odds" className="see-all">
+            View All Matches
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
         <div className="featured-grid">
           {loading ? (
@@ -298,15 +470,15 @@ function HomePage() {
                   <div className="featured-odds">
                     <div className="featured-odd">
                       <span className="odd-label">1</span>
-                      <span className="odd-value">{bestHome.value?.toFixed(2) || '-'}</span>
+                      <span className="odd-value">{formatOddValue(bestHome.value)}</span>
                     </div>
                     <div className="featured-odd">
                       <span className="odd-label">X</span>
-                      <span className="odd-value">{bestDraw.value?.toFixed(2) || '-'}</span>
+                      <span className="odd-value">{formatOddValue(bestDraw.value)}</span>
                     </div>
                     <div className="featured-odd">
                       <span className="odd-label">2</span>
-                      <span className="odd-value">{bestAway.value?.toFixed(2) || '-'}</span>
+                      <span className="odd-value">{formatOddValue(bestAway.value)}</span>
                     </div>
                   </div>
                   <div className="featured-time">{formatTime(match.start_time)}</div>
@@ -317,6 +489,82 @@ function HomePage() {
             <div className="no-matches">
               <p>No featured matches at the moment</p>
               <Link to="/odds" className="view-all-btn">View All Odds</Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Value Picks */}
+      <section className="home-section value-section">
+        <div className="section-header">
+          <h2>Value Picks Today</h2>
+          <span className="section-subtitle">Best edges across Ghana bookmakers</span>
+        </div>
+        <div className="value-grid">
+          {loading ? (
+            <div className="loading-state">Loading value picks...</div>
+          ) : valuePicks.length > 0 ? (
+            valuePicks.map((pick, idx) => {
+              const match = pick.match;
+              const offer = pick.offer;
+              const config = getBookmakerConfig(offer.bookmaker);
+              const matchLabel = `${match.home_team} vs ${match.away_team}`;
+              const valuePercent = Math.round(offer.edge);
+
+              return (
+                <div key={`${matchLabel}-${idx}`} className="value-card">
+                  <div className="value-card-header">
+                    <span className="value-league">{match.league}</span>
+                    <span className="value-time">{formatTime(match.start_time)}</span>
+                  </div>
+                  <div className="value-teams">
+                    <div className="value-team">
+                      <TeamLogo teamName={match.home_team} size={24} />
+                      <span>{match.home_team}</span>
+                    </div>
+                    <span className="value-vs">vs</span>
+                    <div className="value-team">
+                      <TeamLogo teamName={match.away_team} size={24} />
+                      <span>{match.away_team}</span>
+                    </div>
+                  </div>
+                  <div className="value-offer">
+                    <span className="value-label">Best value</span>
+                    <span className="value-outcome">{offer.label}</span>
+                    <span className="value-edge">+{valuePercent}%</span>
+                  </div>
+                  <div className="value-bookie">
+                    <BookmakerLogo bookmaker={offer.bookmaker} size={28} />
+                    <div className="value-bookie-details">
+                      <span className="value-bookie-name">{config.name}</span>
+                      <span className="value-odds">{formatOddValue(offer.odds)}</span>
+                    </div>
+                  </div>
+                  <a
+                    href={config.affiliateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="value-cta"
+                    onClick={() => trackAffiliateClick({
+                      bookmaker: config.name,
+                      placement: 'home_value_pick',
+                      match: matchLabel,
+                      league: match.league,
+                      outcome: offer.label,
+                      odds: offer.odds,
+                      valuePercent,
+                      url: config.affiliateUrl,
+                    })}
+                  >
+                    Bet with {config.name}
+                  </a>
+                </div>
+              );
+            })
+          ) : (
+            <div className="value-empty">
+              <p>No value picks available right now.</p>
+              <Link to="/odds" className="value-empty-link">View all odds</Link>
             </div>
           )}
         </div>
@@ -373,11 +621,34 @@ function HomePage() {
         <div className="tips-grid">
           {BETTING_TIPS.map((tip, idx) => (
             <div key={idx} className="tip-card">
-              <span className="tip-icon">{tip.icon}</span>
+              <span className="tip-icon" aria-hidden="true">
+                <TipIcon id={tip.id} />
+              </span>
               <h3>{tip.title}</h3>
               <p>{tip.description}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Share CTA */}
+      <section className="home-section share-section">
+        <div className="share-card">
+          <div className="share-text">
+            <h2>Share OddsWize</h2>
+            <p>Help friends compare odds and find better value before they bet.</p>
+          </div>
+          <div className="share-actions">
+            <button type="button" className="share-action primary" onClick={handleShareSite}>
+              Share OddsWize
+            </button>
+            <button type="button" className="share-action whatsapp" onClick={handleShareWhatsApp}>
+              Share on WhatsApp
+            </button>
+            <button type="button" className="share-action" onClick={handleCopySite}>
+              {shareCopied ? 'Copied!' : 'Copy Link'}
+            </button>
+          </div>
         </div>
       </section>
 

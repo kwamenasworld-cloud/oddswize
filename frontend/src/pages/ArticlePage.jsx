@@ -132,7 +132,7 @@ function ArticlePage() {
               <div>
                 <h4>Best odds for this story</h4>
                 <p>
-                  {topRecommendation.name} · {topRecommendation.reason}
+                  {topRecommendation.name} - {topRecommendation.reason}
                 </p>
               </div>
               <a

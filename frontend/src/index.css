@@ -4012,6 +4012,9 @@ body.modal-open {
 }
 
 .see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.9rem;
   color: var(--primary);
   text-decoration: none;
@@ -4020,6 +4023,10 @@ body.modal-open {
 
 .see-all:hover {
   text-decoration: underline;
+}
+
+.see-all svg {
+  margin-top: 1px;
 }
 
 /* Featured Matches Grid */
@@ -4118,6 +4125,156 @@ body.modal-open {
   text-align: center;
   font-size: 0.75rem;
   color: #888;
+}
+
+/* Value Picks */
+.value-section {
+  background: #fff;
+}
+
+.value-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.value-card {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 1.25rem;
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.value-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+}
+
+.value-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.value-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.value-team span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+}
+
+.value-vs {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+.value-offer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #e6e6e6;
+}
+
+.value-label {
+  font-size: 0.65rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.value-outcome {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.value-edge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.value-bookie {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.value-bookie-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.value-bookie-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.value-odds {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+.value-cta {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.9rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.value-cta:hover {
+  filter: brightness(0.95);
+}
+
+.value-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 1.5rem;
+  border: 1px dashed #ddd;
+  border-radius: 12px;
+  background: #f8f9fa;
+  color: #666;
+}
+
+.value-empty-link {
+  display: inline-flex;
+  margin-top: 0.75rem;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.value-empty-link:hover {
+  text-decoration: underline;
 }
 
 /* Popular Leagues */
@@ -4272,9 +4429,16 @@ body.modal-open {
 }
 
 .tip-icon {
-  font-size: 2rem;
   margin-bottom: 0.75rem;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+}
+
+.tip-icon svg {
+  width: 28px;
+  height: 28px;
 }
 
 .tip-card h3 {
@@ -4289,6 +4453,70 @@ body.modal-open {
   color: #666;
   line-height: 1.5;
   margin: 0;
+}
+
+/* Share Section */
+.share-section {
+  background: #f8f9fa;
+}
+
+.share-card {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  border-radius: 18px;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+
+.share-text h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.6rem;
+}
+
+.share-text p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.share-action {
+  border: none;
+  cursor: pointer;
+  padding: 0.7rem 1.1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.share-action:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.share-action.primary {
+  background: #4ade80;
+  color: #0f172a;
+}
+
+.share-action.primary:hover {
+  background: #22c55e;
+}
+
+.share-action.whatsapp {
+  background: #25d366;
+  color: #0b1f12;
 }
 
 /* Bookmakers Section */
@@ -4371,7 +4599,7 @@ body.modal-open {
 }
 
 .faq-item[open] summary::after {
-  content: '−';
+  content: '-';
 }
 
 .faq-item p {
@@ -4457,7 +4685,8 @@ body.modal-open {
   }
 
   .featured-grid,
-  .news-grid {
+  .news-grid,
+  .value-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4467,6 +4696,20 @@ body.modal-open {
 
   .tips-grid {
     grid-template-columns: 1fr;
+  }
+
+  .share-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .share-actions {
+    width: 100%;
+  }
+
+  .share-action {
+    width: 100%;
+    justify-content: center;
   }
 
   .home-cta-final {
@@ -4956,6 +5199,46 @@ body.modal-open {
 
 .news-feed-link:hover {
   color: #fff;
+}
+
+.news-auto {
+  padding: 0 1rem 2rem;
+}
+
+.news-auto-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  background: #0f172a;
+  color: white;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+}
+
+.news-auto-card h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.news-auto-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.news-auto-link {
+  background: #4ade80;
+  color: #0f172a;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.news-auto-link:hover {
+  background: #22c55e;
 }
 
 .news-list {
@@ -5484,6 +5767,16 @@ body.modal-open {
 @media (max-width: 768px) {
   .news-hero h1 {
     font-size: 1.75rem;
+  }
+
+  .news-auto-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .news-auto-link {
+    width: 100%;
+    text-align: center;
   }
 
   .news-list-item {

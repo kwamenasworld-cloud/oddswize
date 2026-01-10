@@ -7,29 +7,34 @@ function ShareButton({ home_team, away_team, league, time, bestHome, bestDraw, b
   if (!home_team || !away_team) return null;
 
   // Format match details for sharing
+  const formatOddValue = (value) => {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue.toFixed(2) : '-';
+  };
+
   const formatShareText = () => {
     // Extract values and bookmakers (handle both old and new format)
-    const homeValue = bestHome?.value || bestHome || 0;
+    const homeValue = bestHome?.value || bestHome || null;
     const homeBookie = bestHome?.bookmaker || '';
-    const drawValue = bestDraw?.value || bestDraw || 0;
+    const drawValue = bestDraw?.value || bestDraw || null;
     const drawBookie = bestDraw?.bookmaker || '';
-    const awayValue = bestAway?.value || bestAway || 0;
+    const awayValue = bestAway?.value || bestAway || null;
     const awayBookie = bestAway?.bookmaker || '';
 
-    return `⚽ *${home_team} vs ${away_team}*
+    return `Match: ${home_team} vs ${away_team}
 
-📅 ${time}
-🏆 ${league}
+Time: ${time}
+League: ${league}
 
-💰 *Best Odds*
-${home_team}: *${homeValue.toFixed(2)}* (${homeBookie})
-Draw: *${drawValue.toFixed(2)}* (${drawBookie})
-${away_team}: *${awayValue.toFixed(2)}* (${awayBookie})
+Best Odds:
+${home_team}: ${formatOddValue(homeValue)}${homeBookie ? ` (${homeBookie})` : ''}
+Draw: ${formatOddValue(drawValue)}${drawBookie ? ` (${drawBookie})` : ''}
+${away_team}: ${formatOddValue(awayValue)}${awayBookie ? ` (${awayBookie})` : ''}
 
-🔗 Compare all odds on OddsWize:
+Compare all odds on OddsWize:
 ${shareLink}
 
-_Find the best betting odds in Ghana 🇬🇭_`;
+Find the best betting odds in Ghana.`;
   };
 
   const handleWhatsAppShare = () => {
@@ -88,7 +93,11 @@ _Find the best betting odds in Ghana 🇬🇭_`;
           <div className="share-menu">
             <div className="share-menu-header">
               <h3>Share Match</h3>
-              <button className="share-menu-close" onClick={() => setShowShareMenu(false)}>×</button>
+              <button className="share-menu-close" onClick={() => setShowShareMenu(false)} aria-label="Close">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
             <div className="share-menu-content">

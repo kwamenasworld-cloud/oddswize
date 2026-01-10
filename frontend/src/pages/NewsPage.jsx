@@ -34,6 +34,16 @@ function NewsPage() {
         <a className="news-feed-link" href="/rss.xml">Get updates via RSS</a>
       </section>
 
+      <section className="news-auto">
+        <div className="news-auto-card">
+          <div>
+            <h2>Today's Value Picks</h2>
+            <p>Auto-generated picks based on the biggest odds edges right now.</p>
+          </div>
+          <a className="news-auto-link" href="/news/value-picks">View Value Picks</a>
+        </div>
+      </section>
+
       {recommendations.length > 0 && (
         <section className="news-recommendations">
           <div className="section-header">
@@ -97,7 +107,7 @@ function NewsPage() {
               Join {topRecommendation.name} for better odds
             </span>
             <span className="sticky-cta-subtitle">
-              {topRecommendation.reason} · {topRecommendation.signupBonus}
+              {topRecommendation.reason} - {topRecommendation.signupBonus}
             </span>
           </div>
           <a
