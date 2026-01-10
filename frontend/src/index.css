@@ -2914,6 +2914,28 @@ body.modal-open {
   opacity: 0.9;
 }
 
+.last-updated-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.last-updated-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.last-updated-time {
+  font-weight: 600;
+  color: #333;
+}
+
 /* Two-column layout for Over/Under */
 .odds-cell.two-col {
   justify-content: center;

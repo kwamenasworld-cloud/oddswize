@@ -1443,6 +1443,13 @@ function OddsPage() {
         ))}
       </div>
 
+      <div className="last-updated-line">
+        <span className="last-updated-label">Last updated</span>
+        <span className="last-updated-time">
+          {status?.last_scan ? formatRelativeTime(status.last_scan) : (loading ? 'Loading...' : 'Unavailable')}
+        </span>
+      </div>
+
       {renderPagination('pagination-top')}
 
       {/* Main Odds Grid */}
