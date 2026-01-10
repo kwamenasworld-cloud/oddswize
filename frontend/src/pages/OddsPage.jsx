@@ -1782,12 +1782,18 @@ function OddsPage() {
                                   );
                                 })
                               ) : (
-                                marketFields.map((_, i) => (
-                                  <span key={i} className={`odd empty ${match.pendingOdds ? 'pending' : ''}`}>
-                                    <span className="odds-card-odd-label">{currentMarket.labels[i]}</span>
-                                    <span className="odds-card-odd-value">{match.pendingOdds ? 'Pending.' : '-'}</span>
-                                  </span>
-                                ))
+                                marketFields.map((_, i) => {
+                                  const pendingLabel = i === 0 ? 'Pending' : '-';
+                                  const pendingClass = match.pendingOdds
+                                    ? `pending ${i === 0 ? 'pending-primary' : 'pending-muted'}`
+                                    : '';
+                                  return (
+                                    <span key={i} className={`odd empty ${pendingClass}`}>
+                                      <span className="odds-card-odd-label">{currentMarket.labels[i]}</span>
+                                      <span className="odds-card-odd-value">{match.pendingOdds ? pendingLabel : '-'}</span>
+                                    </span>
+                                  );
+                                })
                               )}
                             </div>
                           </div>
@@ -1952,15 +1958,17 @@ function OddsPage() {
                             );
                           })
                         ) : (
-                          marketFields.map((_, i) => (
-                            match.pendingOdds ? (
-                              <span key={i} className="odd empty pending">
-                                Pending…
+                          marketFields.map((_, i) => {
+                            const pendingLabel = i === 0 ? 'Pending' : '-';
+                            const pendingClass = i === 0 ? 'pending-primary' : 'pending-muted';
+                            return match.pendingOdds ? (
+                              <span key={i} className={`odd empty pending ${pendingClass}`}>
+                                {pendingLabel}
                               </span>
                             ) : (
                               <span key={i} className="odd empty">-</span>
-                            )
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     );
