@@ -512,6 +512,8 @@ const renderLeaguePage = (league) => {
     { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
     { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
     { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+    { label: 'BTTS bets', href: `${SITE_URL}/guides/btts/` },
+    { label: 'Draw no bet', href: `${SITE_URL}/guides/draw-no-bet/` },
     { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
   ];
   const faqItems = [
@@ -649,6 +651,8 @@ const renderCountryOddsPage = ({ countryId, slug, headline, intro, ctaUrl }) => 
     { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
     { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
     { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+    { label: 'BTTS bets', href: `${SITE_URL}/guides/btts/` },
+    { label: 'Draw no bet', href: `${SITE_URL}/guides/draw-no-bet/` },
   ].filter(Boolean);
   const faqItems = [
     {
@@ -711,6 +715,8 @@ const renderCountryLeaguePage = ({ countryId, leagueId, slug, leagueName }) => {
     { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
     { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
     { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+    { label: 'BTTS bets', href: `${SITE_URL}/guides/btts/` },
+    { label: 'Draw no bet', href: `${SITE_URL}/guides/draw-no-bet/` },
     { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
   ];
   const faqItems = [
@@ -845,6 +851,8 @@ const renderValuePicksPage = (picks, updatedAt) => {
     { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
     { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
     { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+    { label: 'BTTS bets', href: `${SITE_URL}/guides/btts/` },
+    { label: 'Correct score bets', href: `${SITE_URL}/guides/correct-score-bets/` },
     { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
   ];
   const faqItems = [
@@ -931,6 +939,8 @@ const renderMatchPage = (match, slug) => {
     { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
     { label: 'How to compare odds', href: `${SITE_URL}/guides/compare-odds/` },
     { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+    { label: 'BTTS bets', href: `${SITE_URL}/guides/btts/` },
+    { label: 'Correct score bets', href: `${SITE_URL}/guides/correct-score-bets/` },
     { label: 'Implied probability', href: `${SITE_URL}/guides/implied-probability/` },
     { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
   ];
@@ -1447,6 +1457,218 @@ const GUIDE_PAGES = [
       { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
       { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
       { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+    ],
+  },
+  {
+    slug: 'guides/btts',
+    title: 'BTTS (Both Teams To Score) Bets Explained | OddsWize',
+    description: 'Learn what BTTS means, how both teams to score bets work, and when to use them.',
+    heading: 'BTTS (Both Teams To Score) Explained',
+    intro: 'BTTS means both teams score at least one goal. It is popular for matches with strong attacks.',
+    sections: [
+      {
+        title: 'What BTTS means',
+        paragraphs: [
+          'A BTTS bet wins if both teams score at least one goal in the match.',
+          'It loses if either team fails to score, including a 0-0 draw.',
+        ],
+      },
+      {
+        title: 'When BTTS can be useful',
+        list: [
+          'Both teams score regularly in recent matches.',
+          'Defenses are conceding goals consistently.',
+          'Head-to-head meetings show goals from both sides.',
+        ],
+      },
+      {
+        title: 'Odds comparison tips',
+        list: [
+          'Compare BTTS Yes prices across multiple bookmakers.',
+          'Check odds movement near kickoff for late value.',
+          'Use implied probability to judge if the price is fair.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'Is BTTS the same as over 2.5?',
+        answer: 'No. A 1-1 draw wins BTTS but stays under 2.5 goals.',
+      },
+      {
+        question: 'Does a 0-0 score win BTTS?',
+        answer: 'No. Both teams must score at least one goal.',
+      },
+      {
+        question: 'Do all bookmakers offer BTTS markets?',
+        answer: 'Most major bookmakers offer BTTS for popular leagues and competitions.',
+      },
+    ],
+    links: [
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+      { label: 'Over/Under bets', href: `${SITE_URL}/guides/over-under-bets/` },
+      { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+      { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
+    ],
+  },
+  {
+    slug: 'guides/draw-no-bet',
+    title: 'Draw No Bet Explained | Safer 1X2 Betting',
+    description: 'Draw no bet returns your stake if the match is a draw. Learn how it works and when to use it.',
+    heading: 'Draw No Bet Explained',
+    intro: 'Draw no bet removes the draw outcome. If the match ends in a draw, your stake is returned.',
+    sections: [
+      {
+        title: 'How draw no bet works',
+        paragraphs: [
+          'You choose the home or away team to win.',
+          'If your team wins, the bet pays. If the match is a draw, your stake is returned.',
+        ],
+      },
+      {
+        title: 'When to use it',
+        list: [
+          'Tight matches where a draw feels likely.',
+          'Backing a slight favorite but limiting draw risk.',
+          'Building safer accumulator selections.',
+        ],
+      },
+      {
+        title: 'Compare prices',
+        list: [
+          'Check draw no bet odds across at least three bookmakers.',
+          'Look for better prices close to kickoff.',
+          'Compare with double chance to see which offers better value.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'What happens if the match is a draw?',
+        answer: 'Your stake is returned. The bet is settled as a push.',
+      },
+      {
+        question: 'Is draw no bet the same as Asian handicap 0?',
+        answer: 'Yes. Draw no bet is equivalent to Asian handicap 0.',
+      },
+      {
+        question: 'Is the payout lower than 1X2?',
+        answer: 'Usually yes, because you remove the draw outcome and reduce risk.',
+      },
+    ],
+    links: [
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Handicap bets', href: `${SITE_URL}/guides/handicap-bets/` },
+      { label: 'Double chance bets', href: `${SITE_URL}/guides/double-chance/` },
+      { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+      { label: 'Nigeria odds today', href: `${SITE_URL}/nigeria-odds/` },
+    ],
+  },
+  {
+    slug: 'guides/correct-score-bets',
+    title: 'Correct Score Bets Explained | Odds and Examples',
+    description: 'Learn how correct score betting works, why odds are high, and how to compare prices.',
+    heading: 'Correct Score Bets Explained',
+    intro: 'Correct score betting focuses on the exact final score, which makes odds higher and riskier.',
+    sections: [
+      {
+        title: 'What is a correct score bet?',
+        paragraphs: [
+          'You predict the exact final score, such as 1-0 or 2-1.',
+          'Only the exact score wins, so outcomes are lower probability.',
+        ],
+      },
+      {
+        title: 'How to approach it',
+        list: [
+          'Focus on 2-3 likely scorelines instead of many.',
+          'Use team scoring trends and recent results.',
+          'Compare odds across bookmakers for the same score.',
+        ],
+      },
+      {
+        title: 'Manage risk',
+        list: [
+          'Stake smaller amounts because outcomes are harder to hit.',
+          'Avoid low information leagues with unpredictable scores.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'Why are correct score odds so high?',
+        answer: 'Predicting an exact score is difficult, so the probability is low.',
+      },
+      {
+        question: 'Can I cover multiple scores?',
+        answer: 'Yes, but it reduces potential profit because you split your stake.',
+      },
+      {
+        question: 'Is correct score better for low scoring leagues?',
+        answer: 'It can be, but always compare odds and recent scoring patterns.',
+      },
+    ],
+    links: [
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+      { label: 'BTTS bets', href: `${SITE_URL}/guides/btts/` },
+      { label: 'Over/Under bets', href: `${SITE_URL}/guides/over-under-bets/` },
+      { label: 'Value picks today', href: `${SITE_URL}/news/value-picks/` },
+    ],
+  },
+  {
+    slug: 'guides/handicap-bets',
+    title: 'Handicap Betting Explained | Asian Handicap Basics',
+    description: 'Understand handicap betting and Asian handicap lines like -1, -0.5, +1 and how they affect payouts.',
+    heading: 'Handicap Betting Explained',
+    intro: 'Handicap betting gives one team a goal advantage or disadvantage to balance the odds.',
+    sections: [
+      {
+        title: 'What handicap betting is',
+        paragraphs: [
+          'Handicap markets adjust the score before the match starts.',
+          'A favorite might start at -1, while an underdog might start at +1.',
+        ],
+      },
+      {
+        title: 'Common handicap lines',
+        list: [
+          '-0.5 means your team must win.',
+          '+0.5 means your team can win or draw.',
+          '-1 means your team must win by two or more.',
+          '+1 means your team can lose by one and still win.',
+        ],
+      },
+      {
+        title: 'Tips for comparing odds',
+        list: [
+          'Compare the same handicap line across bookmakers.',
+          'Watch for late movement after team news.',
+          'Use draw no bet when the line is close to zero.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'What is Asian handicap?',
+        answer: 'Asian handicap removes the draw and can split stakes on quarter lines like -0.25 or +0.75.',
+      },
+      {
+        question: 'What happens if the handicap ends level?',
+        answer: 'That is a push and your stake is returned.',
+      },
+      {
+        question: 'Is handicap betting the same as spread betting?',
+        answer: 'It is similar. Handicap lines act like point spreads in other sports.',
+      },
+    ],
+    links: [
+      { label: 'Draw no bet', href: `${SITE_URL}/guides/draw-no-bet/` },
+      { label: 'Compare odds', href: `${SITE_URL}/guides/compare-odds/` },
+      { label: 'Odds calculator', href: `${SITE_URL}/guides/odds-calculator/` },
+      { label: 'Value bets explained', href: `${SITE_URL}/guides/value-bets/` },
+      { label: 'Ghana odds today', href: `${SITE_URL}/ghana-odds/` },
     ],
   },
 ];

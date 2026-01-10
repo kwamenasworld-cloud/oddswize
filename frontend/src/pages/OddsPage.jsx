@@ -1500,6 +1500,7 @@ function OddsPage() {
                     if (pill.id === 'all') {
                       setSelectedLeagues([]);
                     } else {
+                      setSelectedCountry('all');
                       setSelectedLeagues(prev =>
                         prev.includes(pill.id)
                           ? prev.filter(id => id !== pill.id)
@@ -1519,7 +1520,10 @@ function OddsPage() {
               <button
                 key={`kw-${pill.id}`}
                 className={`league-btn keyword ${isActive ? 'active' : ''}`}
-                onClick={() => setLeagueQuery(prev => prev === pill.value ? '' : pill.value)}
+                onClick={() => {
+                  setSelectedCountry('all');
+                  setLeagueQuery(prev => prev === pill.value ? '' : pill.value);
+                }}
               >
                 {pill.logoId ? (
                   <LeagueLogo leagueId={pill.logoId} size={14} className="league-query-logo" />
@@ -1665,11 +1669,17 @@ function OddsPage() {
             <p>{hasFilters ? 'No matches for these filters' : 'No fixtures for the selected date'}</p>
             <span>
               {hasFilters
-                ? 'Try clearing filters or adjusting your search.'
+                ? (hasDateFilter
+                  ? 'Try showing all dates or clearing filters.'
+                  : 'Try clearing filters or adjusting your search.')
                 : 'Try a different date or show all matches.'}
             </span>
             {hasFilters ? (
-              <button className="retry-btn" onClick={resetFilters}>Reset Filters</button>
+              hasDateFilter ? (
+                <button className="retry-btn" onClick={() => setSelectedDate('all')}>Show All Dates</button>
+              ) : (
+                <button className="retry-btn" onClick={resetFilters}>Reset Filters</button>
+              )
             ) : (
               <button className="retry-btn" onClick={() => setSelectedDate('all')}>Show All Dates</button>
             )}
