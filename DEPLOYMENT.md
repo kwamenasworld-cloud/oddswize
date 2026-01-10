@@ -83,6 +83,8 @@ Note the Worker URL (e.g., `https://oddswize-api.YOUR_SUBDOMAIN.workers.dev`)
    - **Build command**: `cd frontend && npm install && npm run build`
    - **Build output directory**: `frontend/dist`
    - **Environment variable**: `VITE_CLOUDFLARE_API_URL` = your Worker URL
+   - (Optional) **Environment variable**: `PING_SITEMAP=1` to auto-ping search engines after build
+   - (Optional) **Environment variable**: `SITEMAP_URL=https://oddswize.com/sitemap.xml`
 5. Click **Save and Deploy**
 
 ### Option B: Via GitHub Actions (Automatic)
