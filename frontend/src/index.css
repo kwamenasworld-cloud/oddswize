@@ -1537,28 +1537,30 @@ a {
   align-items: center;
   justify-content: space-around;
   padding: 0.5rem 0.25rem;
-  gap: 4px;
+  gap: 6px;
 }
 
 .odd {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 32px;
+  width: 44px;
+  height: 40px;
+  padding: 6px 4px;
   background: #f5f5f5;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #333;
+  line-height: 1;
   transition: all 0.15s;
   cursor: pointer;
 }
 
 .odd-info {
   position: absolute;
-  bottom: 3px;
+  top: 3px;
   left: 3px;
   width: 12px;
   height: 12px;
@@ -1655,13 +1657,13 @@ a {
 
 .best-tag {
   position: absolute;
-  top: -6px;
-  right: -4px;
+  top: 2px;
+  right: 2px;
   background: var(--success);
   color: white;
-  font-size: 0.5rem;
+  font-size: 0.45rem;
   font-weight: 700;
-  padding: 1px 3px;
+  padding: 1px 4px;
   border-radius: 3px;
   letter-spacing: 0.02em;
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
@@ -1670,13 +1672,13 @@ a {
 /* Edge percentage tag */
 .edge-tag {
   position: absolute;
-  bottom: -5px;
-  right: -4px;
+  bottom: 2px;
+  right: 2px;
   background: #ff9800;
   color: white;
-  font-size: 0.5rem;
+  font-size: 0.45rem;
   font-weight: 700;
-  padding: 1px 3px;
+  padding: 1px 4px;
   border-radius: 3px;
   letter-spacing: 0.02em;
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
@@ -1684,13 +1686,13 @@ a {
 
 .value-tag {
   position: absolute;
-  bottom: -5px;
-  left: -4px;
+  bottom: 2px;
+  left: 2px;
   background: #1a73e8;
   color: white;
-  font-size: 0.5rem;
+  font-size: 0.45rem;
   font-weight: 700;
-  padding: 1px 3px;
+  padding: 1px 4px;
   border-radius: 3px;
   letter-spacing: 0.02em;
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
@@ -2758,9 +2760,10 @@ body.modal-open {
   }
 
   .odd {
-    width: 30px;
-    height: 28px;
-    font-size: 0.75rem;
+    width: 36px;
+    height: 34px;
+    font-size: 0.72rem;
+    padding: 4px 3px;
   }
 
   .bookie-name {
