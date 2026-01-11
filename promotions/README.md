@@ -27,6 +27,8 @@ Captions
 
 Automation ideas
 - Schedule daily "value picks" posts with generate_daily_posts.py
+- Generate WhatsApp-ready messages with generate_whatsapp_messages.py
+- Generate referral links with generate_referral_links.py
 - Auto-post to Telegram via a bot (free)
 - Auto-generate a daily promo video using a fixed clip + new script text
 - Add ref=promo_auto to all links for attribution
@@ -38,3 +40,24 @@ Telegram (free)
    python promotions/scripts/post_to_telegram.py --message "Top picks today: https://oddswize.com/odds?ref=promo_auto"
 4) Post daily picks automatically:
    python promotions/scripts/post_daily_telegram.py --min-edge 6 --count 5
+
+GitHub Actions (fully automated)
+- Add secrets in GitHub repo settings:
+  - TELEGRAM_BOT_TOKEN
+  - TELEGRAM_CHAT_ID
+  - PROMO_CLIP_URL (optional, direct mp4 link)
+- Workflow will generate a promo video daily and post to Telegram.
+- If PROMO_CLIP_URL is not set, a simple football-themed background is generated.
+
+WhatsApp (free)
+1) Generate messages and links:
+   python promotions/scripts/generate_whatsapp_messages.py --min-edge 6 --count 5
+2) Open the generated links in promotions/output/whatsapp_links.csv
+
+Referral links (free)
+1) Generate links for names/handles:
+   python promotions/scripts/generate_referral_links.py --names "kwame,ama,kojo"
+2) Share each unique link and track ref codes in analytics.
+
+Email digest (free)
+- Use promotions/templates/email_digest.html with a free email tool.

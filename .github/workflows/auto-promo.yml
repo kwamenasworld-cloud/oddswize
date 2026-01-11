@@ -1,0 +1,96 @@
+name: Auto Promo Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_id:
+        description: Voiceover template id (from promotions/scripts/voiceover_templates.json)
+        default: value_picks_short
+        required: false
+      min_edge:
+        description: Minimum value edge percent for picks
+        default: '5'
+        required: false
+      count:
+        description: Number of picks
+        default: '5'
+        required: false
+  schedule:
+    - cron: '0 10 * * *'
+
+jobs:
+  promo:
+    runs-on: ubuntu-latest
+    env:
+      SCRIPT_ID: ${{ github.event.inputs.script_id || 'value_picks_short' }}
+      MIN_EDGE: ${{ github.event.inputs.min_edge || '5' }}
+      PICK_COUNT: ${{ github.event.inputs.count || '5' }}
+      CTA_URL: https://oddswize.com/odds?ref=promo_auto
+      BRAND: OddsWize
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ffmpeg + espeak (free TTS)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak
+
+      - name: Prepare background clip
+        env:
+          PROMO_CLIP_URL: ${{ secrets.PROMO_CLIP_URL }}
+        run: |
+          mkdir -p promotions/tmp
+          if [ -n "$PROMO_CLIP_URL" ]; then
+            curl -L "$PROMO_CLIP_URL" -o promotions/tmp/clip.mp4
+          elif [ -f "promotions/assets/clips/clip.mp4" ]; then
+            cp promotions/assets/clips/clip.mp4 promotions/tmp/clip.mp4
+          else
+            ffmpeg -y -f lavfi -i "color=c=#0b5d1e:s=720x1280:d=18" \
+              -vf "drawbox=x=40:y=120:w=640:h=1040:color=white@0.25:t=2,drawbox=x=360:y=120:w=2:h=1040:color=white@0.2:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='ODDSWIZE':fontcolor=white:fontsize=64:x=(w-text_w)/2:y=60,drawbox=x=(w/2)+160*sin(2*PI*t/4):y=(h/2)+120*cos(2*PI*t/3):w=22:h=22:color=white@0.9:t=fill" \
+              -r 30 promotions/tmp/clip.mp4
+          fi
+
+      - name: Generate promo video
+        run: |
+          python promotions/scripts/build_promo.py \
+            --clip promotions/tmp/clip.mp4 \
+            --tts-provider espeak \
+            --script-id "$SCRIPT_ID" \
+            --brand "$BRAND" \
+            --cta-url "$CTA_URL" \
+            --out promotions/output/promo.mp4 \
+            --size 720x1280 \
+            --title "OddsWize" \
+            --cta "Compare odds today" \
+            --font-file "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
+      - name: Generate daily posts
+        run: |
+          python promotions/scripts/generate_daily_posts.py \
+            --min-edge "$MIN_EDGE" \
+            --count "$PICK_COUNT" \
+            --brand "$BRAND" \
+            --cta-url "$CTA_URL"
+
+      - name: Post to Telegram
+        if: ${{ secrets.TELEGRAM_BOT_TOKEN && secrets.TELEGRAM_CHAT_ID }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python promotions/scripts/post_daily_telegram.py \
+            --min-edge "$MIN_EDGE" \
+            --count "$PICK_COUNT" \
+            --brand "$BRAND" \
+            --cta-url "$CTA_URL" \
+            --video promotions/output/promo.mp4
+
+      - name: Upload promo video
+        uses: actions/upload-artifact@v4
+        with:
+          name: promo-video
+          path: promotions/output/promo.mp4

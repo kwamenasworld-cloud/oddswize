@@ -14,6 +14,8 @@ def main():
     parser.add_argument('--out', default='promotions/output/daily_posts.txt')
     parser.add_argument('--token', help='Telegram bot token')
     parser.add_argument('--chat-id', help='Telegram chat id or @channel')
+    parser.add_argument('--video', help='Optional promo video path to upload')
+    parser.add_argument('--video-only', action='store_true', help='Only upload the video (no text post)')
     parser.add_argument('--dry-run', action='store_true')
 
     args = parser.parse_args()
@@ -36,15 +38,35 @@ def main():
         print(Path(args.out).read_text(encoding='utf-8'))
         return
 
+    token = args.token or os.getenv('TELEGRAM_BOT_TOKEN')
+    chat_id = args.chat_id or os.getenv('TELEGRAM_CHAT_ID')
+
+    if args.video:
+        caption = f'{args.brand} daily picks. Compare odds: {args.cta_url}'
+        video_cmd = [
+            'python',
+            str(Path(__file__).with_name('post_to_telegram.py')),
+            '--video', args.video,
+            '--caption', caption,
+        ]
+        if token:
+            video_cmd += ['--token', token]
+        if chat_id:
+            video_cmd += ['--chat-id', chat_id]
+        subprocess.run(video_cmd, check=True)
+
+        if args.video_only:
+            return
+
     post_cmd = [
         'python',
         str(Path(__file__).with_name('post_to_telegram.py')),
         '--file', args.out,
     ]
-    if args.token:
-        post_cmd += ['--token', args.token]
-    if args.chat_id:
-        post_cmd += ['--chat-id', args.chat_id]
+    if token:
+        post_cmd += ['--token', token]
+    if chat_id:
+        post_cmd += ['--chat-id', chat_id]
 
     subprocess.run(post_cmd, check=True)
 
