@@ -273,6 +273,7 @@ function OddsPage() {
   const [discussionMatch, setDiscussionMatch] = useState(null);
   const [pageIndex, setPageIndex] = useState(0);
   const tooltipPinnedRef = useRef(false);
+  const [canHover, setCanHover] = useState(true);
   const [compactView, setCompactView] = useState(() => {
     if (typeof window === 'undefined') return false;
     if (window.matchMedia) {
@@ -288,6 +289,19 @@ function OddsPage() {
   const loadDataRef = useRef(() => {});
   const oddsContainerRef = useRef(null);
   const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const media = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const update = () => setCanHover(media.matches);
+    update();
+    if (media.addEventListener) {
+      media.addEventListener('change', update);
+      return () => media.removeEventListener('change', update);
+    }
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, []);
 
   const flattenWorkerLeagues = (leagues) => (
     (leagues || []).flatMap(league =>
@@ -1850,20 +1864,32 @@ function OddsPage() {
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
-                                      onMouseEnter={(e) => showOddsTooltip(
-                                        e,
-                                        oddsValue,
-                                        currentMarket.labels[i],
-                                        config.name
-                                      )}
-                                      onMouseLeave={hideOddsTooltip}
-                                      onFocus={(e) => showOddsTooltip(
-                                        e,
-                                        oddsValue,
-                                        currentMarket.labels[i],
-                                        config.name
-                                      )}
-                                      onBlur={hideOddsTooltip}
+                                      onMouseEnter={(e) => {
+                                        if (!canHover) return;
+                                        showOddsTooltip(
+                                          e,
+                                          oddsValue,
+                                          currentMarket.labels[i],
+                                          config.name
+                                        );
+                                      }}
+                                      onMouseLeave={() => {
+                                        if (!canHover) return;
+                                        hideOddsTooltip();
+                                      }}
+                                      onFocus={(e) => {
+                                        if (!canHover) return;
+                                        showOddsTooltip(
+                                          e,
+                                          oddsValue,
+                                          currentMarket.labels[i],
+                                          config.name
+                                        );
+                                      }}
+                                      onBlur={() => {
+                                        if (!canHover) return;
+                                        hideOddsTooltip();
+                                      }}
                                       onClick={() => handleOddsClick(
                                         oddsValue,
                                         currentMarket.labels[i],
@@ -2025,20 +2051,32 @@ function OddsPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`odd ${isBest ? 'best' : ''} ${isEdge ? 'big-edge' : isSmallEdge ? 'edge' : ''}`}
-                                onMouseEnter={(e) => showOddsTooltip(
-                                  e,
-                                  oddsValue,
-                                  currentMarket.labels[i],
-                                  config.name
-                                )}
-                                onMouseLeave={hideOddsTooltip}
-                                onFocus={(e) => showOddsTooltip(
-                                  e,
-                                  oddsValue,
-                                  currentMarket.labels[i],
-                                  config.name
-                                )}
-                                onBlur={hideOddsTooltip}
+                                onMouseEnter={(e) => {
+                                  if (!canHover) return;
+                                  showOddsTooltip(
+                                    e,
+                                    oddsValue,
+                                    currentMarket.labels[i],
+                                    config.name
+                                  );
+                                }}
+                                onMouseLeave={() => {
+                                  if (!canHover) return;
+                                  hideOddsTooltip();
+                                }}
+                                onFocus={(e) => {
+                                  if (!canHover) return;
+                                  showOddsTooltip(
+                                    e,
+                                    oddsValue,
+                                    currentMarket.labels[i],
+                                    config.name
+                                  );
+                                }}
+                                onBlur={() => {
+                                  if (!canHover) return;
+                                  hideOddsTooltip();
+                                }}
                                 onClick={() => handleOddsClick(
                                   oddsValue,
                                   currentMarket.labels[i],
