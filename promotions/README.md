@@ -30,3 +30,11 @@ Automation ideas
 - Auto-post to Telegram via a bot (free)
 - Auto-generate a daily promo video using a fixed clip + new script text
 - Add ref=promo_auto to all links for attribution
+
+Telegram (free)
+1) Create a Telegram bot via @BotFather and copy the token.
+2) Add the bot to your channel/group and make it an admin.
+3) Post a message:
+   python promotions/scripts/post_to_telegram.py --message "Top picks today: https://oddswize.com/odds?ref=promo_auto"
+4) Post daily picks automatically:
+   python promotions/scripts/post_daily_telegram.py --min-edge 6 --count 5
