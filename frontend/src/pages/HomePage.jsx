@@ -580,7 +580,7 @@ ${shareLink}`,
               <span className="stat-label">Matches</span>
             </div>
             <div className="stat">
-              <span className="stat-value">30m</span>
+              <span className="stat-value">15m</span>
               <span className="stat-label">Updates</span>
             </div>
           </div>
@@ -987,7 +987,7 @@ ${shareLink}`,
           <details className="faq-item">
             <summary>How often are the odds updated?</summary>
             <p>
-              Our odds are updated every 30 minutes to ensure you see current prices.
+              Our odds are updated every 15 minutes to ensure you see current prices.
               Odds can change quickly, especially close to kick-off, so we recommend checking
               the bookmaker's website before placing your bet.
             </p>

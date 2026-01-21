@@ -485,7 +485,7 @@ const removeAccents = (str) => {
  * Normalize team name for searching
  * Handles variations from different bookmakers (SportyBet, Betway, 1xBet, etc.)
  */
-const normalizeTeamName = (name) => {
+export const normalizeTeamName = (name) => {
   if (!name) return '';
 
   // Step 1: Basic cleanup
@@ -729,5 +729,6 @@ export default {
   getCachedLogo,
   clearLogoCache,
   refreshTeamLogo,
-  getLogoStats
+  getLogoStats,
+  normalizeTeamName
 };

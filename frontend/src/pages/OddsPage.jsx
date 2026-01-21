@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { clearOddsCacheMemory, getCachedOdds, getMatchesByLeague, getStatus, triggerScan } from '../services/api';
+import { clearOddsCacheMemory, connectOddsStream, getCachedOdds, getLiveScores, getMatchesByLeague, getStatus, triggerScan } from '../services/api';
 import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
 import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague, matchLeagueFuzzy } from '../config/leagues';
-import { BookmakerLogo } from '../components/BookmakerLogo';
+import { BookmakerLogo, LiveIndicator } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
 import { LeagueLogo } from '../components/LeagueLogo';
-import { preloadTeamLogos } from '../services/teamLogos';
+import { normalizeTeamName, preloadTeamLogos } from '../services/teamLogos';
 import ShareButton from '../components/ShareButton';
 import { trackAffiliateClick } from '../services/analytics';
 import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
@@ -25,6 +25,57 @@ const MAX_REFRESH_MS = 30 * 60 * 1000;
 const COMPACT_BREAKPOINT = 520;
 const PAGE_SIZE_DESKTOP = 25;
 const PAGE_SIZE_MOBILE = 15;
+const LIVE_SCORE_REFRESH_MS = 30 * 1000;
+const LIVE_SCORE_TIME_TOLERANCE_MS = 6 * 60 * 60 * 1000;
+const STREAM_RECONNECT_MS = 2000;
+
+const normalizeScoreKey = (value) => {
+  const normalized = normalizeTeamName(value || '');
+  return (normalized || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+};
+
+const buildScoreKey = (home, away) => `${normalizeScoreKey(home)}|${normalizeScoreKey(away)}`;
+
+const formatLiveScore = (score) => {
+  if (!score) return '-';
+  const home = Number.isFinite(score.home_score) ? score.home_score : '-';
+  const away = Number.isFinite(score.away_score) ? score.away_score : '-';
+  return `${home}-${away}`;
+};
+
+const formatLiveDetail = (score) => {
+  if (!score) return '';
+  return score.clock || score.detail || '';
+};
+
+const buildLiveScoreIndex = (events) => {
+  const index = {};
+  (events || []).forEach((event) => {
+    if (!event?.home_team || !event?.away_team) return;
+    const key = buildScoreKey(event.home_team, event.away_team);
+    if (!key || index[key]) return;
+    index[key] = event;
+  });
+  return index;
+};
+
+const resolveLiveScore = (match, liveIndex) => {
+  if (!match || !liveIndex) return null;
+  const homeKey = normalizeScoreKey(match.home_team);
+  const awayKey = normalizeScoreKey(match.away_team);
+  if (!homeKey || !awayKey) return null;
+  const direct = liveIndex[`${homeKey}|${awayKey}`];
+  const reverse = liveIndex[`${awayKey}|${homeKey}`];
+  const score = direct || reverse;
+  if (!score) return null;
+  if (score.state && score.state !== 'in') return null;
+  const matchTime = Number(match.start_time || 0) * 1000;
+  const scoreTime = Number(score.start_time || 0) * 1000;
+  if (matchTime && scoreTime && Math.abs(matchTime - scoreTime) > LIVE_SCORE_TIME_TOLERANCE_MS) {
+    return null;
+  }
+  return score;
+};
 
 const resolveRefreshInterval = (cacheTtlSeconds) => {
   const ttlSeconds = Number(cacheTtlSeconds);
@@ -271,7 +322,9 @@ function OddsPage() {
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(DEFAULT_REFRESH_MS);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [discussionMatch, setDiscussionMatch] = useState(null);
+  const [liveScoreIndex, setLiveScoreIndex] = useState({});
   const [pageIndex, setPageIndex] = useState(0);
+  const streamUpdateRef = useRef(() => {});
   const tooltipPinnedRef = useRef(false);
   const [canHover, setCanHover] = useState(true);
   const [compactView, setCompactView] = useState(() => {
@@ -717,9 +770,37 @@ function OddsPage() {
         odds: oddsArr,
         pendingOdds,
         league_key: derivedKey,
+        is_live: match.is_live,
       };
     });
   };
+
+  const applyStreamUpdate = (payload) => {
+    const updates = Array.isArray(payload?.matches) ? payload.matches : [];
+    const removedIds = Array.isArray(payload?.removed_ids) ? payload.removed_ids : [];
+    if (updates.length === 0 && removedIds.length === 0) return;
+
+    const enrichedUpdates = updates.length ? enrichMatches(updates) : [];
+    const removedSet = new Set(removedIds);
+
+    setMatches((prev) => {
+      const next = new Map(prev.map(match => [buildMatchId(match), match]));
+      if (removedSet.size) {
+        for (const [key, match] of next) {
+          if (removedSet.has(match.id) || removedSet.has(key)) {
+            next.delete(key);
+          }
+        }
+      }
+      for (const update of enrichedUpdates) {
+        const key = buildMatchId(update);
+        const existing = next.get(key);
+        next.set(key, existing ? { ...existing, ...update } : update);
+      }
+      return Array.from(next.values());
+    });
+  };
+  streamUpdateRef.current = applyStreamUpdate;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -1230,6 +1311,86 @@ function OddsPage() {
       : groupedMatchesAll),
     [groupedMatchesAll, pageStart, pageEnd, shouldSlice]
   );
+
+  const visibleLeagueKeys = useMemo(() => {
+    const keys = new Set();
+    Object.values(pagedGroupedMatches).flat().forEach((match) => {
+      const key = match.league_key || matchLeague(match.league)?.id || null;
+      if (key) {
+        keys.add(key);
+      }
+    });
+    return Array.from(keys).sort();
+  }, [pagedGroupedMatches]);
+
+  const liveScoreKeyParam = visibleLeagueKeys.join(',');
+  const streamKeyParam = liveScoreKeyParam;
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) return;
+    if (!liveScoreKeyParam) {
+      setLiveScoreIndex({});
+      return;
+    }
+    let cancelled = false;
+    const loadLiveScores = async () => {
+      try {
+        const response = await getLiveScores(visibleLeagueKeys);
+        if (cancelled) return;
+        setLiveScoreIndex(buildLiveScoreIndex(response?.data));
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Live scores unavailable:', error);
+        }
+      }
+    };
+
+    loadLiveScores();
+    const interval = setInterval(loadLiveScores, LIVE_SCORE_REFRESH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [autoRefreshEnabled, liveScoreKeyParam, visibleLeagueKeys]);
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) return;
+    if (!streamKeyParam) return;
+    let socket = null;
+    let reconnectTimer = null;
+    let closed = false;
+
+    const connect = () => {
+      if (closed) return;
+      socket = connectOddsStream({
+        leagueKeys: visibleLeagueKeys,
+        onMessage: (message) => {
+          if (!message || typeof message !== 'object') return;
+          if (message.type === 'odds_update') {
+            streamUpdateRef.current(message.data);
+          } else if (message.type === 'odds_refresh') {
+            loadDataRef.current({ silent: true, bypassCache: true });
+          }
+        },
+        onClose: () => {
+          if (closed) return;
+          reconnectTimer = setTimeout(connect, STREAM_RECONNECT_MS);
+        },
+      });
+    };
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, [autoRefreshEnabled, streamKeyParam, visibleLeagueKeys]);
 
   // Preload team logos for visible matches only
   useEffect(() => {
@@ -1754,6 +1915,8 @@ function OddsPage() {
               const rankedBookmakers = compactView
                 ? rankBookmakersByPrice(activeBookmakers, oddsByBookie, marketFields)
                 : activeBookmakers;
+              const liveScore = resolveLiveScore(match, liveScoreIndex);
+              const liveDetail = formatLiveDetail(liveScore);
 
               if (compactView) {
                 return (
@@ -1770,6 +1933,15 @@ function OddsPage() {
                         </div>
                       </div>
                       <div className="odds-card-meta">
+                        {liveScore && (
+                          <div className="odds-card-live">
+                            <div className="live-score-row">
+                              <LiveIndicator />
+                              <span className="live-score">{formatLiveScore(liveScore)}</span>
+                            </div>
+                            {liveDetail && <span className="live-detail">{liveDetail}</span>}
+                          </div>
+                        )}
                         <span className="odds-card-time">{formatTime(match.start_time)}</span>
                         <span className="odds-card-league">{match.league}</span>
                         <div className="odds-card-actions">
@@ -2022,7 +2194,17 @@ function OddsPage() {
 
                   {/* Kick-off Time */}
                   <div className="match-time-cell">
-                    <span className="kickoff-time">{formatTime(match.start_time)}</span>
+                    {liveScore ? (
+                      <div className="match-live">
+                        <div className="live-score-row">
+                          <LiveIndicator />
+                          <span className="live-score">{formatLiveScore(liveScore)}</span>
+                        </div>
+                        {liveDetail && <span className="live-detail">{liveDetail}</span>}
+                      </div>
+                    ) : (
+                      <span className="kickoff-time">{formatTime(match.start_time)}</span>
+                    )}
                   </div>
 
                   {/* Odds for each bookmaker */}

@@ -5,6 +5,7 @@
 
 // API Configuration
 const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://oddswize-api.kwamenahb.workers.dev';
+const CLOUDFLARE_WS_URL = import.meta.env.VITE_CLOUDFLARE_WS_URL;
 const STATIC_DATA_URL = '/data/odds_data.json';
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS) || 10000;
 
@@ -194,6 +195,53 @@ const fetchApi = async (endpoint, options = {}) => {
   } finally {
     clearTimeout(timeoutId);
   }
+};
+
+const buildWsUrl = (path) => {
+  const base = CLOUDFLARE_WS_URL || CLOUDFLARE_API_URL;
+  const url = new URL(path, base);
+  if (url.protocol === 'https:') {
+    url.protocol = 'wss:';
+  } else if (url.protocol === 'http:') {
+    url.protocol = 'ws:';
+  }
+  return url;
+};
+
+export const connectOddsStream = ({ leagueKeys = [], onMessage, onOpen, onClose, onError } = {}) => {
+  if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
+    return null;
+  }
+  const url = buildWsUrl('/api/odds/stream');
+  const keys = Array.isArray(leagueKeys)
+    ? leagueKeys.map(key => (key || '').toString().trim().toLowerCase()).filter(Boolean)
+    : [];
+  if (keys.length) {
+    url.searchParams.set('league_keys', keys.join(','));
+  }
+  const socket = new WebSocket(url.toString());
+
+  if (typeof onOpen === 'function') {
+    socket.addEventListener('open', onOpen);
+  }
+  if (typeof onClose === 'function') {
+    socket.addEventListener('close', onClose);
+  }
+  if (typeof onError === 'function') {
+    socket.addEventListener('error', onError);
+  }
+  if (typeof onMessage === 'function') {
+    socket.addEventListener('message', (event) => {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(event.data);
+      } catch {
+        parsed = null;
+      }
+      onMessage(parsed, event);
+    });
+  }
+  return socket;
 };
 
 // Try to fetch from static JSON file (fallback)
@@ -664,6 +712,30 @@ export const getStatus = async () => {
   }
 };
 
+export const getLiveScores = async (leagueKeys = [], options = {}) => {
+  const keys = Array.isArray(leagueKeys) ? leagueKeys : [];
+  const filtered = keys
+    .map(key => (key || '').toString().trim().toLowerCase())
+    .filter(Boolean);
+
+  if (filtered.length === 0) {
+    return { success: true, data: [], meta: { requested_leagues: [] } };
+  }
+
+  const params = new URLSearchParams();
+  params.set('league_keys', filtered.join(','));
+  if (options.state) {
+    params.set('state', options.state);
+  }
+  const data = await fetchApi(`/api/live-scores?${params.toString()}`, {
+    timeoutMs: options.timeoutMs || 8000,
+  });
+  if (data?.success) {
+    return data;
+  }
+  throw new Error('Live scores unavailable');
+};
+
 /**
  * Trigger data refresh (not available in Cloudflare - data is pushed from scraper)
  */
@@ -683,6 +755,8 @@ export default {
   getMatchesByLeague,
   getArbitrage,
   getStatus,
+  getLiveScores,
+  connectOddsStream,
   getBookmakers,
   getMatch,
   getLastUpdate,

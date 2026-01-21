@@ -11,8 +11,10 @@ import type {
   ArbitrageOpportunity,
   ArbitrageResponse,
   ErrorResponse,
+  LiveScoreEvent,
   BookmakerOdds,
 } from './types';
+import { OddsStream } from './oddsStream';
 
 // Cache TTL in seconds
 const CACHE_TTL = 900; // 15 minutes (matches scraper schedule)
@@ -30,6 +32,42 @@ const GHANA_BOOKMAKERS = [
 const COMMENTS_RATE_LIMIT_SECONDS = 30;
 const COMMENTS_DAILY_LIMIT = 15;
 let commentsSchemaReady = false;
+
+const LIVE_SCORE_TTL_SECONDS = 20;
+const ESPN_SCOREBOARD_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
+const ESPN_LEAGUE_MAP: Record<string, { id: string; name: string }> = {
+  premier: { id: 'eng.1', name: 'Premier League' },
+  championship: { id: 'eng.2', name: 'Championship' },
+  leagueone: { id: 'eng.3', name: 'League One' },
+  leaguetwo: { id: 'eng.4', name: 'League Two' },
+  facup: { id: 'eng.fa', name: 'FA Cup' },
+  eflcup: { id: 'eng.league_cup', name: 'EFL Cup' },
+  laliga: { id: 'esp.1', name: 'La Liga' },
+  laliga2: { id: 'esp.2', name: 'La Liga 2' },
+  seriea: { id: 'ita.1', name: 'Serie A' },
+  serieb: { id: 'ita.2', name: 'Serie B' },
+  bundesliga: { id: 'ger.1', name: 'Bundesliga' },
+  bundesliga2: { id: 'ger.2', name: 'Bundesliga 2' },
+  ligue1: { id: 'fra.1', name: 'Ligue 1' },
+  ligue2: { id: 'fra.2', name: 'Ligue 2' },
+  ucl: { id: 'uefa.champions', name: 'UEFA Champions League' },
+  uwcl: { id: 'uefa.champions.women', name: 'UEFA Champions League Women' },
+  europa: { id: 'uefa.europa', name: 'UEFA Europa League' },
+  conference: { id: 'uefa.europa.conf', name: 'UEFA Europa Conference League' },
+  eredivisie: { id: 'ned.1', name: 'Eredivisie' },
+  primeira: { id: 'por.1', name: 'Primeira Liga' },
+  scotland: { id: 'sco.1', name: 'Scottish Premiership' },
+  belgium: { id: 'bel.1', name: 'Belgian Pro League' },
+  turkey: { id: 'tur.1', name: 'Turkish Super Lig' },
+  mls: { id: 'usa.1', name: 'MLS' },
+  libertadores: { id: 'conmebol.libertadores', name: 'CONMEBOL Libertadores' },
+  sudamericana: { id: 'conmebol.sudamericana', name: 'CONMEBOL Sudamericana' },
+  brasileirao: { id: 'bra.1', name: 'Serie A (Brazil)' },
+  ligamx: { id: 'mex.1', name: 'Liga MX' },
+  j1: { id: 'jpn.1', name: 'J1 League' },
+  k1: { id: 'kor.1', name: 'K League 1' },
+  'a-league': { id: 'aus.1', name: 'A-League' },
+};
 
 type LeagueKeyRule = {
   key: string;
@@ -78,6 +116,220 @@ function attachLeagueKeys(groups: LeagueGroup[]): LeagueGroup[] {
     });
     return groupKey ? { ...group, league_key: groupKey, matches } : { ...group, matches };
   });
+}
+
+function parseCsvParam(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map(part => part.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+const STREAM_DELTA_LIMIT = 250;
+
+function slugify(value: string): string {
+  return (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function buildMatchKey(match: Match): string {
+  if (match.id) return match.id;
+  const home = slugify(match.home_team);
+  const away = slugify(match.away_team);
+  const start = match.start_time || 0;
+  return `${home}-vs-${away}-${start}`;
+}
+
+function buildMatchSignature(match: Match): string {
+  const base = [
+    match.home_team || '',
+    match.away_team || '',
+    String(match.start_time || 0),
+    match.league || '',
+  ].join('|');
+  const odds = (match.odds || [])
+    .map((entry) => {
+      const parts = [
+        entry.bookmaker,
+        entry.home_odds ?? '',
+        entry.draw_odds ?? '',
+        entry.away_odds ?? '',
+      ];
+      return parts.join(':');
+    })
+    .sort()
+    .join(',');
+  return `${base}|${odds}`;
+}
+
+type OddsDelta =
+  | {
+      matches: Match[];
+      removed_ids: string[];
+      league_keys: string[];
+    }
+  | {
+      full_refresh: true;
+      reason: string;
+      count: number;
+    };
+
+function buildOddsDelta(previous: OddsResponse | null, next: OddsResponse): OddsDelta | null {
+  if (!previous?.data?.length) {
+    const total = next?.meta?.total_matches || 0;
+    return { full_refresh: true, reason: 'no_previous_cache', count: total };
+  }
+
+  const previousIndex = new Map<string, { signature: string; id: string; league_key?: string | null }>();
+  for (const league of previous.data || []) {
+    for (const match of league.matches || []) {
+      const key = buildMatchKey(match);
+      previousIndex.set(key, {
+        signature: buildMatchSignature(match),
+        id: match.id || key,
+        league_key: match.league_key || league.league_key || resolveLeagueKey(match.league),
+      });
+    }
+  }
+
+  const changed: Match[] = [];
+  const leagueKeys = new Set<string>();
+
+  for (const league of next.data || []) {
+    for (const match of league.matches || []) {
+      const key = buildMatchKey(match);
+      const signature = buildMatchSignature(match);
+      const previousEntry = previousIndex.get(key);
+      if (!previousEntry || previousEntry.signature !== signature) {
+        changed.push(match);
+        const keyValue = match.league_key || league.league_key || resolveLeagueKey(match.league);
+        if (keyValue) {
+          leagueKeys.add(keyValue);
+        }
+      }
+      if (previousEntry) {
+        previousIndex.delete(key);
+      }
+    }
+  }
+
+  const removed: string[] = [];
+  for (const entry of previousIndex.values()) {
+    removed.push(entry.id);
+    if (entry.league_key) {
+      leagueKeys.add(entry.league_key);
+    }
+  }
+
+  if (changed.length === 0 && removed.length === 0) {
+    return null;
+  }
+
+  if (changed.length + removed.length > STREAM_DELTA_LIMIT) {
+    return {
+      full_refresh: true,
+      reason: 'delta_too_large',
+      count: changed.length + removed.length,
+    };
+  }
+
+  return {
+    matches: changed,
+    removed_ids: removed,
+    league_keys: Array.from(leagueKeys),
+  };
+}
+
+async function broadcastOddsUpdate(env: Env, payload: Record<string, unknown>): Promise<void> {
+  try {
+    const id = env.ODDS_STREAM.idFromName('odds-stream');
+    const stub = env.ODDS_STREAM.get(id);
+    await stub.fetch('https://oddswize.stream/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.warn('Odds stream broadcast failed:', error);
+  }
+}
+
+function parseScoreValue(value: unknown): number | null {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function toEpochSeconds(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.floor(parsed / 1000);
+}
+
+async function fetchEspnScoreboard(leagueId: string): Promise<any | null> {
+  const url = `${ESPN_SCOREBOARD_BASE}/${leagueId}/scoreboard`;
+  try {
+    const response = await fetch(url, {
+      cf: { cacheTtl: LIVE_SCORE_TTL_SECONDS, cacheEverything: true },
+    });
+    if (!response.ok) {
+      console.warn(`Failed to fetch ESPN scoreboard for ${leagueId}: ${response.status}`);
+      return null;
+    }
+    return await response.json();
+  } catch (error) {
+    console.warn(`Failed to fetch ESPN scoreboard for ${leagueId}:`, error);
+    return null;
+  }
+}
+
+function mapScoreboardEvents(
+  leagueKey: string,
+  leagueName: string,
+  payload: any,
+  stateFilter: Set<string> | null
+): LiveScoreEvent[] {
+  const events = Array.isArray(payload?.events) ? payload.events : [];
+  const mapped: LiveScoreEvent[] = [];
+
+  for (const event of events) {
+    const competition = Array.isArray(event?.competitions) ? event.competitions[0] : null;
+    const competitors = Array.isArray(competition?.competitors) ? competition.competitors : [];
+    const home = competitors.find((comp: any) => comp?.homeAway === 'home');
+    const away = competitors.find((comp: any) => comp?.homeAway === 'away');
+    const homeName = home?.team?.shortDisplayName || home?.team?.displayName || home?.team?.name;
+    const awayName = away?.team?.shortDisplayName || away?.team?.displayName || away?.team?.name;
+    if (!homeName || !awayName) continue;
+
+    const statusType = event?.status?.type || {};
+    const state = (statusType.state || '').toLowerCase();
+    if (stateFilter && (!state || !stateFilter.has(state))) {
+      continue;
+    }
+
+    const detail = statusType.shortDetail || statusType.detail || statusType.description || null;
+    const clock = event?.status?.displayClock || event?.status?.clock || null;
+    const startTime = toEpochSeconds(event?.date || competition?.date);
+
+    mapped.push({
+      league_key: leagueKey,
+      league: leagueName,
+      event_id: event?.id,
+      start_time: startTime,
+      home_team: homeName,
+      away_team: awayName,
+      home_score: parseScoreValue(home?.score),
+      away_score: parseScoreValue(away?.score),
+      state: state || null,
+      detail,
+      clock,
+    });
+  }
+
+  return mapped;
 }
 
 /**
@@ -138,6 +390,12 @@ function errorResponse(message: string, code = 500, env?: Env): Response {
     code,
   };
   return jsonResponse(error, code, env);
+}
+
+function handleOddsStream(request: Request, env: Env): Response {
+  const id = env.ODDS_STREAM.idFromName('odds-stream');
+  const stub = env.ODDS_STREAM.get(id);
+  return stub.fetch(request);
 }
 
 function getClientIp(request: Request): string {
@@ -472,6 +730,53 @@ async function getOddsData(env: Env): Promise<OddsResponse> {
   }
 }
 
+async function getLiveScores(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const leagueKeysParam = url.searchParams.get('league_keys') || url.searchParams.get('leagues');
+  if (!leagueKeysParam) {
+    return errorResponse('league_keys is required', 400, env);
+  }
+
+  const requestedKeys = Array.from(new Set(parseCsvParam(leagueKeysParam))).slice(0, 12);
+  const stateParam = url.searchParams.get('state') || 'in';
+  const requestedStates = parseCsvParam(stateParam);
+  const stateFilter = stateParam.toLowerCase() === 'all' ? null : new Set(requestedStates);
+
+  const supportedKeys = requestedKeys.filter(key => ESPN_LEAGUE_MAP[key]);
+  const unsupportedKeys = requestedKeys.filter(key => !ESPN_LEAGUE_MAP[key]);
+  const events: LiveScoreEvent[] = [];
+
+  await Promise.all(
+    supportedKeys.map(async (key) => {
+      const league = ESPN_LEAGUE_MAP[key];
+      if (!league) return;
+      const payload = await fetchEspnScoreboard(league.id);
+      if (!payload) return;
+      const mapped = mapScoreboardEvents(key, league.name, payload, stateFilter);
+      if (mapped.length) {
+        events.push(...mapped);
+      }
+    })
+  );
+
+  const responsePayload = {
+    success: true,
+    data: events,
+    meta: {
+      requested_leagues: requestedKeys,
+      supported_leagues: supportedKeys,
+      unsupported_leagues: unsupportedKeys,
+      total_events: events.length,
+      last_updated: new Date().toISOString(),
+      cache_ttl: LIVE_SCORE_TTL_SECONDS,
+    },
+  };
+
+  return jsonResponse(responsePayload, 200, env, {
+    'Cache-Control': `public, max-age=${LIVE_SCORE_TTL_SECONDS}, stale-while-revalidate=${LIVE_SCORE_TTL_SECONDS}`,
+  });
+}
+
 function sliceOddsData(
   response: OddsResponse,
   offset: number,
@@ -584,6 +889,7 @@ async function updateOddsData(
       (sum, league) => sum + league.matches.length,
       0
     );
+    const previous = await env.ODDS_CACHE.get('last_odds', 'json') as OddsResponse | null;
 
     const oddsResponse: OddsResponse = {
       success: true,
@@ -595,6 +901,7 @@ async function updateOddsData(
         cache_ttl: CACHE_TTL,
       },
     };
+    const delta = buildOddsDelta(previous, oddsResponse);
 
     // Store in KV with 1 hour TTL (scraper runs every 15min, so plenty of buffer)
     // Only store the main cache to avoid hitting KV write limits (1000/day on free tier)
@@ -603,6 +910,29 @@ async function updateOddsData(
     });
     // Keep a persistent backup in case the scheduled scrape fails
     await env.ODDS_CACHE.put('last_odds', JSON.stringify(oddsResponse));
+
+    if (delta) {
+      if ('full_refresh' in delta) {
+        await broadcastOddsUpdate(env, {
+          type: 'odds_refresh',
+          data: {
+            reason: delta.reason,
+            count: delta.count,
+            last_updated: oddsResponse.meta.last_updated,
+          },
+        });
+      } else if (delta.matches.length || delta.removed_ids.length) {
+        await broadcastOddsUpdate(env, {
+          type: 'odds_update',
+          data: {
+            matches: delta.matches,
+            removed_ids: delta.removed_ids,
+            league_keys: delta.league_keys,
+            last_updated: oddsResponse.meta.last_updated,
+          },
+        });
+      }
+    }
 
     return {
       success: true,
@@ -688,6 +1018,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return jsonResponse(responseData, 200, env, cacheHeaders);
     }
 
+    // GET /api/odds/stream - WebSocket odds stream
+    if (path === '/api/odds/stream' && request.method === 'GET') {
+      return handleOddsStream(request, env);
+    }
+
     // GET /api/odds/:league - Get odds for specific league
     if (path.startsWith('/api/odds/') && request.method === 'GET') {
       const league = decodeURIComponent(path.replace('/api/odds/', ''));
@@ -724,6 +1059,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         env,
         cacheHeaders
       );
+    }
+
+    // GET /api/live-scores - Get live scores for leagues
+    if (path === '/api/live-scores' && request.method === 'GET') {
+      return getLiveScores(request, env);
     }
 
     // GET /api/arbitrage - Get arbitrage opportunities
@@ -1048,3 +1388,5 @@ export default {
     await handleScheduled(controller, env, ctx);
   },
 };
+
+export { OddsStream };

@@ -1,21 +1,32 @@
 name = "oddswize-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
+account_id = "c3e3def4c77a7795115dc0c138716186"
 
 # KV Namespaces for data storage
 [[kv_namespaces]]
 binding = "ODDS_CACHE"
-id = "28eda8030f2440689f8837daffdc67e3"
+id = "82597e0ef01149c4833c16b81d20cdb9"
 
 [[kv_namespaces]]
 binding = "MATCHES_DATA"
-id = "8df6916f071d4dab86818d650393e0c2"
+id = "588e09922459414e954fafc77ba5f15d"
+
+# Durable Objects for live odds streaming
+[[durable_objects.bindings]]
+name = "ODDS_STREAM"
+class_name = "OddsStream"
+
+# Durable Object migrations
+[[migrations]]
+tag = "odds-stream-v1"
+new_sqlite_classes = ["OddsStream"]
 
 # D1 database for canonical leagues/fixtures
 [[d1_databases]]
 binding = "D1"
 database_name = "oddswize-d1"
-database_id = "1aff11f0-6871-4383-a671-170a62953327"
+database_id = "ec853dc8-41d6-4fe5-9320-aaa1e1f662ab"
 
 # Environment variables
 [vars]

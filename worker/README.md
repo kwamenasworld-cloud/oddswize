@@ -114,6 +114,43 @@ Or automate with cron:
 */15 * * * * cd /path/to/project && python push_to_cloudflare.py
 ```
 
+For near-real-time updates, run the scraper in a continuous loop:
+
+```bash
+export CLOUDFLARE_WORKER_URL="https://oddswize-api.YOUR_SUBDOMAIN.workers.dev"
+export CLOUDFLARE_API_KEY="your-api-key"
+
+# Default: every 120 seconds with light jitter
+python run_odds_loop.py --interval-seconds 120 --jitter-seconds 10
+```
+
+You can pass extra scraper args after `--` (example: dry run without pushing):
+
+```bash
+python run_odds_loop.py --interval-seconds 120 -- --no-push
+```
+
+If you run on Linux, there is a systemd unit you can enable:
+
+```bash
+sudo cp deploy/oddswize-odds-loop.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now oddswize-odds-loop.service
+```
+
+Docker (Windows/macOS/Linux) also works:
+
+```bash
+docker compose -f deploy/docker-compose.odds-loop.yml up -d --build
+```
+
+Make sure your shell or `.env` sets:
+
+```bash
+CLOUDFLARE_WORKER_URL=https://oddswize-api.YOUR_SUBDOMAIN.workers.dev
+CLOUDFLARE_API_KEY=your-api-key
+```
+
 ## Environment Variables
 
 | Variable | Description | Default |

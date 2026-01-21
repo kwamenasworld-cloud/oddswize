@@ -2,6 +2,7 @@
 export interface Env {
   ODDS_CACHE: KVNamespace;
   MATCHES_DATA: KVNamespace;
+  ODDS_STREAM: DurableObjectNamespace;
   D1: D1Database;
   ENVIRONMENT: string;
   CORS_ORIGIN: string;
@@ -28,6 +29,20 @@ export interface Match {
   start_time: number;  // Unix timestamp in seconds
   odds: BookmakerOdds[];
   is_live?: boolean;
+}
+
+export interface LiveScoreEvent {
+  league_key?: string;
+  league?: string;
+  event_id?: string;
+  start_time?: number | null;
+  home_team: string;
+  away_team: string;
+  home_score: number | null;
+  away_score: number | null;
+  state?: string | null;
+  detail?: string | null;
+  clock?: string | null;
 }
 
 export interface LeagueGroup {

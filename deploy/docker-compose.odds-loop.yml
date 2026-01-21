@@ -1,0 +1,12 @@
+services:
+  odds-loop:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.odds-loop
+    environment:
+      CLOUDFLARE_WORKER_URL: ${CLOUDFLARE_WORKER_URL}
+      CLOUDFLARE_API_KEY: ${CLOUDFLARE_API_KEY}
+      ODDS_LOOP_INTERVAL_SECONDS: ${ODDS_LOOP_INTERVAL_SECONDS:-60}
+      ODDS_LOOP_JITTER_SECONDS: ${ODDS_LOOP_JITTER_SECONDS:-5}
+      ODDS_LOOP_MAX_BACKOFF_SECONDS: ${ODDS_LOOP_MAX_BACKOFF_SECONDS:-600}
+    restart: unless-stopped
