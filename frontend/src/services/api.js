@@ -742,7 +742,7 @@ export const getLiveScores = async (leagueKeys = [], options = {}) => {
 export const triggerScan = async () => {
   console.log('Manual scan not available - data is refreshed automatically');
   return {
-    message: 'Data is refreshed automatically every 15 minutes',
+    message: 'Data refreshes every few minutes (full refresh about every 15 minutes)',
     status: 'scheduled',
   };
 };
