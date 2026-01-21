@@ -23,6 +23,10 @@ if (Test-Path $envPath) {
   }
 }
 
+if (-not $env:ODDS_FAST) {
+  $env:ODDS_FAST = "1"
+}
+
 Set-Location $repoRoot
 
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue | Select-Object -First 1

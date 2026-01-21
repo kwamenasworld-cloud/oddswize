@@ -31,15 +31,46 @@ if POSTGRES_DSN:
         print(f"[WARN] POSTGRES_DSN set but failed to import DB modules: {e}")
         POSTGRES_DSN = None
 
+def env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, default))
+    except Exception:
+        return default
+
+
+def env_bool(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
 # Configuration - AGGRESSIVE MODE
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
 D1_CANONICAL_INGEST = os.getenv('D1_CANONICAL_INGEST')  # optional override; defaults to CLOUDFLARE_WORKER_URL/api/canonical/ingest
-MAX_MATCHES = 2000  # Enough coverage, faster runtime
-MAX_CHAMPIONSHIPS = 150  # Limit heavy leagues to speed up
-TIMEOUT = 10
-BATCH_SIZE = 200  # Trim batch size to reduce payload/latency
-PARALLEL_PAGES = 8  # Balanced parallelism for I/O
+FAST_MODE = env_bool("ODDS_FAST")
+MAX_MATCHES = env_int("MAX_MATCHES", 2000)  # Enough coverage, faster runtime
+MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS", 150)  # Limit heavy leagues to speed up
+TIMEOUT = env_int("TIMEOUT", 10)
+BATCH_SIZE = env_int("BATCH_SIZE", 200)  # Trim batch size to reduce payload/latency
+PARALLEL_PAGES = env_int("PARALLEL_PAGES", 8)  # Balanced parallelism for I/O
+SPORTYBET_PAGES = env_int("SPORTYBET_PAGES", 30)
+BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE", 1000)
+BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP", 15000)
+
+def apply_fast_mode() -> None:
+    global FAST_MODE, MAX_MATCHES, MAX_CHAMPIONSHIPS, TIMEOUT, PARALLEL_PAGES
+    global SPORTYBET_PAGES, BETWAY_PAGE_SIZE, BETWAY_MAX_SKIP
+    FAST_MODE = True
+    MAX_MATCHES = env_int("MAX_MATCHES_FAST", 1200)
+    MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS_FAST", 60)
+    TIMEOUT = env_int("TIMEOUT_FAST", 7)
+    PARALLEL_PAGES = env_int("PARALLEL_PAGES_FAST", 12)
+    SPORTYBET_PAGES = env_int("SPORTYBET_PAGES_FAST", 12)
+    BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE_FAST", 1000)
+    BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP_FAST", 5000)
+
+
+if FAST_MODE:
+    apply_fast_mode()
 
 # Top leagues to prioritize (keywords to search for in league names)
 TOP_LEAGUE_KEYWORDS = [
@@ -97,7 +128,7 @@ def scrape_sportybet() -> List[Dict]:
             'Accept-Language': 'en-US,en;q=0.9',
         }
         session.get('https://www.sportybet.com/gh/', headers=page_headers, timeout=TIMEOUT)
-        time.sleep(1)
+        time.sleep(0.2 if FAST_MODE else 1)
     except:
         pass
 
@@ -106,10 +137,10 @@ def scrape_sportybet() -> List[Dict]:
         'Referer': 'https://www.sportybet.com/gh/',
     }
 
-    # Fetch pages in parallel - trimmed to 30 pages for speed
+    # Fetch pages in parallel - trimmed for speed
     all_tournaments = []
     with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
-        futures = {executor.submit(fetch_sportybet_page, session, headers, p): p for p in range(1, 31)}
+        futures = {executor.submit(fetch_sportybet_page, session, headers, p): p for p in range(1, SPORTYBET_PAGES + 1)}
         for future in as_completed(futures):
             tournaments = future.result()
             all_tournaments.extend(tournaments)
@@ -263,6 +294,14 @@ def scrape_1xbet() -> List[Dict]:
     valid_champs = [(c.get("LI"), c.get("L", "")) for c in champs
                     if not any(p in c.get("L", "").lower() for p in skip_patterns)]
 
+    if FAST_MODE:
+        top_champs = [
+            (cid, cname) for cid, cname in valid_champs
+            if any(k in (cname or "").lower() for k in TOP_LEAGUE_KEYWORDS)
+        ]
+        if len(top_champs) >= 10:
+            valid_champs = top_champs
+
     # Parallel championship fetching
     all_matches = []
     with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
@@ -330,13 +369,13 @@ def scrape_betway() -> List[Dict]:
         'Referer': 'https://www.betway.com.gh/sport/soccer/upcoming',
     }
 
-    page_size = 1000  # Large page size reduces page count
+    page_size = BETWAY_PAGE_SIZE  # Large page size reduces page count
 
     # Fetch pages in parallel - trimmed range for speed
     all_data = []
     with ThreadPoolExecutor(max_workers=8) as executor:
         futures = {executor.submit(fetch_betway_page, session, headers, skip, page_size): skip
-                   for skip in range(0, 15000, page_size)}
+                   for skip in range(0, BETWAY_MAX_SKIP, page_size)}
         for future in as_completed(futures):
             data = future.result()
             if data:
@@ -659,18 +698,19 @@ def scrape_betfox() -> List[Dict]:
             print(f"  Fixtures from competitions: {len(all_fixtures)}")
 
         # Also get live matches for additional coverage
-        try:
-            resp_live = scraper.get(
-                'https://www.betfox.com.gh/api/offer/v4/fixtures/home/live?first=100&sport=Football',
-                timeout=TIMEOUT
-            )
-            if resp_live.status_code == 200:
-                live_data = resp_live.json()
-                live_fixtures = live_data.get('data', [])
-                all_fixtures.extend(live_fixtures)
-                print(f"  Live fixtures: {len(live_fixtures)}")
-        except:
-            pass  # Live matches optional
+        if not FAST_MODE:
+            try:
+                resp_live = scraper.get(
+                    'https://www.betfox.com.gh/api/offer/v4/fixtures/home/live?first=100&sport=Football',
+                    timeout=TIMEOUT
+                )
+                if resp_live.status_code == 200:
+                    live_data = resp_live.json()
+                    live_fixtures = live_data.get('data', [])
+                    all_fixtures.extend(live_fixtures)
+                    print(f"  Live fixtures: {len(live_fixtures)}")
+            except:
+                pass  # Live matches optional
 
         if not all_fixtures:
             print("  No fixtures found")
@@ -1212,7 +1252,16 @@ def push_to_d1(matched_events: List[List[Dict]]):
 # Cloudflare Push
 # ============================================================================
 
-def push_to_cloudflare(matched_events: List[List[Dict]]):
+def build_odds_endpoint(base_url: str, fast: bool) -> str:
+    base = (base_url or '').rstrip('/')
+    for suffix in ('/api/odds/update', '/api/odds/fast'):
+        if base.endswith(suffix):
+            base = base[: -len(suffix)]
+            break
+    return f"{base}/api/odds/fast" if fast else f"{base}/api/odds/update"
+
+
+def push_to_cloudflare(matched_events: List[List[Dict]], fast: bool = False):
     """Push matched events to Cloudflare Worker."""
     if not CLOUDFLARE_WORKER_URL or not CLOUDFLARE_API_KEY:
         print("\n" + "="*60)
@@ -1228,13 +1277,10 @@ def push_to_cloudflare(matched_events: List[List[Dict]]):
         print("="*60)
         return
 
-    # Ensure URL ends with /api/odds/update
-    api_url = CLOUDFLARE_WORKER_URL.rstrip('/')
-    if not api_url.endswith('/api/odds/update'):
-        api_url += '/api/odds/update'
+    api_url = build_odds_endpoint(CLOUDFLARE_WORKER_URL, fast)
 
     print(f"\n{'='*60}")
-    print(f"Pushing {len(matched_events)} events to Cloudflare...")
+    print(f"Pushing {len(matched_events)} events to Cloudflare{' (FAST)' if fast else ''}...")
     print(f"{'='*60}")
     print(f"  Target URL: {api_url}")
     print(f"  Events to push: {len(matched_events)}")
@@ -1334,12 +1380,21 @@ def main():
     parser.add_argument('--from-file', help='Load raw scraped data JSON instead of scraping')
     parser.add_argument('--no-push', action='store_true', help='Skip pushing to Cloudflare/D1/Postgres')
     parser.add_argument('--skip-scrape', action='store_true', help='Skip scraping (use with --from-file)')
+    parser.add_argument('--fast', action='store_true', help='Use faster, lower-coverage scraping settings')
     args = parser.parse_args()
+
+    if args.fast and not FAST_MODE:
+        apply_fast_mode()
+
+    if FAST_MODE:
+        os.environ.setdefault("TWENTYTWOBET_MAX_MATCHES", str(env_int("TWENTYTWOBET_MAX_MATCHES_FAST", 400)))
 
     start_time = time.time()
     print("=" * 60)
     print("ODDS SCRAPER - TURBO MODE")
     print("=" * 60)
+    if FAST_MODE:
+        print("FAST MODE: reduced coverage for speed")
 
     all_matches = {}
     elapsed = 0.0
@@ -1358,10 +1413,17 @@ def main():
             'Betfox Ghana': scrape_betfox,  # WORKING - Using V4 API (100+ fixtures from upcoming + live)
         }
 
+        def timed_scraper(name, fn):
+            started = time.time()
+            matches = fn()
+            duration = time.time() - started
+            print(f"  [{name}] {len(matches)} matches in {duration:.1f}s")
+            return matches
+
         print("\nRunning ALL scrapers in parallel...")
         with ThreadPoolExecutor(max_workers=6) as executor:
             future_to_bookie = {
-                executor.submit(scraper): bookie
+                executor.submit(timed_scraper, bookie, scraper): bookie
                 for bookie, scraper in scrapers.items()
             }
             for future in as_completed(future_to_bookie):
@@ -1421,9 +1483,12 @@ def main():
     print(f"\nSaved to odds_data.json")
 
     if not args.no_push:
-        push_to_cloudflare(matched)
-        push_to_postgres(all_matches)
-        push_to_d1(matched)
+        push_to_cloudflare(matched, fast=FAST_MODE)
+        if FAST_MODE:
+            print("FAST MODE: skipping Postgres/D1 ingest for speed")
+        else:
+            push_to_postgres(all_matches)
+            push_to_d1(matched)
     else:
         print("Skipping push (--no-push)")
 

@@ -18,6 +18,7 @@ import { OddsStream } from './oddsStream';
 
 // Cache TTL in seconds
 const CACHE_TTL = 900; // 15 minutes (matches scraper schedule)
+const FAST_CACHE_TTL_SECONDS = 600; // Overlay updates expire quickly
 
 // Ghana bookmakers
 const GHANA_BOOKMAKERS = [
@@ -240,6 +241,123 @@ function buildOddsDelta(previous: OddsResponse | null, next: OddsResponse): Odds
     matches: changed,
     removed_ids: removed,
     league_keys: Array.from(leagueKeys),
+  };
+}
+
+function buildOddsDeltaPartial(previous: OddsResponse | null, next: OddsResponse): OddsDelta | null {
+  const total = next?.meta?.total_matches || 0;
+  if (!next?.data?.length) return null;
+  if (!previous?.data?.length) {
+    return { full_refresh: true, reason: 'fast_no_previous_cache', count: total };
+  }
+
+  const previousIndex = new Map<string, { signature: string; league_key?: string | null }>();
+  for (const league of previous.data || []) {
+    for (const match of league.matches || []) {
+      const key = buildMatchKey(match);
+      previousIndex.set(key, {
+        signature: buildMatchSignature(match),
+        league_key: match.league_key || league.league_key || resolveLeagueKey(match.league),
+      });
+    }
+  }
+
+  const changed: Match[] = [];
+  const leagueKeys = new Set<string>();
+
+  for (const league of next.data || []) {
+    for (const match of league.matches || []) {
+      const key = buildMatchKey(match);
+      const signature = buildMatchSignature(match);
+      const previousEntry = previousIndex.get(key);
+      if (!previousEntry || previousEntry.signature !== signature) {
+        changed.push(match);
+        const keyValue = match.league_key || league.league_key || resolveLeagueKey(match.league);
+        if (keyValue) {
+          leagueKeys.add(keyValue);
+        }
+      }
+    }
+  }
+
+  if (changed.length === 0) {
+    return null;
+  }
+
+  if (changed.length > STREAM_DELTA_LIMIT) {
+    return {
+      full_refresh: true,
+      reason: 'fast_delta_limit',
+      count: changed.length,
+    };
+  }
+
+  return {
+    matches: changed,
+    removed_ids: [],
+    league_keys: Array.from(leagueKeys),
+  };
+}
+
+function mergeOddsResponses(base: OddsResponse, overlay: OddsResponse): OddsResponse {
+  const baseData = attachLeagueKeys(base.data || []);
+  const overlayData = attachLeagueKeys(overlay.data || []);
+  const leagueMap = new Map<string, LeagueGroup>();
+
+  const resolveGroupKey = (group: LeagueGroup): string | null => {
+    return group.league_key || resolveLeagueKey(group.league) || slugify(group.league);
+  };
+
+  for (const league of baseData) {
+    const key = resolveGroupKey(league);
+    if (!key) continue;
+    leagueMap.set(key, { ...league, matches: [...(league.matches || [])] });
+  }
+
+  for (const league of overlayData) {
+    const key = resolveGroupKey(league);
+    if (!key) continue;
+    const existing = leagueMap.get(key) || {
+      league: league.league,
+      league_key: league.league_key || key,
+      matches: [],
+    };
+    const matchMap = new Map<string, Match>();
+    for (const match of existing.matches || []) {
+      matchMap.set(buildMatchKey(match), match);
+    }
+    for (const match of league.matches || []) {
+      matchMap.set(buildMatchKey(match), match);
+    }
+    const mergedLeague: LeagueGroup = {
+      ...existing,
+      league: existing.league || league.league,
+      league_key: existing.league_key || league.league_key || key,
+      matches: Array.from(matchMap.values()),
+    };
+    leagueMap.set(key, mergedLeague);
+  }
+
+  const mergedData = Array.from(leagueMap.values());
+  const totalMatches = mergedData.reduce((sum, league) => sum + (league.matches?.length || 0), 0);
+
+  const fullUpdated = base.meta?.last_updated;
+  const fastUpdated = overlay.meta?.last_updated;
+  const lastUpdated = [fullUpdated, fastUpdated].filter(Boolean).sort().pop() || new Date().toISOString();
+
+  return {
+    ...base,
+    data: mergedData,
+    meta: {
+      ...base.meta,
+      total_matches: totalMatches,
+      last_updated: lastUpdated,
+      last_updated_full: fullUpdated,
+      last_updated_fast: fastUpdated,
+      cache_ttl: Math.min(base.meta?.cache_ttl ?? CACHE_TTL, overlay.meta?.cache_ttl ?? FAST_CACHE_TTL_SECONDS),
+      cache_ttl_full: base.meta?.cache_ttl,
+      cache_ttl_fast: overlay.meta?.cache_ttl,
+    },
   };
 }
 
@@ -686,44 +804,56 @@ async function getOddsData(env: Env): Promise<OddsResponse> {
   try {
     // Try to get from KV cache first
     const cached = await env.ODDS_CACHE.get('all_odds', 'json');
+    let baseResponse: OddsResponse | null = null;
 
     if (cached) {
       const cachedResponse = cached as OddsResponse;
-      return {
+      baseResponse = {
         ...cachedResponse,
         data: attachLeagueKeys(cachedResponse.data || []),
       };
+    } else {
+      // Fall back to last known odds if the hot cache expired
+      const backup = await env.ODDS_CACHE.get('last_odds', 'json');
+      if (backup) {
+        const backupResponse = backup as OddsResponse;
+        baseResponse = {
+          ...backupResponse,
+          meta: {
+            ...backupResponse.meta,
+            cache_ttl: 60,
+            stale: true,
+          },
+          data: attachLeagueKeys(backupResponse.data || []),
+        };
+      }
     }
 
-    // Fall back to last known odds if the hot cache expired
-    const backup = await env.ODDS_CACHE.get('last_odds', 'json');
-    if (backup) {
-      const backupResponse = backup as OddsResponse;
-      return {
-        ...backupResponse,
+    if (!baseResponse) {
+      // If no cache, return empty data
+      // In production, this would fetch from external APIs or scraped data
+      baseResponse = {
+        success: true,
+        data: [],
         meta: {
-          ...backupResponse.meta,
-          cache_ttl: 60,
-          stale: true,
+          total_matches: 0,
+          total_bookmakers: GHANA_BOOKMAKERS.length,
+          last_updated: new Date().toISOString(),
+          cache_ttl: CACHE_TTL,
         },
-        data: attachLeagueKeys(backupResponse.data || []),
       };
     }
 
-    // If no cache, return empty data
-    // In production, this would fetch from external APIs or scraped data
-    const emptyResponse: OddsResponse = {
-      success: true,
-      data: [],
-      meta: {
-        total_matches: 0,
-        total_bookmakers: GHANA_BOOKMAKERS.length,
-        last_updated: new Date().toISOString(),
-        cache_ttl: CACHE_TTL,
-      },
-    };
+    const fastCached = await env.ODDS_CACHE.get('fast_odds', 'json');
+    if (fastCached) {
+      const fastResponse = fastCached as OddsResponse;
+      return mergeOddsResponses(baseResponse, {
+        ...fastResponse,
+        data: attachLeagueKeys(fastResponse.data || []),
+      });
+    }
 
-    return emptyResponse;
+    return baseResponse;
   } catch (error) {
     console.error('Error fetching odds:', error);
     throw error;
@@ -945,6 +1075,70 @@ async function updateOddsData(
 }
 
 /**
+ * Update fast odds overlay (partial updates for near-live feel)
+ */
+async function updateFastOddsData(
+  env: Env,
+  data: LeagueGroup[]
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const normalizedData = attachLeagueKeys(data);
+    const totalMatches = normalizedData.reduce(
+      (sum, league) => sum + league.matches.length,
+      0
+    );
+    const previous = await env.ODDS_CACHE.get('fast_odds', 'json') as OddsResponse | null;
+
+    const oddsResponse: OddsResponse = {
+      success: true,
+      data: normalizedData,
+      meta: {
+        total_matches: totalMatches,
+        total_bookmakers: GHANA_BOOKMAKERS.length,
+        last_updated: new Date().toISOString(),
+        cache_ttl: FAST_CACHE_TTL_SECONDS,
+      },
+    };
+
+    await env.ODDS_CACHE.put('fast_odds', JSON.stringify(oddsResponse), {
+      expirationTtl: FAST_CACHE_TTL_SECONDS,
+    });
+
+    const delta = buildOddsDeltaPartial(previous, oddsResponse);
+    if (delta) {
+      if ('full_refresh' in delta) {
+        await broadcastOddsUpdate(env, {
+          type: 'odds_refresh',
+          data: {
+            reason: delta.reason,
+            count: delta.count,
+            last_updated: oddsResponse.meta.last_updated,
+          },
+        });
+      } else if (delta.matches.length) {
+        await broadcastOddsUpdate(env, {
+          type: 'odds_update',
+          data: {
+            matches: delta.matches,
+            removed_ids: [],
+            league_keys: delta.league_keys,
+            last_updated: oddsResponse.meta.last_updated,
+          },
+        });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Updated ${totalMatches} fast matches across ${data.length} leagues`,
+    };
+  } catch (error) {
+    console.error('Error updating fast odds:', error);
+    throw error;
+  }
+}
+
+/**
  * Router - handle all API requests
  */
 async function handleRequest(request: Request, env: Env): Promise<Response> {
@@ -1146,6 +1340,27 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       if (parts.length === 5 && parts[4] === 'like') {
         const commentId = parts[3];
         return likeComment(request, env, commentId);
+      }
+    }
+
+    // POST /api/odds/fast - Update fast odds overlay (protected endpoint)
+    if (path === '/api/odds/fast' && request.method === 'POST') {
+      try {
+        const apiKey = request.headers.get('X-API-Key');
+        if (!apiKey || apiKey !== env.API_SECRET) {
+          return errorResponse('Unauthorized', 401, env);
+        }
+
+        const body = (await request.json()) as LeagueGroup[];
+        if (!Array.isArray(body)) {
+          return errorResponse('Invalid odds data format', 400, env);
+        }
+
+        const result = await updateFastOddsData(env, body);
+        return jsonResponse(result, 200, env);
+      } catch (error) {
+        console.error('Error in /api/odds/fast:', error);
+        return errorResponse(`Fast update failed: ${error}`, 500, env);
       }
     }
 
