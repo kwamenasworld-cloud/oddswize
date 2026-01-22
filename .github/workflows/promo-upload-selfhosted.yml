@@ -1,0 +1,93 @@
+name: News Promo Upload (Self-Hosted)
+
+on:
+  workflow_dispatch:
+    inputs:
+      clips_dir:
+        description: Folder with source clips
+        default: promotions/assets/clips
+        required: true
+      clip_strategy:
+        description: random or latest
+        default: random
+        required: true
+      logo_path:
+        description: Logo path on the runner
+        default: logo_cropped.PNG
+        required: true
+      tiktok_state_path:
+        description: TikTok storage_state.json path on the runner
+        default: promotions/tmp/tiktok_storage_state.json
+        required: false
+      instagram_state_path:
+        description: Instagram storage_state.json path on the runner
+        default: promotions/tmp/instagram_storage_state.json
+        required: false
+      caption:
+        description: Override caption text (optional)
+        default: ''
+        required: false
+      caption_file:
+        description: Caption file path on the runner (optional)
+        default: ''
+        required: false
+      headless:
+        description: 'true for headless mode'
+        default: 'true'
+        required: false
+      skip_tiktok:
+        description: 'true to skip TikTok upload'
+        default: 'false'
+        required: false
+      skip_reels:
+        description: 'true to skip Instagram Reels upload'
+        default: 'false'
+        required: false
+
+jobs:
+  upload:
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Install Playwright browser
+        run: python -m playwright install chromium
+
+      - name: Build and upload promo
+        env:
+          TIKTOK_STORAGE_STATE_PATH: ${{ inputs.tiktok_state_path }}
+          TIKTOK_STORAGE_STATE_B64: ${{ secrets.TIKTOK_STORAGE_STATE_B64 }}
+          INSTAGRAM_STORAGE_STATE_PATH: ${{ inputs.instagram_state_path }}
+          INSTAGRAM_STORAGE_STATE_B64: ${{ secrets.INSTAGRAM_STORAGE_STATE_B64 }}
+        run: |
+          $args = @(
+            "--clips-dir", "${{ inputs.clips_dir }}",
+            "--clip-strategy", "${{ inputs.clip_strategy }}",
+            "--logo", "${{ inputs.logo_path }}"
+          )
+          if ("${{ inputs.caption_file }}" -ne "") {
+            $args += "--caption-file"
+            $args += "${{ inputs.caption_file }}"
+          } elseif ("${{ inputs.caption }}" -ne "") {
+            $args += "--caption"
+            $args += "${{ inputs.caption }}"
+          }
+          if ("${{ inputs.headless }}" -eq "true") {
+            $args += "--headless"
+          } else {
+            $args += "--headed"
+          }
+          if ("${{ inputs.skip_tiktok }}" -eq "true") {
+            $args += "--skip-tiktok"
+          }
+          if ("${{ inputs.skip_reels }}" -eq "true") {
+            $args += "--skip-reels"
+          }
+          python promotions/scripts/run_news_promo.py @args

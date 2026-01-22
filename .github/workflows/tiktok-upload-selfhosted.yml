@@ -1,0 +1,67 @@
+name: TikTok Upload (Self-Hosted)
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_path:
+        description: Path to the mp4 on the runner
+        default: promotions/output/promo.mp4
+        required: true
+      caption:
+        description: Caption text (ignored if caption_file is set)
+        default: ''
+        required: false
+      caption_file:
+        description: Caption file path on the runner (optional)
+        default: ''
+        required: false
+      storage_state_path:
+        description: Path to Playwright storage_state.json on the runner
+        default: promotions/tmp/tiktok_storage_state.json
+        required: false
+      headless:
+        description: 'true for headless mode'
+        default: 'true'
+        required: false
+      dry_run:
+        description: 'true to skip the Post click'
+        default: 'false'
+        required: false
+
+jobs:
+  upload:
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Install Playwright browser
+        run: python -m playwright install chromium
+
+      - name: Upload to TikTok
+        env:
+          TIKTOK_STORAGE_STATE_PATH: ${{ inputs.storage_state_path }}
+          TIKTOK_STORAGE_STATE_B64: ${{ secrets.TIKTOK_STORAGE_STATE_B64 }}
+          TIKTOK_HEADLESS: ${{ inputs.headless }}
+        run: |
+          $args = @(
+            "--video", "${{ inputs.video_path }}",
+            "--timeout", "900"
+          )
+          if ("${{ inputs.caption_file }}" -ne "") {
+            $args += "--caption-file"
+            $args += "${{ inputs.caption_file }}"
+          } else {
+            $args += "--caption"
+            $args += "${{ inputs.caption }}"
+          }
+          if ("${{ inputs.dry_run }}" -eq "true") {
+            $args += "--dry-run"
+          }
+          python promotions/scripts/upload_to_tiktok.py @args

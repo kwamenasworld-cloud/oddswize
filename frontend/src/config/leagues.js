@@ -613,6 +613,8 @@ export const LEAGUES = {
     tier: 2,
     keywords: [
       'Scotland. Premiership',
+      'Scotland Premier League',
+      'Scottish Premier League',
       'Scottish Premiership',
       'Scotland Premier',
       'SPFL Premiership',

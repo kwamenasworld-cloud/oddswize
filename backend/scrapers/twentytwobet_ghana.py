@@ -12,8 +12,25 @@ import requests
 
 # API and scraping controls
 API_BASE = os.getenv("TWENTYTWOBET_API_URL", "https://platform.22bet.com.gh/api")
-DEFAULT_MAX_MATCHES = 800
-PAGE_SIZE = 100  # max observed per request
+DEFAULT_MAX_MATCHES = 1200
+PAGE_SIZE = int(os.getenv("TWENTYTWOBET_PAGE_SIZE", "100"))  # max observed per request
+
+MAJOR_LEAGUE_KEYWORDS = {
+    "premier": ["premier league", "english premier league", "england premier league", "epl"],
+    "laliga": ["la liga", "laliga", "primera division"],
+    "seriea": ["serie a"],
+    "bundesliga": ["bundesliga"],
+    "ligue1": ["ligue 1"],
+    "ucl": ["uefa champions league", "champions league", "ucl"],
+}
+
+MAJOR_LEAGUE_EXCLUSIONS = {
+    "premier league cup",
+    "premier league 2",
+    "premier league u21",
+    "premier league u 21",
+    "premier league u-21",
+}
 
 SESSION = requests.Session()
 SESSION.headers.update(
@@ -80,6 +97,15 @@ def _extract_odds(market: Dict) -> Optional[Dict]:
     }
 
 
+def _is_major_league(name: str) -> bool:
+    if not name:
+        return False
+    lowered = name.lower()
+    if any(ex in lowered for ex in MAJOR_LEAGUE_EXCLUSIONS):
+        return False
+    return any(any(k in lowered for k in keywords) for keywords in MAJOR_LEAGUE_KEYWORDS.values())
+
+
 def _fetch_page(page: int, limit: int) -> Dict:
     """Fetch a single page of football prematch events with odds."""
     params = [
@@ -98,6 +124,71 @@ def _fetch_page(page: int, limit: int) -> Dict:
     for rel in ["odds", "withMarketsCount", "league", "competitors"]:
         params.append(("relations", rel))
 
+    resp = SESSION.get(f"{API_BASE}/event/list", params=params, timeout=30)
+    resp.raise_for_status()
+    return resp.json().get("data", {})
+
+
+def _fetch_league_list() -> List[Dict]:
+    """Fetch the league catalog so we can target specific major leagues."""
+    leagues: List[Dict] = []
+    page = 1
+    limit = 500
+    while True:
+        params = [
+            ("lang", "en"),
+            ("sportId_eq", 1),
+            ("limit", limit),
+            ("page", page),
+        ]
+        resp = SESSION.get(f"{API_BASE}/league/list", params=params, timeout=30)
+        resp.raise_for_status()
+        data = resp.json().get("data", {})
+        items = data.get("leagues", []) if isinstance(data, dict) else []
+        if not items:
+            break
+        leagues.extend(items)
+        if len(items) < limit:
+            break
+        page += 1
+        if page > 5:
+            break
+    return leagues
+
+
+def _match_major_league_ids(leagues: List[Dict]) -> Set[int]:
+    ids: Set[int] = set()
+    for league in leagues:
+        name = (league.get("name") or "").lower()
+        if not name:
+            continue
+        if any(ex in name for ex in MAJOR_LEAGUE_EXCLUSIONS):
+            continue
+        for keywords in MAJOR_LEAGUE_KEYWORDS.values():
+            if any(k in name for k in keywords):
+                league_id = league.get("id")
+                if league_id:
+                    ids.add(int(league_id))
+    return ids
+
+
+def _fetch_league_page(league_id: int, page: int, limit: int) -> Dict:
+    params = [
+        ("lang", "en"),
+        ("oddsExists_eq", 1),
+        ("main", 1),
+        ("period", 0),
+        ("sportId_eq", 1),
+        ("limit", limit),
+        ("status_in", 0),
+        ("oddsBooster", 0),
+        ("isFavorite", 0),
+        ("isLive", "false"),
+        ("page", page),
+        ("leagueId_eq", league_id),
+    ]
+    for rel in ["odds", "withMarketsCount", "league", "competitors"]:
+        params.append(("relations", rel))
     resp = SESSION.get(f"{API_BASE}/event/list", params=params, timeout=30)
     resp.raise_for_status()
     return resp.json().get("data", {})
@@ -153,6 +244,36 @@ def scrape_22bet_ghana(max_matches: int = DEFAULT_MAX_MATCHES) -> List[Dict]:
     matches: List[Dict] = []
     seen_ids: Set[int] = set()
 
+    force_major = os.getenv("TWENTYTWOBET_FORCE_LEAGUES", "1").strip().lower() not in {"0", "false", "no"}
+    league_pages = int(os.getenv("TWENTYTWOBET_LEAGUE_PAGES", "6"))
+
+    if force_major:
+        try:
+            leagues = _fetch_league_list()
+            league_ids = _match_major_league_ids(leagues)
+        except Exception:
+            league_ids = set()
+
+        for league_id in sorted(league_ids):
+            page = 1
+            total_pages = None
+            while page <= max(1, league_pages):
+                data = _fetch_league_page(league_id, page, PAGE_SIZE)
+                items = data.get("items", [])
+                if not items:
+                    break
+
+                matches.extend(_parse_events(data, seen_ids))
+
+                total = data.get("totalCount")
+                limit = data.get("limit") or PAGE_SIZE
+                if total and limit:
+                    total_pages = max(total_pages or 0, (total + limit - 1) // limit)
+
+                page += 1
+                if total_pages and page > total_pages:
+                    break
+
     page = 1
     total_pages = None
 
@@ -173,7 +294,9 @@ def scrape_22bet_ghana(max_matches: int = DEFAULT_MAX_MATCHES) -> List[Dict]:
         if total_pages and page > total_pages:
             break
 
-    return matches[:max_matches]
+    major_first = [m for m in matches if _is_major_league(m.get("league", ""))]
+    other = [m for m in matches if not _is_major_league(m.get("league", ""))]
+    return (major_first + other)[:max_matches]
 
 
 if __name__ == "__main__":

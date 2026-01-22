@@ -11,8 +11,9 @@ import time
 from typing import Dict, List, Set
 
 API_URL = "https://www.betway.com.gh/sportsapi/br/v1/BetBook/Upcoming/"
-DEFAULT_MAX_MATCHES = 800
-PAGE_SIZE = 500
+DEFAULT_MAX_MATCHES = 1200
+PAGE_SIZE = int(os.getenv("BETWAY_PAGE_SIZE", "500"))
+MAX_PAGES = int(os.getenv("BETWAY_MAX_PAGES", "20"))
 
 
 def _fetch_page(skip: int = 0, take: int = PAGE_SIZE) -> dict:
@@ -140,7 +141,7 @@ def scrape_betway_ghana(max_matches: int = DEFAULT_MAX_MATCHES) -> List[Dict]:
     seen_ids: Set[int] = set()
 
     skip = 0
-    max_pages = 10  # Safety limit
+    max_pages = MAX_PAGES  # Safety limit (configurable)
 
     while len(matches) < max_matches and skip < max_pages * PAGE_SIZE:
         try:

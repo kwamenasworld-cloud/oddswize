@@ -1535,6 +1535,58 @@ a {
   line-height: 1.3;
 }
 
+.match-time-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.match-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.match-status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.match-status.upcoming {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.match-status.final {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.match-status.state {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.match-final {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.match-final-score {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #111;
+}
+
 .live-indicator {
   display: inline-flex;
   align-items: center;
@@ -1573,6 +1625,17 @@ a {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.2rem;
+}
+
+.odds-wrapper.compact .odds-card-final {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.odds-wrapper.compact .match-status {
+  font-size: 0.58rem;
 }
 
 .live-score {

@@ -59,7 +59,7 @@ const buildLiveScoreIndex = (events) => {
   return index;
 };
 
-const resolveLiveScore = (match, liveIndex) => {
+const resolveScoreEvent = (match, liveIndex) => {
   if (!match || !liveIndex) return null;
   const homeKey = normalizeScoreKey(match.home_team);
   const awayKey = normalizeScoreKey(match.away_team);
@@ -68,13 +68,34 @@ const resolveLiveScore = (match, liveIndex) => {
   const reverse = liveIndex[`${awayKey}|${homeKey}`];
   const score = direct || reverse;
   if (!score) return null;
-  if (score.state && score.state !== 'in') return null;
   const matchTime = Number(match.start_time || 0) * 1000;
   const scoreTime = Number(score.start_time || 0) * 1000;
   if (matchTime && scoreTime && Math.abs(matchTime - scoreTime) > LIVE_SCORE_TIME_TOLERANCE_MS) {
     return null;
   }
   return score;
+};
+
+const resolveMatchStatus = (match, scoreEvent) => {
+  const state = (scoreEvent?.state || '').toLowerCase();
+  if (state === 'in') {
+    return { type: 'live', label: 'LIVE' };
+  }
+  if (state === 'post') {
+    return { type: 'final', label: 'FT' };
+  }
+  if (state === 'pre') {
+    return match?.pendingOdds
+      ? { type: 'pending', label: 'Pending' }
+      : { type: 'upcoming', label: 'Upcoming' };
+  }
+  if (state) {
+    return { type: 'state', label: state.toUpperCase() };
+  }
+  if (match?.pendingOdds) {
+    return { type: 'pending', label: 'Pending' };
+  }
+  return null;
 };
 
 const resolveRefreshInterval = (cacheTtlSeconds) => {
@@ -1224,7 +1245,7 @@ function OddsPage() {
     const groups = {};
     matchList.forEach(match => {
       // Use matched league for grouping to normalize variants
-      const matchedLeague = matchLeague(match.league);
+      const matchedLeague = match.league_key ? LEAGUES[match.league_key] : matchLeague(match.league);
 
       let groupKey;
       if (matchedLeague) {
@@ -1335,7 +1356,7 @@ function OddsPage() {
     let cancelled = false;
     const loadLiveScores = async () => {
       try {
-        const response = await getLiveScores(visibleLeagueKeys);
+        const response = await getLiveScores(visibleLeagueKeys, { state: 'all' });
         if (cancelled) return;
         setLiveScoreIndex(buildLiveScoreIndex(response?.data));
       } catch (error) {
@@ -1915,8 +1936,14 @@ function OddsPage() {
               const rankedBookmakers = compactView
                 ? rankBookmakersByPrice(activeBookmakers, oddsByBookie, marketFields)
                 : activeBookmakers;
-              const liveScore = resolveLiveScore(match, liveScoreIndex);
-              const liveDetail = formatLiveDetail(liveScore);
+              const scoreEvent = resolveScoreEvent(match, liveScoreIndex);
+              const matchStatus = resolveMatchStatus(match, scoreEvent);
+              const scoreline = scoreEvent ? formatLiveScore(scoreEvent) : null;
+              const hasScoreline = Boolean(scoreline && scoreline !== '-');
+              const liveDetail = matchStatus?.type === 'live' ? formatLiveDetail(scoreEvent) : '';
+              const isLive = matchStatus?.type === 'live';
+              const isFinal = matchStatus?.type === 'final';
+              const showStatus = Boolean(matchStatus && !isLive && !isFinal);
 
               if (compactView) {
                 return (
@@ -1933,16 +1960,25 @@ function OddsPage() {
                         </div>
                       </div>
                       <div className="odds-card-meta">
-                        {liveScore && (
+                        {isLive && (
                           <div className="odds-card-live">
                             <div className="live-score-row">
                               <LiveIndicator />
-                              <span className="live-score">{formatLiveScore(liveScore)}</span>
+                              <span className="live-score">{scoreline || '-'}</span>
                             </div>
                             {liveDetail && <span className="live-detail">{liveDetail}</span>}
                           </div>
                         )}
+                        {isFinal && (
+                          <div className="odds-card-final">
+                            {hasScoreline && <span className="match-final-score">{scoreline}</span>}
+                            <span className="match-status final">{matchStatus.label}</span>
+                          </div>
+                        )}
                         <span className="odds-card-time">{formatTime(match.start_time)}</span>
+                        {showStatus && (
+                          <span className={`match-status ${matchStatus.type}`}>{matchStatus.label}</span>
+                        )}
                         <span className="odds-card-league">{match.league}</span>
                         <div className="odds-card-actions">
                           <ShareButton
@@ -2194,16 +2230,26 @@ function OddsPage() {
 
                   {/* Kick-off Time */}
                   <div className="match-time-cell">
-                    {liveScore ? (
+                    {isLive ? (
                       <div className="match-live">
                         <div className="live-score-row">
                           <LiveIndicator />
-                          <span className="live-score">{formatLiveScore(liveScore)}</span>
+                          <span className="live-score">{scoreline || '-'}</span>
                         </div>
                         {liveDetail && <span className="live-detail">{liveDetail}</span>}
                       </div>
+                    ) : isFinal ? (
+                      <div className="match-final">
+                        {hasScoreline && <span className="match-final-score">{scoreline}</span>}
+                        <span className="match-status final">{matchStatus.label}</span>
+                      </div>
                     ) : (
-                      <span className="kickoff-time">{formatTime(match.start_time)}</span>
+                      <div className="match-time-block">
+                        <span className="kickoff-time">{formatTime(match.start_time)}</span>
+                        {showStatus && (
+                          <span className={`match-status ${matchStatus.type}`}>{matchStatus.label}</span>
+                        )}
+                      </div>
                     )}
                   </div>
 

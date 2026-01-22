@@ -27,10 +27,14 @@ INPUT_FILE = 'odds_data.json'
 LEAGUE_TEAMS = {
     'Premier League': {
         'arsenal', 'aston villa', 'bournemouth', 'brentford', 'brighton',
+        'brighton hove', 'brighton hove albion',
+        'burnley',
         'chelsea', 'crystal palace', 'everton', 'fulham', 'ipswich', 'ipswich town',
+        'leeds', 'leeds united',
         'leicester', 'leicester city', 'liverpool', 'manchester city', 'manchester united',
         'newcastle', 'newcastle united', 'nottingham forest', 'southampton',
-        'tottenham', 'west ham', 'wolves', 'wolverhampton'
+        'sunderland', 'sunderland afc',
+        'tottenham', 'west ham', 'wolves', 'wolverhampton', 'wolverhampton wanderers'
     },
     'La Liga': {
         'athletic bilbao', 'athletic club', 'atletico madrid', 'barcelona', 'celta vigo',
@@ -56,15 +60,20 @@ LEAGUE_TEAMS = {
         'angers', 'auxerre', 'brest', 'le havre', 'lens',
         'lille', 'lyon', 'marseille', 'monaco', 'montpellier',
         'nantes', 'nice', 'psg', 'paris', 'paris saint germain',
+        'rennais', 'stade rennais',
         'reims', 'rennes', 'saint etienne', 'strasbourg', 'toulouse'
     },
     'Championship': {
         'barnsley', 'birmingham', 'blackburn', 'bristol city', 'burnley',
-        'cardiff', 'coventry', 'derby', 'derby county', 'hull', 'hull city',
+        'cardiff', 'charlton', 'charlton athletic', 'coventry', 'derby', 'derby county', 'hull', 'hull city',
+        'ipswich', 'ipswich town',
         'leeds', 'leeds united', 'luton', 'luton town', 'middlesbrough',
         'millwall', 'norwich', 'norwich city', 'plymouth', 'portsmouth',
-        'preston', 'qpr', 'queens park rangers', 'sheffield united', 'sheffield wednesday',
-        'stoke', 'stoke city', 'sunderland', 'swansea', 'watford', 'west brom'
+        'preston', 'qpr', 'queens park rangers', 'raith rovers', 'raith rovers fc',
+        'sheffield united', 'sheffield wednesday',
+        'southampton', 'southampton fc',
+        'stoke', 'stoke city', 'sunderland', 'swansea', 'watford', 'west brom',
+        'wrexham', 'wrexham afc'
     }
 }
 

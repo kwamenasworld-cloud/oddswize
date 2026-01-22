@@ -10,6 +10,7 @@ import json
 import os
 import re
 import time
+import unicodedata
 import requests
 import cloudscraper
 import asyncio
@@ -47,27 +48,35 @@ CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
 D1_CANONICAL_INGEST = os.getenv('D1_CANONICAL_INGEST')  # optional override; defaults to CLOUDFLARE_WORKER_URL/api/canonical/ingest
 FAST_MODE = env_bool("ODDS_FAST")
-MAX_MATCHES = env_int("MAX_MATCHES", 2000)  # Enough coverage, faster runtime
-MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS", 150)  # Limit heavy leagues to speed up
+MAX_MATCHES = env_int("MAX_MATCHES", 2600)  # Increased depth to avoid dropping major leagues
+MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS", 220)  # Broader championship coverage
 TIMEOUT = env_int("TIMEOUT", 10)
 BATCH_SIZE = env_int("BATCH_SIZE", 200)  # Trim batch size to reduce payload/latency
 PARALLEL_PAGES = env_int("PARALLEL_PAGES", 8)  # Balanced parallelism for I/O
-SPORTYBET_PAGES = env_int("SPORTYBET_PAGES", 30)
-BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE", 1000)
-BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP", 15000)
+SPORTYBET_PAGES = env_int("SPORTYBET_PAGES", 45)
+SPORTYBET_TOURNAMENT_LOOKUP_PAGES = env_int("SPORTYBET_TOURNAMENT_LOOKUP_PAGES", 12)
+SPORTYBET_TOURNAMENT_MAX_PAGES = env_int("SPORTYBET_TOURNAMENT_MAX_PAGES", 6)
+SPORTYBET_TOURNAMENT_PAGE_SIZE = env_int("SPORTYBET_TOURNAMENT_PAGE_SIZE", 100)
+BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE", 1200)
+BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP", 20000)
 
 def apply_fast_mode() -> None:
     global FAST_MODE, MAX_MATCHES, MAX_CHAMPIONSHIPS, TIMEOUT, BATCH_SIZE, PARALLEL_PAGES
-    global SPORTYBET_PAGES, BETWAY_PAGE_SIZE, BETWAY_MAX_SKIP
+    global SPORTYBET_PAGES, SPORTYBET_TOURNAMENT_LOOKUP_PAGES
+    global SPORTYBET_TOURNAMENT_MAX_PAGES, SPORTYBET_TOURNAMENT_PAGE_SIZE
+    global BETWAY_PAGE_SIZE, BETWAY_MAX_SKIP
     FAST_MODE = True
-    MAX_MATCHES = env_int("MAX_MATCHES_FAST", 900)
-    MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS_FAST", 40)
+    MAX_MATCHES = env_int("MAX_MATCHES_FAST", 1100)
+    MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS_FAST", 60)
     TIMEOUT = env_int("TIMEOUT_FAST", 6)
     BATCH_SIZE = env_int("BATCH_SIZE_FAST", 120)
     PARALLEL_PAGES = env_int("PARALLEL_PAGES_FAST", 12)
-    SPORTYBET_PAGES = env_int("SPORTYBET_PAGES_FAST", 8)
-    BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE_FAST", 1000)
-    BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP_FAST", 3000)
+    SPORTYBET_PAGES = env_int("SPORTYBET_PAGES_FAST", 12)
+    SPORTYBET_TOURNAMENT_LOOKUP_PAGES = env_int("SPORTYBET_TOURNAMENT_LOOKUP_PAGES_FAST", 6)
+    SPORTYBET_TOURNAMENT_MAX_PAGES = env_int("SPORTYBET_TOURNAMENT_MAX_PAGES_FAST", 3)
+    SPORTYBET_TOURNAMENT_PAGE_SIZE = env_int("SPORTYBET_TOURNAMENT_PAGE_SIZE_FAST", 100)
+    BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE_FAST", 1200)
+    BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP_FAST", 6000)
 
 
 if FAST_MODE:
@@ -85,6 +94,37 @@ TOP_LEAGUE_KEYWORDS = [
     'championship', 'england championship',
 ]
 
+MAJOR_LEAGUE_TARGETS = {
+    'premier': ['premier league', 'english premier league', 'england premier league', 'epl'],
+    'laliga': ['la liga', 'laliga', 'primera division'],
+    'seriea': ['serie a'],
+    'bundesliga': ['bundesliga'],
+    'ligue1': ['ligue 1'],
+    'ucl': ['uefa champions league', 'champions league', 'ucl'],
+}
+
+MAJOR_LEAGUE_EXCLUSIONS = [
+    'premier league cup',
+    'premier league 2',
+    'premier league u21',
+    'premier league u 21',
+    'premier league u-21',
+    'premier league 2 division',
+]
+
+
+def league_name_matches(name: str, keywords: List[str], exclusions: Optional[List[str]] = None) -> bool:
+    if not name:
+        return False
+    lowered = name.lower()
+    if exclusions and any(ex in lowered for ex in exclusions):
+        return False
+    return any(keyword in lowered for keyword in keywords)
+
+
+def is_major_league_name(name: str) -> bool:
+    return any(league_name_matches(name, keywords, MAJOR_LEAGUE_EXCLUSIONS) for keywords in MAJOR_LEAGUE_TARGETS.values())
+
 # Common headers for API requests
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -98,10 +138,15 @@ HEADERS = {
 
 SPORTYBET_API = "https://www.sportybet.com/api/gh/factsCenter/pcUpcomingEvents"
 
-def fetch_sportybet_page(session, headers, page):
+def fetch_sportybet_page(session, headers, page, page_size=100, tournament_id: Optional[str] = None):
     """Fetch a single page from SportyBet."""
     try:
-        url = f"{SPORTYBET_API}?sportId=sr%3Asport%3A1&marketId=1&pageSize=100&pageNum={page}"
+        url = (
+            f"{SPORTYBET_API}?sportId=sr%3Asport%3A1&marketId=1"
+            f"&pageSize={page_size}&pageNum={page}"
+        )
+        if tournament_id:
+            url += f"&tournamentId={tournament_id}"
         resp = session.get(url, headers=headers, timeout=TIMEOUT)
         data = resp.json()
         if data.get('bizCode') != 10000:
@@ -110,48 +155,29 @@ def fetch_sportybet_page(session, headers, page):
     except:
         return []
 
-def scrape_sportybet() -> List[Dict]:
-    """Scrape SportyBet Ghana via API with parallel page fetching."""
-    print("Scraping SportyBet Ghana (TURBO)...")
-    matches = []
-    seen_ids = set()
-    session = requests.Session()
+def find_sportybet_tournament_ids(session, headers) -> Dict[str, Set[str]]:
+    """Discover SportyBet tournament ids for major leagues."""
+    found: Dict[str, Set[str]] = {key: set() for key in MAJOR_LEAGUE_TARGETS}
+    for page in range(1, SPORTYBET_TOURNAMENT_LOOKUP_PAGES + 1):
+        tournaments = fetch_sportybet_page(session, headers, page, page_size=SPORTYBET_TOURNAMENT_PAGE_SIZE)
+        if not tournaments:
+            break
+        for tournament in tournaments:
+            name = tournament.get('name', '') or ''
+            tournament_id = tournament.get('id') or tournament.get('tournamentId')
+            if not tournament_id:
+                continue
+            for league_key, keywords in MAJOR_LEAGUE_TARGETS.items():
+                if league_name_matches(name, keywords, MAJOR_LEAGUE_EXCLUSIONS):
+                    found[league_key].add(tournament_id)
+    return found
 
-    # Adapter for connection pooling
-    adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
-    session.mount('https://', adapter)
 
-    # Get cookies first
-    try:
-        page_headers = {
-            'User-Agent': HEADERS['User-Agent'],
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-        }
-        session.get('https://www.sportybet.com/gh/', headers=page_headers, timeout=TIMEOUT)
-        time.sleep(0.2 if FAST_MODE else 1)
-    except:
-        pass
-
-    headers = {
-        **HEADERS,
-        'Referer': 'https://www.sportybet.com/gh/',
-    }
-
-    # Fetch pages in parallel - trimmed for speed
-    all_tournaments = []
-    with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
-        futures = {executor.submit(fetch_sportybet_page, session, headers, p): p for p in range(1, SPORTYBET_PAGES + 1)}
-        for future in as_completed(futures):
-            tournaments = future.result()
-            all_tournaments.extend(tournaments)
-
-    # Parse all tournaments
-    for tournament in all_tournaments:
+def parse_sportybet_tournaments(tournaments, matches, seen_ids, major_ids):
+    """Parse SportyBet tournament payloads into match list."""
+    for tournament in tournaments:
+        tournament_name = tournament.get('name', '') or ''
         for event in tournament.get('events', []):
-            if len(matches) >= MAX_MATCHES:
-                break
-
             event_id = event.get('eventId')
             if not event_id or event_id in seen_ids:
                 continue
@@ -183,14 +209,14 @@ def scrape_sportybet() -> List[Dict]:
             sport = event.get('sport', {})
             category = sport.get('category', {})
             tourn = category.get('tournament', {})
-            league = tourn.get('name', tournament.get('name', ''))
+            league = tourn.get('name', tournament_name)
 
             start_time = event.get('estimateStartTime', 0)
             if start_time > 1000000000000:
                 start_time = start_time // 1000
 
             seen_ids.add(event_id)
-            matches.append({
+            match = {
                 'bookmaker': 'SportyBet Ghana',
                 'event_id': str(event_id),
                 'home_team': home,
@@ -200,10 +226,75 @@ def scrape_sportybet() -> List[Dict]:
                 'away_odds': away_odds,
                 'league': league,
                 'start_time': start_time,
-            })
+            }
+            matches.append(match)
+
+            if is_major_league_name(league) or is_major_league_name(tournament_name):
+                major_ids.add(str(event_id))
+
+def scrape_sportybet() -> List[Dict]:
+    """Scrape SportyBet Ghana via API with parallel page fetching."""
+    print("Scraping SportyBet Ghana (TURBO)...")
+    matches = []
+    major_ids = set()
+    seen_ids = set()
+    session = requests.Session()
+
+    # Adapter for connection pooling
+    adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
+    session.mount('https://', adapter)
+
+    # Get cookies first
+    try:
+        page_headers = {
+            'User-Agent': HEADERS['User-Agent'],
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        session.get('https://www.sportybet.com/gh/', headers=page_headers, timeout=TIMEOUT)
+        time.sleep(0.2 if FAST_MODE else 1)
+    except:
+        pass
+
+    headers = {
+        **HEADERS,
+        'Referer': 'https://www.sportybet.com/gh/',
+    }
+
+    # Fetch pages in parallel - trimmed for speed
+    all_tournaments = []
+    with ThreadPoolExecutor(max_workers=PARALLEL_PAGES) as executor:
+        futures = {
+            executor.submit(fetch_sportybet_page, session, headers, p, 100): p
+            for p in range(1, SPORTYBET_PAGES + 1)
+        }
+        for future in as_completed(futures):
+            tournaments = future.result()
+            all_tournaments.extend(tournaments)
+
+    # Parse all tournaments
+    parse_sportybet_tournaments(all_tournaments, matches, seen_ids, major_ids)
+
+    # Targeted league fetch (Premier League, La Liga, etc.)
+    tournament_ids = find_sportybet_tournament_ids(session, headers)
+    for league_key, ids in tournament_ids.items():
+        for tournament_id in ids:
+            for page in range(1, SPORTYBET_TOURNAMENT_MAX_PAGES + 1):
+                tournaments = fetch_sportybet_page(
+                    session,
+                    headers,
+                    page,
+                    page_size=SPORTYBET_TOURNAMENT_PAGE_SIZE,
+                    tournament_id=tournament_id,
+                )
+                if not tournaments:
+                    break
+                parse_sportybet_tournaments(tournaments, matches, seen_ids, major_ids)
 
     print(f"  Total: {len(matches)} matches from SportyBet")
-    return matches[:MAX_MATCHES]
+    major_first = [m for m in matches if m.get('event_id') in major_ids]
+    other = [m for m in matches if m.get('event_id') not in major_ids]
+    return (major_first + other)[:MAX_MATCHES]
 
 
 # ============================================================================
@@ -825,10 +916,27 @@ def scrape_betfox() -> List[Dict]:
 # Event Matching
 # ============================================================================
 
+TRANSLITERATION = str.maketrans({
+    "\u00f8": "o",
+    "\u00d8": "o",
+    "\u00e6": "ae",
+    "\u00c6": "ae",
+    "\u00e5": "a",
+    "\u00c5": "a",
+    "\u00df": "ss",
+    "\u0153": "oe",
+    "\u0152": "oe",
+})
+
 def normalize_name(name: str) -> str:
     """Normalize team name for matching."""
+    if not name:
+        return ''
+    name = name.translate(TRANSLITERATION)
+    name = unicodedata.normalize('NFKD', name)
+    name = ''.join(ch for ch in name if not unicodedata.combining(ch))
     name = name.lower().strip()
-    name = re.sub(r'[^\w\s]', '', name)
+    name = re.sub(r'[^\w\s]', ' ', name)
     name = re.sub(r'\s+', ' ', name)
 
     # Phrase-level replacements (apply before token-level handling)
@@ -836,13 +944,26 @@ def normalize_name(name: str) -> str:
         'wolverhampton wanderers': 'wolverhampton',
         'wolverhampton wonderers': 'wolverhampton',  # common typo
         'wolverhampton wolverhampton': 'wolverhampton',
+        'real sociedad san sebastian': 'real sociedad',
+        'olympique marseille': 'marseille',
+        'olympique lyonnais': 'lyon',
+        'athletic club': 'bilbao',
+        'athletic bilbao': 'bilbao',
+        'celta de vigo': 'celta vigo',
+        'paris saint germain': 'psg',
+        'stade rennais': 'rennes',
+        'borussia monchengladbach': 'monchengladbach',
     }
     for phrase, repl in phrase_replacements.items():
         if phrase in name:
             name = name.replace(phrase, repl)
 
-    removals = ['fc', 'cf', 'sc', 'ac', 'afc', 'ssc', 'bc', 'fk', 'sk', 'nk',
-                'united', 'utd', 'city', 'town', 'athletic', 'sporting', 'hotspur', 'club']
+    removals = [
+        'fc', 'cf', 'sc', 'ac', 'afc', 'ssc', 'bc', 'fk', 'sk', 'nk', 'cd', 'ud', 'sd',
+        'rc', 'rcd', 'sv', 'vfb', 'vfl', 'rb',
+        'united', 'utd', 'city', 'town', 'athletic', 'sporting', 'hotspur', 'club',
+        'de', 'del', 'la', 'le', 'calcio', 'stade', 'deportivo', 'balompie', 'seville', 'piraeus'
+    ]
     replacements = {
         'nott': 'nottingham',
         'nottm': 'nottingham',
@@ -868,10 +989,18 @@ def normalize_name(name: str) -> str:
     words = []
     for w in name.split():
         w = replacements.get(w, w)
+        if w.isdigit() or len(w) <= 1:
+            continue
         if w in removals:
             continue
         words.append(w)
-    return ' '.join(words) if words else name
+    if not words:
+        return name
+    deduped = []
+    for w in words:
+        if not deduped or deduped[-1] != w:
+            deduped.append(w)
+    return ' '.join(deduped)
 
 
 def token_similarity(a: str, b: str) -> float:
@@ -883,48 +1012,53 @@ def token_similarity(a: str, b: str) -> float:
     return len(ta & tb) / len(ta | tb)
 
 # Known teams for major leagues (for validation to prevent cross-contamination)
+RAW_LEAGUE_TEAMS = {
+    'Premier League': [
+        'AFC Bournemouth', 'Arsenal', 'Aston Villa', 'Brentford', 'Brighton & Hove Albion',
+        'Burnley', 'Chelsea', 'Crystal Palace', 'Everton', 'Fulham', 'Leeds United',
+        'Liverpool', 'Manchester City', 'Manchester United', 'Newcastle United',
+        'Nottingham Forest', 'Sunderland', 'Tottenham Hotspur', 'West Ham United',
+        'Wolverhampton Wanderers'
+    ],
+    'La Liga': [
+        'Alaves', 'Athletic Club', 'Atletico Madrid', 'Barcelona', 'Celta Vigo',
+        'Elche', 'Espanyol', 'Getafe', 'Girona', 'Levante',
+        'Mallorca', 'Osasuna', 'Rayo Vallecano', 'Real Betis', 'Real Madrid',
+        'Real Oviedo', 'Real Sociedad', 'Sevilla', 'Valencia', 'Villarreal'
+    ],
+    'Serie A': [
+        'AC Milan', 'AS Roma', 'Atalanta', 'Bologna', 'Cagliari',
+        'Como', 'Cremonese', 'Fiorentina', 'Genoa', 'Hellas Verona',
+        'Internazionale', 'Juventus', 'Lazio', 'Lecce', 'Napoli',
+        'Parma', 'Pisa', 'Sassuolo', 'Torino', 'Udinese'
+    ],
+    'Bundesliga': [
+        '1. FC Heidenheim 1846', '1. FC Union Berlin', 'Bayer Leverkusen', 'Bayern Munich',
+        'Borussia Dortmund', 'Borussia Monchengladbach', 'Eintracht Frankfurt', 'FC Augsburg',
+        'FC Cologne', 'Hamburg SV', 'Mainz', 'RB Leipzig', 'SC Freiburg', 'St. Pauli',
+        'TSG Hoffenheim', 'VfB Stuttgart', 'VfL Wolfsburg', 'Werder Bremen'
+    ],
+    'Ligue 1': [
+        'AJ Auxerre', 'AS Monaco', 'Angers', 'Brest', 'Le Havre AC',
+        'Lens', 'Lille', 'Lorient', 'Lyon', 'Marseille',
+        'Metz', 'Nantes', 'Nice', 'Paris FC', 'Paris Saint-Germain',
+        'Stade Rennais', 'Strasbourg', 'Toulouse'
+    ],
+    'Championship': [
+        'Barnsley', 'Birmingham', 'Blackburn', 'Bristol City', 'Burnley',
+        'Cardiff', 'Charlton', 'Charlton Athletic', 'Coventry', 'Derby', 'Derby County',
+        'Hull', 'Hull City', 'Ipswich', 'Ipswich Town', 'Leeds', 'Leeds United',
+        'Luton', 'Luton Town', 'Middlesbrough', 'Millwall', 'Norwich', 'Norwich City',
+        'Plymouth', 'Portsmouth', 'Preston', 'QPR', 'Queens Park Rangers', 'Raith Rovers',
+        'Raith Rovers FC', 'Sheffield United', 'Sheffield Wednesday', 'Southampton',
+        'Southampton FC', 'Stoke', 'Stoke City', 'Sunderland', 'Swansea', 'Watford',
+        'West Brom', 'Wrexham', 'Wrexham AFC'
+    ],
+}
+
 LEAGUE_TEAMS = {
-    'Premier League': {
-        'arsenal', 'aston villa', 'bournemouth', 'brentford', 'brighton',
-        'chelsea', 'crystal palace', 'everton', 'fulham', 'ipswich', 'ipswich town',
-        'leicester', 'leicester city', 'liverpool', 'manchester city', 'manchester united',
-        'newcastle', 'newcastle united', 'nottingham forest', 'southampton',
-        'tottenham', 'west ham', 'wolves', 'wolverhampton'
-    },
-    'La Liga': {
-        'athletic bilbao', 'athletic club', 'atletico madrid', 'barcelona', 'celta vigo',
-        'espanyol', 'getafe', 'girona', 'las palmas', 'leganes',
-        'mallorca', 'osasuna', 'rayo vallecano', 'real betis', 'real madrid',
-        'real sociedad', 'real valladolid', 'sevilla', 'valencia', 'villarreal'
-    },
-    'Serie A': {
-        'atalanta', 'bologna', 'cagliari', 'como', 'empoli',
-        'fiorentina', 'genoa', 'inter', 'inter milan', 'internazionale',
-        'juventus', 'lazio', 'lecce', 'milan', 'ac milan',
-        'monza', 'napoli', 'parma', 'roma', 'torino',
-        'udinese', 'venezia', 'verona', 'hellas verona'
-    },
-    'Bundesliga': {
-        'augsburg', 'bayer leverkusen', 'leverkusen', 'bayern', 'bayern munich',
-        'bochum', 'borussia dortmund', 'dortmund', 'eintracht frankfurt', 'frankfurt',
-        'freiburg', 'heidenheim', 'hoffenheim', 'holstein kiel',
-        'mainz', 'rb leipzig', 'leipzig', 'st pauli', 'union berlin',
-        'werder bremen', 'bremen', 'wolfsburg'
-    },
-    'Ligue 1': {
-        'angers', 'auxerre', 'brest', 'le havre', 'lens',
-        'lille', 'lyon', 'marseille', 'monaco', 'montpellier',
-        'nantes', 'nice', 'psg', 'paris', 'paris saint germain',
-        'reims', 'rennes', 'saint etienne', 'strasbourg', 'toulouse'
-    },
-    'Championship': {
-        'barnsley', 'birmingham', 'blackburn', 'bristol city', 'burnley',
-        'cardiff', 'coventry', 'derby', 'derby county', 'hull', 'hull city',
-        'leeds', 'leeds united', 'luton', 'luton town', 'middlesbrough',
-        'millwall', 'norwich', 'norwich city', 'plymouth', 'portsmouth',
-        'preston', 'qpr', 'queens park rangers', 'sheffield united', 'sheffield wednesday',
-        'stoke', 'stoke city', 'sunderland', 'swansea', 'watford', 'west brom'
-    }
+    league: {normalize_name(team) for team in teams if normalize_name(team)}
+    for league, teams in RAW_LEAGUE_TEAMS.items()
 }
 
 def is_team_in_league(team_name: str, league: str) -> bool:
@@ -960,6 +1094,59 @@ def infer_league_from_teams(home_team: str, away_team: str) -> str:
 
     return ''
 
+def build_match_key(match: Dict) -> str:
+    """Build a stable match key using normalized teams + start time bucket."""
+    home = normalize_name(match.get('home_team', ''))
+    away = normalize_name(match.get('away_team', ''))
+    if not home or not away:
+        return ''
+    start_time = match.get('start_time') or 0
+    try:
+        start_bucket = int(int(start_time) // 3600)
+    except Exception:
+        start_bucket = 0
+    teams = sorted([home, away])
+    return f"{teams[0]}|{teams[1]}|{start_bucket}"
+
+
+def add_single_bookie_major_league_matches(
+    all_matches: Dict[str, List[Dict]],
+    matched_events: List[List[Dict]]
+) -> List[List[Dict]]:
+    """
+    Ensure major-league fixtures appear at least once even if only one bookmaker has odds.
+    """
+    matched_keys = set()
+    for group in matched_events:
+        if not group:
+            continue
+        key = build_match_key(group[0])
+        if key:
+            matched_keys.add(key)
+
+    added = 0
+    for bookie, matches in all_matches.items():
+        for match in matches:
+            if not match.get('home_team') or not match.get('away_team'):
+                continue
+            if not match.get('home_odds') or not match.get('away_odds'):
+                continue
+            league = normalize_league(match.get('league', ''))
+            if not league:
+                league = infer_league_from_teams(match.get('home_team', ''), match.get('away_team', ''))
+            if league not in LEAGUE_TEAMS:
+                continue
+            key = build_match_key(match)
+            if not key or key in matched_keys:
+                continue
+            matched_keys.add(key)
+            matched_events.append([match])
+            added += 1
+
+    if added:
+        print(f"  [COVERAGE] Added {added} single-bookmaker major-league matches")
+    return matched_events
+
 def pick_league_for_group(event_group: List[Dict]) -> str:
     """Choose the best league label for a matched event group."""
     leagues_in_group = [
@@ -980,6 +1167,10 @@ def pick_league_for_group(event_group: List[Dict]) -> str:
         home = event_group[0].get('home_team', '')
         away = event_group[0].get('away_team', '')
         if not (is_team_in_league(home, league) and is_team_in_league(away, league)):
+            inferred = infer_league_from_teams(home, away)
+            if inferred and inferred != league:
+                league = inferred
+                return league
             raw_leagues = [m.get('league') for m in event_group if m.get('league')]
             fallback = raw_leagues[0] if raw_leagues else f'{league} (Other)'
             # If fallback is still ambiguous Premier League, force non-EPL label
@@ -1462,6 +1653,7 @@ def main():
         return
 
     matched = match_events(all_matches)
+    matched = add_single_bookie_major_league_matches(all_matches, matched)
 
     if not matched:
         print("No matched events - exiting")

@@ -14,8 +14,8 @@ API_URL = os.getenv(
     "BETFOX_API_URL",
     "https://www.betfox.com.gh/api/offer/v4/fixtures/home/upcoming",
 )
-DEFAULT_MAX_MATCHES = 800
-DEFAULT_FIRST = 1000
+DEFAULT_MAX_MATCHES = 1200
+DEFAULT_FIRST = int(os.getenv("BETFOX_FIRST", "1500"))
 TIMEOUT_SECONDS = 20
 
 
