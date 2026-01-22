@@ -76,7 +76,9 @@ type LeagueKeyRule = {
 };
 
 const LEAGUE_KEY_RULES: LeagueKeyRule[] = [
-  { key: 'premier', keywords: ['premier league', 'english premier league', 'epl'] },
+  { key: 'premier', keywords: ['premier league', 'english premier league', 'england premier league', 'epl'] },
+  { key: 'scotland', keywords: ['scottish premiership', 'scotland premiership', 'scotland premier league', 'spfl premiership'] },
+  { key: 'egypt', keywords: ['egypt premier league', 'egyptian premier league'] },
   { key: 'laliga', keywords: ['la liga', 'laliga', 'primera division'] },
   { key: 'seriea', keywords: ['serie a'] },
   { key: 'bundesliga', keywords: ['bundesliga'] },
@@ -87,6 +89,15 @@ const LEAGUE_KEY_RULES: LeagueKeyRule[] = [
   { key: 'conference', keywords: ['uefa europa conference league', 'uefa conference league', 'europa conference league', 'uecl'] },
 ];
 
+const PREMIER_LEAGUE_EXCLUSIONS = [
+  'premier league cup',
+  'premier league other',
+  'premier league u21',
+  'premier league u 21',
+  'premier league u-21',
+  'premier league 2',
+];
+
 function normalizeLeagueName(name: string): string {
   return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
@@ -94,6 +105,9 @@ function normalizeLeagueName(name: string): string {
 function resolveLeagueKey(name: string): string | null {
   const normalized = normalizeLeagueName(name);
   if (!normalized) return null;
+  if (PREMIER_LEAGUE_EXCLUSIONS.some(term => normalized.includes(term))) {
+    return null;
+  }
   let bestKey: string | null = null;
   let bestLen = 0;
   for (const rule of LEAGUE_KEY_RULES) {
