@@ -78,7 +78,8 @@ with st.sidebar:
         "REMOTE_ODDS_URL",
         "https://oddswize-api.kwamenahb.workers.dev/api/odds",
     )
-    use_remote = st.checkbox("Use remote odds snapshot", value=False)
+    default_use_remote = os.getenv("DEFAULT_USE_REMOTE", "1").strip().lower() in ("1", "true", "yes", "on")
+    use_remote = st.checkbox("Use remote odds snapshot", value=default_use_remote)
     remote_url = st.text_input("Remote odds_data.json URL", value=default_remote_url)
     st.caption("Tip: use the Worker /api/odds endpoint for the freshest snapshot.")
     remote_timeout = st.number_input("Remote timeout (seconds)", min_value=5, value=30, step=5)
@@ -596,13 +597,13 @@ if strategy.startswith("Arbitrage"):
                     if min_age > max_age_value:
                         new_age = int(math.ceil(min_age))
                         st.session_state["override_max_snapshot_age_minutes"] = new_age
-                        adjustments.append(f"max snapshot age → {new_age} min")
+                        adjustments.append(f"max snapshot age -> {new_age} min")
                 if min_kickoff_value > 0:
                     max_kickoff = float(arbs_adj["kickoff_minutes"].max())
                     if max_kickoff < min_kickoff_value:
                         new_kickoff = max(0, int(math.floor(max_kickoff)))
                         st.session_state["override_min_minutes_to_kickoff"] = new_kickoff
-                        adjustments.append(f"min kickoff → {new_kickoff} min")
+                        adjustments.append(f"min kickoff -> {new_kickoff} min")
                 if adjustments:
                     st.session_state["auto_relax_done"] = True
                     st.info("Auto-relaxed filters: " + ", ".join(adjustments))
@@ -664,6 +665,71 @@ if strategy.startswith("Arbitrage"):
 
         csv_data = table.to_csv(index=False).encode("utf-8")
         st.download_button("Download CSV", csv_data, file_name="arbitrage_opportunities_adjusted.csv")
+
+        st.subheader("Stake Allocator (Arb)")
+        allocator_cols = [
+            "run_time",
+            "league",
+            "home_team",
+            "away_team",
+            "match_start",
+            "home_odds_adj",
+            "draw_odds_adj",
+            "away_odds_adj",
+            "best_home_bookie",
+            "best_draw_bookie",
+            "best_away_bookie",
+            "arb_roi_adj",
+        ]
+        allocator_table = arbs_filtered[allocator_cols].copy()
+        allocator_table["pick_label"] = (
+            allocator_table["home_team"].fillna("")
+            + " vs "
+            + allocator_table["away_team"].fillna("")
+            + " - "
+            + allocator_table["league"].fillna("")
+        )
+        selected_idx = None
+        try:
+            selection = st.dataframe(
+                allocator_table[allocator_cols].head(300),
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+            )
+            if selection and selection.selection and selection.selection.rows:
+                selected_idx = selection.selection.rows[0]
+        except TypeError:
+            st.dataframe(allocator_table[allocator_cols].head(300), use_container_width=True)
+
+        if selected_idx is None:
+            pick_label = st.selectbox("Select a pick", allocator_table["pick_label"].head(300).tolist())
+            selected_row = allocator_table[allocator_table["pick_label"] == pick_label].iloc[0]
+        else:
+            selected_row = allocator_table.iloc[selected_idx]
+
+        stake_total = st.number_input(
+            "Total stake to allocate", min_value=1.0, value=100.0, step=10.0, key="stake_allocator_total"
+        )
+        odds_home = float(selected_row["home_odds_adj"])
+        odds_draw = float(selected_row["draw_odds_adj"])
+        odds_away = float(selected_row["away_odds_adj"])
+        inv_sum = (1 / odds_home) + (1 / odds_draw) + (1 / odds_away)
+        stake_home = stake_total / (odds_home * inv_sum)
+        stake_draw = stake_total / (odds_draw * inv_sum)
+        stake_away = stake_total / (odds_away * inv_sum)
+        payout = stake_total / inv_sum
+        profit = payout - stake_total
+
+        alloc_col1, alloc_col2, alloc_col3, alloc_col4 = st.columns(4)
+        alloc_col1.metric("Home stake", f"{stake_home:,.2f}")
+        alloc_col2.metric("Draw stake", f"{stake_draw:,.2f}")
+        alloc_col3.metric("Away stake", f"{stake_away:,.2f}")
+        alloc_col4.metric("Guaranteed profit", f"{profit:,.2f}")
+        st.caption(
+            f"Payout per outcome: {payout:,.2f} - ROI: {(profit / stake_total) * 100:.2f}%"
+        )
 
         st.subheader("Daily Compounding Simulator (Arb)")
         st.caption(
