@@ -66,29 +66,7 @@ jobs:
             # Run scraper with virtual display
             python scrape_odds_github.py
 
-            python - <<'PY'
-            import json
-            from datetime import datetime, timezone
-            from pathlib import Path
-
-            path = Path("odds_data.json")
-            if not path.exists():
-                raise SystemExit("odds_data.json missing after scrape")
-            payload = json.loads(path.read_text(encoding="utf-8"))
-            last_updated = payload.get("last_updated")
-            if not last_updated:
-                raise SystemExit("odds_data.json missing last_updated")
-            try:
-                ts = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
-            except Exception as exc:
-                raise SystemExit(f"Invalid last_updated format: {last_updated}") from exc
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
-            age_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0
-            print(f"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)")
-            if age_min > 20:
-                raise SystemExit(f"Snapshot too old: {age_min:.1f} min")
-            PY
+            python -c $'import json\nfrom datetime import datetime, timezone\nfrom pathlib import Path\npath = Path(\"odds_data.json\")\nif not path.exists():\n    raise SystemExit(\"odds_data.json missing after scrape\")\npayload = json.loads(path.read_text(encoding=\"utf-8\"))\nlast_updated = payload.get(\"last_updated\")\nif not last_updated:\n    raise SystemExit(\"odds_data.json missing last_updated\")\ntry:\n    ts = datetime.fromisoformat(last_updated.replace(\"Z\", \"+00:00\"))\nexcept Exception as exc:\n    raise SystemExit(f\"Invalid last_updated format: {last_updated}\") from exc\nif ts.tzinfo is None:\n    ts = ts.replace(tzinfo=timezone.utc)\nage_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0\nprint(f\"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)\")\nif age_min > 20:\n    raise SystemExit(f\"Snapshot too old: {age_min:.1f} min\")'
 
             git -C /tmp/odds-data rm -rf . || true
             cp odds_data.json /tmp/odds-data/odds_data.json
