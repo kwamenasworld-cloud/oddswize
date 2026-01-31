@@ -87,16 +87,21 @@ with st.sidebar:
 
     st.subheader("Live Updates")
     refresh_seconds = st.number_input("Auto refresh (seconds)", min_value=0, value=0, step=5)
+    auto_refresh_remote = st.checkbox("Auto refresh when using remote data", value=True)
     refresh_clicked = st.button("Refresh now")
-    if refresh_seconds > 0:
+    effective_refresh = refresh_seconds
+    if effective_refresh <= 0 and auto_refresh_remote and (use_remote or use_remote_history):
+        effective_refresh = 60
+    if effective_refresh > 0:
         if hasattr(st, "autorefresh"):
-            st.autorefresh(interval=int(refresh_seconds * 1000), key="auto_refresh")
+            st.autorefresh(interval=int(effective_refresh * 1000), key="auto_refresh")
         else:
             st.info("Upgrade Streamlit for auto-refresh support; use Refresh now.")
-    force_refresh = refresh_clicked or refresh_seconds > 0
+    force_refresh = refresh_clicked or effective_refresh > 0
     if force_refresh:
         st.cache_data.clear()
         st.session_state["last_refresh_ts"] = datetime.utcnow().isoformat()
+        st.session_state["effective_refresh_seconds"] = int(effective_refresh) if effective_refresh else None
         if refresh_clicked:
             rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
             if rerun:
@@ -139,6 +144,7 @@ with st.sidebar:
     max_snapshot_age_minutes = st.number_input(
         "Max snapshot age (minutes)", min_value=0, value=15, step=5, key="max_snapshot_age_minutes"
     )
+    auto_relax_filters = st.checkbox("Auto relax filters if empty", value=True)
     min_roi_adj = st.slider(
         "Minimum arb ROI (after slippage)",
         min_value=0.0,
@@ -482,6 +488,9 @@ if snapshot_age is not None:
 last_refresh_ts = st.session_state.get("last_refresh_ts")
 if last_refresh_ts:
     st.caption(f"Last refresh: {last_refresh_ts} UTC")
+effective_refresh_note = st.session_state.get("effective_refresh_seconds")
+if effective_refresh_note:
+    st.caption(f"Auto refresh: every {effective_refresh_note}s")
 
 available_leagues = sorted([l for l in rows["league"].dropna().unique() if str(l).strip()])
 available_bookies = sorted([b for b in rows["bookmaker"].dropna().unique() if str(b).strip()])
@@ -568,11 +577,34 @@ if strategy.startswith("Arbitrage"):
         st.warning("No arbitrage opportunities found for this slice.")
     else:
         if arbs_filtered.empty:
+            if auto_relax_filters and not st.session_state.get("auto_relax_done", False):
+                adjustments = []
+                max_age_value = float(max_snapshot_age_minutes)
+                min_kickoff_value = float(min_minutes_to_kickoff)
+                if max_age_value > 0:
+                    min_age = float(arbs_adj["snapshot_age_min"].min())
+                    if min_age > max_age_value:
+                        new_age = int(math.ceil(min_age))
+                        st.session_state["max_snapshot_age_minutes"] = new_age
+                        adjustments.append(f"max snapshot age → {new_age} min")
+                if min_kickoff_value > 0:
+                    max_kickoff = float(arbs_adj["kickoff_minutes"].max())
+                    if max_kickoff < min_kickoff_value:
+                        new_kickoff = max(0, int(math.floor(max_kickoff)))
+                        st.session_state["min_minutes_to_kickoff"] = new_kickoff
+                        adjustments.append(f"min kickoff → {new_kickoff} min")
+                if adjustments:
+                    st.session_state["auto_relax_done"] = True
+                    st.info("Auto-relaxed filters: " + ", ".join(adjustments))
+                    rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+                    if rerun:
+                        rerun()
             st.warning(
                 "No arbitrage opportunities remain after slippage + age/lag filters "
                 f"(max snapshot age {max_snapshot_age_minutes} min, min kickoff {min_minutes_to_kickoff} min)."
             )
             st.stop()
+        st.session_state["auto_relax_done"] = False
         arbs_filtered["run_date"] = pd.to_datetime(arbs_filtered["run_time"], errors="coerce").dt.date
         daily = (
             arbs_filtered.groupby("run_date", dropna=True)
