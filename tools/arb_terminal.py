@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Optional
@@ -182,7 +183,14 @@ def _filter_rows(rows, run_start_value, run_end_value, match_start_value, match_
 
 @st.cache_data(show_spinner=False)
 def _load_remote_rows(url: str, timeout_seconds: int):
-    with urllib.request.urlopen(url, timeout=timeout_seconds) as handle:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "OddsWizeTerminal/1.0 (+https://oddswize.com)",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout_seconds) as handle:
         payload = json.load(handle)
     rows = rows_from_odds_payload(payload)
     return rows, payload
@@ -194,14 +202,48 @@ def _load_remote_history_rows(base_url: str, params: dict, timeout_seconds: int,
     endpoint = f"{base}/api/history/odds"
     query = urllib.parse.urlencode(params)
     url = f"{endpoint}?{query}" if query else endpoint
-    headers = {}
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "OddsWizeTerminal/1.0 (+https://oddswize.com)",
+    }
     if api_key:
         headers["X-API-Key"] = api_key
     request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request, timeout=timeout_seconds) as handle:
-        payload = json.load(handle)
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as handle:
+            payload = json.load(handle)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"{exc.code} {exc.reason} for {url}") from exc
     rows = payload.get("data") or []
     return pd.DataFrame(rows), payload
+
+
+def _check_history_api(base_url: str, timeout_seconds: int, api_key: Optional[str]) -> dict:
+    base = (base_url or "").rstrip("/")
+    endpoints = {
+        "runs": f"{base}/api/history/runs?limit=1",
+        "odds": f"{base}/api/history/odds?limit=1",
+    }
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "OddsWizeTerminal/1.0 (+https://oddswize.com)",
+    }
+    if api_key:
+        headers["X-API-Key"] = api_key
+    results = {}
+    for name, url in endpoints.items():
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_seconds) as handle:
+                payload = json.load(handle)
+            results[name] = {
+                "ok": True,
+                "status": 200,
+                "returned": len(payload.get("data") or []),
+            }
+        except Exception as exc:
+            results[name] = {"ok": False, "error": str(exc)}
+    return results
 
 
 @st.cache_data(show_spinner=False)
@@ -307,6 +349,30 @@ if payload_snapshot and persist_remote and isinstance(payload_snapshot, dict) an
             append_snapshot_to_history_jsonl(payload_snapshot, jsonl_path)
         st.session_state[key] = True
         st.sidebar.success("Snapshot appended to local history")
+
+with st.sidebar:
+    st.subheader("History API Health")
+    st.caption("Checks /api/history/runs and /api/history/odds on the remote history base URL.")
+    if "history_health_status" not in st.session_state:
+        st.session_state["history_health_status"] = None
+    history_key = remote_history_api_key.strip() or None
+    can_check = bool(remote_history_url.strip())
+    if st.button("Run history health check", disabled=not can_check):
+        with st.spinner("Checking history API..."):
+            st.session_state["history_health_status"] = _check_history_api(
+                remote_history_url,
+                int(remote_history_timeout),
+                history_key,
+            )
+    if not can_check:
+        st.warning("Set a remote history base URL to run the health check.")
+    results = st.session_state.get("history_health_status")
+    if results:
+        for name, result in results.items():
+            if result.get("ok"):
+                st.success(f"{name}: ok (returned {result.get('returned', 0)})")
+            else:
+                st.error(f"{name}: {result.get('error', 'failed')}")
 
 if rows.empty:
     st.warning("No odds history found for the selected range.")
