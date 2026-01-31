@@ -45,8 +45,36 @@ jobs:
           # Start Xvfb (virtual display) in background
           Xvfb :99 -screen 0 1920x1080x24 &
           sleep 2
+          # Remove any stale snapshot so a failed scrape cannot be re-published
+          rm -f odds_data.json
           # Run scraper with virtual display
           python scrape_odds_github.py
+
+      - name: Validate snapshot freshness
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          path = Path("odds_data.json")
+          if not path.exists():
+              raise SystemExit("odds_data.json missing after scrape")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          last_updated = payload.get("last_updated")
+          if not last_updated:
+              raise SystemExit("odds_data.json missing last_updated")
+          try:
+              ts = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
+          except Exception as exc:
+              raise SystemExit(f"Invalid last_updated format: {last_updated}") from exc
+          if ts.tzinfo is None:
+              ts = ts.replace(tzinfo=timezone.utc)
+          age_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0
+          print(f"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)")
+          if age_min > 20:
+              raise SystemExit(f"Snapshot too old: {age_min:.1f} min")
+          PY
 
       - name: Upload results as artifact
         uses: actions/upload-artifact@v4
@@ -57,7 +85,7 @@ jobs:
           retention-days: 1
 
       - name: Publish odds data to repo (data branch)
-        if: always()
+        if: success()
         run: |
           if [ ! -f odds_data.json ]; then
             echo "No odds_data.json to publish"
