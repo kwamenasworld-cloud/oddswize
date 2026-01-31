@@ -27,7 +27,7 @@ const AVAILABLE_LEAGUES = [
 // Available bookmakers
 const AVAILABLE_BOOKMAKERS = Object.keys(BOOKMAKER_AFFILIATES);
 
-export default function SettingsPage({ onClose, onLogout }) {
+export default function SettingsPage({ onClose, onLogout, onPreferencesSaved }) {
   const [prefs, setPrefs] = useState(getPreferences());
   const [user, setUser] = useState(getUser());
   const [activeTab, setActiveTab] = useState('favorites');
@@ -37,6 +37,7 @@ export default function SettingsPage({ onClose, onLogout }) {
   const handleSave = () => {
     savePreferences(prefs);
     setSaved(true);
+    onPreferencesSaved?.();
     setTimeout(() => setSaved(false), 2000);
   };
 
@@ -176,8 +177,9 @@ export default function SettingsPage({ onClose, onLogout }) {
                             favoriteTeams: prefs.favoriteTeams.filter((t) => t !== team),
                           })
                         }
+                        aria-label={`Remove ${team} from favorites`}
                       >
-                        ×
+                        x
                       </button>
                     </span>
                   ))}

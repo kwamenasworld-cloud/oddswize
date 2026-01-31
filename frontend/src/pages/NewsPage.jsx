@@ -3,12 +3,21 @@ import { BookmakerLogo } from '../components/BookmakerLogo';
 import { getSortedArticles, formatArticleDate } from '../data/articles';
 import { trackAffiliateClick } from '../services/analytics';
 import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
+import { usePageMeta } from '../services/seo';
 
 function NewsPage() {
   const articles = getSortedArticles();
   const recommendations = getRecommendedBookmakers({
     category: articles[0]?.category,
     count: 2,
+  });
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://oddswize.com';
+
+  usePageMeta({
+    title: 'Betting News & Analysis | OddsWize',
+    description: 'Expert insights, odds analysis, and betting guides for Ghanaian bettors.',
+    url: `${siteUrl}/news`,
+    image: `${siteUrl}/og-image.png`,
   });
   const topRecommendation = recommendations[0] || null;
   const listJsonLd = {

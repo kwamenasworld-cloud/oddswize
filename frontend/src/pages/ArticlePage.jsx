@@ -3,6 +3,7 @@ import { BookmakerLogo } from '../components/BookmakerLogo';
 import { getArticleBySlug, getSortedArticles, formatArticleDate } from '../data/articles';
 import { trackAffiliateClick } from '../services/analytics';
 import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
+import { usePageMeta } from '../services/seo';
 
 const splitArticleContent = (html) => {
   if (!html) return { introHtml: '', restHtml: '' };
@@ -20,6 +21,7 @@ const splitArticleContent = (html) => {
 function ArticlePage() {
   const { slug } = useParams();
   const article = getArticleBySlug(slug);
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://oddswize.com';
 
   if (!article) {
     return <Navigate to="/news" replace />;
@@ -35,6 +37,16 @@ function ArticlePage() {
   });
   const topRecommendation = recommendations[0] || null;
   const { introHtml, restHtml } = splitArticleContent(article.content);
+  const articleUrl = `${siteUrl}/news/${article.slug}`;
+  const articleImage = article.image ? new URL(article.image, siteUrl).toString() : `${siteUrl}/og-image.png`;
+
+  usePageMeta({
+    title: `${article.title} | OddsWize`,
+    description: article.excerpt,
+    url: articleUrl,
+    image: articleImage,
+    type: 'article',
+  });
 
   const articleJsonLd = {
     '@context': 'https://schema.org',

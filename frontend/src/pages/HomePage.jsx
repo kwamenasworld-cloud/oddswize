@@ -10,6 +10,7 @@ import { getLatestArticles, formatArticleDate } from '../data/articles';
 import { trackAffiliateClick, trackEvent } from '../services/analytics';
 import { getPreferences, getUser, logIn, updateNotificationSetting } from '../services/userPreferences';
 import { clearOddsCacheMemory, getCachedOdds, getMatchesByLeague } from '../services/api';
+import { usePageMeta } from '../services/seo';
 
 const SITE_URL = 'https://oddswize.com';
 const VALUE_MARKET_FIELDS = ['home_odds', 'draw_odds', 'away_odds'];
@@ -94,6 +95,7 @@ const SEO_LINKS = [
   { to: '/odds', label: 'Compare Odds' },
   { to: '/bookmakers', label: 'Bookmakers' },
   { to: '/news', label: 'News & Guides' },
+  { to: '/guides/odds-calculator/', label: 'Odds Calculator', external: true },
   { to: '/odds?league=premier', label: 'Premier League Odds' },
   { to: '/odds?league=seriea', label: 'Serie A Odds' },
   { to: '/odds?league=laliga', label: 'La Liga Odds' },
@@ -122,6 +124,13 @@ function HomePage() {
 
   const shareMessage = 'Compare odds across Ghana and Nigeria bookmakers with OddsWize. Find better value before you bet.';
   const shareUrl = `${SITE_URL}/?ref=share`;
+
+  usePageMeta({
+    title: 'OddsWize - Compare Betting Odds in Ghana',
+    description: 'Compare odds from Betway, SportyBet, 1xBet, 22Bet and more. Find the best prices and value picks before you bet.',
+    url: SITE_URL,
+    image: `${SITE_URL}/og-image.png`,
+  });
 
   const handleShareSite = async () => {
     const payload = {
@@ -405,6 +414,14 @@ ${shareLink}`;
         updateNotificationSetting('push', true);
         setDigestPrefs(getPreferences());
         setPushStatus('enabled');
+        try {
+          new Notification('OddsWize alerts enabled', {
+            body: 'We will show value alerts in this browser while the page is open.',
+            icon: '/logo.png',
+          });
+        } catch (error) {
+          // Ignore notification display errors
+        }
         trackEvent('push_opt_in', {
           result: 'granted',
           placement: 'home_digest',
@@ -792,11 +809,11 @@ ${shareLink}`,
             </div>
           </div>
           <div className="digest-card digest-signup">
-            <h3>Get the daily digest</h3>
-            <p className="digest-note">Free updates stored on this device. No spam, unsubscribe anytime.</p>
+            <h3>Daily digest reminders</h3>
+            <p className="digest-note">Saved on this device only. No emails or SMS are sent.</p>
             {digestEnabled ? (
               <div className="digest-success">
-                Digest enabled for {digestUser?.email || digestUser?.phone || 'this device'}.
+                Digest saved for {digestUser?.email || digestUser?.phone || 'this device'} on this device.
               </div>
             ) : (
               <form className="digest-form" onSubmit={handleDigestSignup}>
@@ -807,12 +824,12 @@ ${shareLink}`,
                     setDigestIdentifier(e.target.value);
                     if (digestError) setDigestError('');
                   }}
-                  placeholder="Email or phone"
-                  aria-label="Email or phone for daily digest"
+                  placeholder="Email or phone (local only)"
+                  aria-label="Email or phone for local digest"
                   className="digest-input"
                 />
                 <button type="submit" className="digest-submit">
-                  Enable daily digest
+                  Save daily digest
                 </button>
               </form>
             )}
@@ -833,7 +850,7 @@ ${shareLink}`,
                 <span className="digest-status">Browser alerts blocked in settings.</span>
               )}
             </div>
-            <p className="digest-footnote">Alerts require browser permission and work on this device.</p>
+            <p className="digest-footnote">Alerts only appear while this page is open in this browser.</p>
           </div>
         </div>
       </section>
@@ -924,9 +941,15 @@ ${shareLink}`,
       <section className="home-section seo-links">
         <div className="seo-links-grid">
           {SEO_LINKS.map((item, idx) => (
-            <Link key={idx} to={item.to} className="seo-link-pill">
-              {item.label}
-            </Link>
+            item.external ? (
+              <a key={idx} href={item.to} className="seo-link-pill">
+                {item.label}
+              </a>
+            ) : (
+              <Link key={idx} to={item.to} className="seo-link-pill">
+                {item.label}
+              </Link>
+            )
           ))}
         </div>
       </section>
