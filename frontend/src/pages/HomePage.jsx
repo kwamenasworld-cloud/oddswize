@@ -15,6 +15,9 @@ import { usePageMeta } from '../services/seo';
 const SITE_URL = 'https://oddswize.com';
 const VALUE_MARKET_FIELDS = ['home_odds', 'draw_odds', 'away_odds'];
 const MIN_VALUE_EDGE = 5;
+const MIN_VALUE_EDGE_FALLBACK = 2;
+const MIN_VALUE_EDGE_MIN = 0;
+const VALUE_PICK_WINDOW_HOURS = 24;
 
 // Betting tips for engagement
 const BETTING_TIPS = [
@@ -184,7 +187,7 @@ function HomePage() {
     return sum / values.length;
   };
 
-  const getBestValueOffer = (match) => {
+  const getBestValueOffer = (match, minEdge = MIN_VALUE_EDGE) => {
     const odds = match.odds || [];
     if (!odds.length) return null;
     const averages = VALUE_MARKET_FIELDS.map(field => getMarketAverage(match, field));
@@ -201,7 +204,7 @@ function HomePage() {
         const average = averages[index];
         if (!Number.isFinite(value) || value <= 1 || !average) return;
         const edge = ((value - average) / average) * 100;
-        if (edge < MIN_VALUE_EDGE) return;
+        if (edge < minEdge) return;
         if (!best || edge > best.edge) {
           best = {
             bookmaker: bookie.bookmaker,
@@ -217,29 +220,41 @@ function HomePage() {
   };
 
   const buildValuePicks = (leagues, nowSeconds) => {
-    const picks = [];
-    const windowEnd = nowSeconds + (24 * 60 * 60);
+    const collectPicks = (minEdge) => {
+      const picks = [];
+      const windowEnd = nowSeconds + (VALUE_PICK_WINDOW_HOURS * 60 * 60);
 
-    (leagues || []).forEach((league) => {
-      const leagueMatches = league.matches || [];
-      leagueMatches.forEach((match) => {
-        const matchData = {
-          ...match,
-          league: league.league || match.league,
-        };
-        const startTime = Number(matchData.start_time || 0);
-        if (!startTime || startTime < nowSeconds || startTime > windowEnd) return;
-        if ((matchData.odds?.length || 0) < 2) return;
-        const offer = getBestValueOffer(matchData);
-        if (!offer) return;
-        const popularityScore = getPopularityScore(matchData, nowSeconds);
-        picks.push({
-          match: matchData,
-          offer,
-          score: offer.edge + popularityScore * 0.2,
+      (leagues || []).forEach((league) => {
+        const leagueMatches = league.matches || [];
+        leagueMatches.forEach((match) => {
+          const matchData = {
+            ...match,
+            league: league.league || match.league,
+          };
+          const startTime = Number(matchData.start_time || 0);
+          if (!startTime || startTime < nowSeconds || startTime > windowEnd) return;
+          if ((matchData.odds?.length || 0) < 2) return;
+          const offer = getBestValueOffer(matchData, minEdge);
+          if (!offer) return;
+          const popularityScore = getPopularityScore(matchData, nowSeconds);
+          picks.push({
+            match: matchData,
+            offer,
+            score: offer.edge + popularityScore * 0.2,
+          });
         });
       });
-    });
+
+      return picks;
+    };
+
+    let picks = collectPicks(MIN_VALUE_EDGE);
+    if (!picks.length) {
+      picks = collectPicks(MIN_VALUE_EDGE_FALLBACK);
+    }
+    if (!picks.length) {
+      picks = collectPicks(MIN_VALUE_EDGE_MIN);
+    }
 
     return picks
       .sort((a, b) => {
