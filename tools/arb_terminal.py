@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -67,6 +68,14 @@ _apply_widget_overrides()
 
 
 SEARCH_BASE_URL = os.getenv("SEARCH_BASE_URL", "https://www.google.com/search?q=")
+BOOKMAKER_EVENT_TEMPLATES = {
+    "SportyBet Ghana": "https://www.sportybet.com/gh/sport/football/fixtures/{event_id_url}",
+    "Betway Ghana": "https://www.betway.com.gh/sport/soccer/event/{event_id}",
+    "22Bet Ghana": "https://22bet.com.gh/line/event/{event_id}",
+}
+BOOKMAKER_EVENT_TEMPLATES.update(
+    json.loads(os.getenv("BOOKMAKER_EVENT_TEMPLATES", "{}") or "{}")
+)
 
 
 def _build_search_url(*parts: object) -> str:
@@ -74,6 +83,38 @@ def _build_search_url(*parts: object) -> str:
     if not query:
         return ""
     return f"{SEARCH_BASE_URL}{urllib.parse.quote_plus(query)}"
+
+
+def _slugify_simple(value: object) -> str:
+    text = str(value or "").strip().lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
+
+
+def _build_bookie_event_url(bookmaker: object, event_id: object, home: object, away: object, league: object) -> str:
+    template = BOOKMAKER_EVENT_TEMPLATES.get(str(bookmaker or ""))
+    if not template or not event_id:
+        return ""
+    event_id_str = str(event_id)
+    values = {
+        "event_id": event_id_str,
+        "event_id_url": urllib.parse.quote(event_id_str, safe=""),
+        "home": str(home or ""),
+        "away": str(away or ""),
+        "league": str(league or ""),
+        "home_slug": _slugify_simple(home),
+        "away_slug": _slugify_simple(away),
+        "league_slug": _slugify_simple(league),
+    }
+
+    class _SafeDict(dict):
+        def __missing__(self, key):
+            return ""
+
+    try:
+        return template.format_map(_SafeDict(values))
+    except Exception:
+        return ""
 
 
 def _render_link_button(label: str, url: str) -> None:
@@ -680,7 +721,12 @@ if strategy.startswith("Arbitrage"):
             "best_away_bookie",
             "arb_roi_adj",
         ]
-        table = arbs_filtered[display_cols].copy()
+        event_cols = [
+            col
+            for col in ("best_home_event_id", "best_draw_event_id", "best_away_event_id")
+            if col in arbs_filtered.columns
+        ]
+        table = arbs_filtered[display_cols + event_cols].copy()
         table["arb_roi_adj_pct"] = table["arb_roi_adj"] * 100
         link_cols = []
         column_config = None
@@ -696,7 +742,14 @@ if strategy.startswith("Arbitrage"):
                 axis=1,
             )
             table["home_search"] = table.apply(
-                lambda row: _build_search_url(
+                lambda row: _build_bookie_event_url(
+                    row.get("best_home_bookie"),
+                    row.get("best_home_event_id"),
+                    row.get("home_team"),
+                    row.get("away_team"),
+                    row.get("league"),
+                )
+                or _build_search_url(
                     row.get("best_home_bookie"),
                     row.get("home_team"),
                     "vs",
@@ -705,7 +758,14 @@ if strategy.startswith("Arbitrage"):
                 axis=1,
             )
             table["draw_search"] = table.apply(
-                lambda row: _build_search_url(
+                lambda row: _build_bookie_event_url(
+                    row.get("best_draw_bookie"),
+                    row.get("best_draw_event_id"),
+                    row.get("home_team"),
+                    row.get("away_team"),
+                    row.get("league"),
+                )
+                or _build_search_url(
                     row.get("best_draw_bookie"),
                     row.get("home_team"),
                     "vs",
@@ -714,7 +774,14 @@ if strategy.startswith("Arbitrage"):
                 axis=1,
             )
             table["away_search"] = table.apply(
-                lambda row: _build_search_url(
+                lambda row: _build_bookie_event_url(
+                    row.get("best_away_bookie"),
+                    row.get("best_away_event_id"),
+                    row.get("home_team"),
+                    row.get("away_team"),
+                    row.get("league"),
+                )
+                or _build_search_url(
                     row.get("best_away_bookie"),
                     row.get("home_team"),
                     "vs",
@@ -755,7 +822,12 @@ if strategy.startswith("Arbitrage"):
             "best_away_bookie",
             "arb_roi_adj",
         ]
-        allocator_table = arbs_filtered[allocator_cols].copy()
+        allocator_event_cols = [
+            col
+            for col in ("best_home_event_id", "best_draw_event_id", "best_away_event_id")
+            if col in arbs_filtered.columns
+        ]
+        allocator_table = arbs_filtered[allocator_cols + allocator_event_cols].copy()
         allocator_table["pick_label"] = (
             allocator_table["home_team"].fillna("")
             + " vs "
@@ -811,19 +883,37 @@ if strategy.startswith("Arbitrage"):
                 selected_row.get("away_team"),
                 selected_row.get("league"),
             )
-            home_link = _build_search_url(
+            home_link = _build_bookie_event_url(
+                selected_row.get("best_home_bookie"),
+                selected_row.get("best_home_event_id"),
+                selected_row.get("home_team"),
+                selected_row.get("away_team"),
+                selected_row.get("league"),
+            ) or _build_search_url(
                 selected_row.get("best_home_bookie"),
                 selected_row.get("home_team"),
                 "vs",
                 selected_row.get("away_team"),
             )
-            draw_link = _build_search_url(
+            draw_link = _build_bookie_event_url(
+                selected_row.get("best_draw_bookie"),
+                selected_row.get("best_draw_event_id"),
+                selected_row.get("home_team"),
+                selected_row.get("away_team"),
+                selected_row.get("league"),
+            ) or _build_search_url(
                 selected_row.get("best_draw_bookie"),
                 selected_row.get("home_team"),
                 "vs",
                 selected_row.get("away_team"),
             )
-            away_link = _build_search_url(
+            away_link = _build_bookie_event_url(
+                selected_row.get("best_away_bookie"),
+                selected_row.get("best_away_event_id"),
+                selected_row.get("home_team"),
+                selected_row.get("away_team"),
+                selected_row.get("league"),
+            ) or _build_search_url(
                 selected_row.get("best_away_bookie"),
                 selected_row.get("home_team"),
                 "vs",

@@ -1590,6 +1590,7 @@ def serialize_matched_events(matched: List[List[Dict]], limit: int = 2000) -> Li
             'odds': [
                 {
                     'bookmaker': m['bookmaker'],
+                    'event_id': m.get('event_id') or m.get('match_id'),
                     'home_odds': m.get('home_odds'),
                     'draw_odds': m.get('draw_odds'),
                     'away_odds': m.get('away_odds'),

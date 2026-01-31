@@ -142,6 +142,7 @@ def rows_from_odds_payload(payload: Dict) -> pd.DataFrame:
                     "home_team": match.get("home_team"),
                     "away_team": match.get("away_team"),
                     "bookmaker": odds.get("bookmaker"),
+                    "event_id": odds.get("event_id"),
                     "home_odds": odds.get("home_odds"),
                     "draw_odds": odds.get("draw_odds"),
                     "away_odds": odds.get("away_odds"),
@@ -167,6 +168,7 @@ def rows_from_odds_payload(payload: Dict) -> pd.DataFrame:
                     "home_team": match.get("home_team"),
                     "away_team": match.get("away_team"),
                     "bookmaker": odds.get("bookmaker"),
+                    "event_id": odds.get("event_id"),
                     "home_odds": odds.get("home_odds"),
                     "draw_odds": odds.get("draw_odds"),
                     "away_odds": odds.get("away_odds"),
@@ -533,14 +535,26 @@ def _align_home_away_to_consensus(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(columns=["med_home", "med_away"])
 
 
-def _best_by_outcome(df: pd.DataFrame, outcome_col: str, odds_label: str, bookie_label: str) -> pd.DataFrame:
+def _best_by_outcome(
+    df: pd.DataFrame,
+    outcome_col: str,
+    odds_label: str,
+    bookie_label: str,
+    event_label: Optional[str] = None,
+) -> pd.DataFrame:
     keys = ["run_id", "match_id"]
     eligible = df[df[outcome_col].notna() & (df[outcome_col] > 0)].copy()
     if eligible.empty:
         return pd.DataFrame(columns=keys + [bookie_label, odds_label])
     idx = eligible.groupby(keys)[outcome_col].idxmax()
-    best = eligible.loc[idx, keys + ["bookmaker", outcome_col]]
-    return best.rename(columns={"bookmaker": bookie_label, outcome_col: odds_label})
+    cols = ["bookmaker", outcome_col]
+    if "event_id" in eligible.columns:
+        cols.append("event_id")
+    best = eligible.loc[idx, keys + cols]
+    rename_map = {"bookmaker": bookie_label, outcome_col: odds_label}
+    if event_label:
+        rename_map["event_id"] = event_label
+    return best.rename(columns=rename_map)
 
 
 def build_best_lines(
@@ -570,9 +584,15 @@ def build_best_lines(
     match_info["run_time"] = pd.to_datetime(match_info["last_updated"], errors="coerce")
     match_info["match_start"] = pd.to_datetime(match_info["start_time"], unit="s", errors="coerce")
 
-    best_home = _best_by_outcome(df, "home_odds", "best_home_odds", "best_home_bookie")
-    best_draw = _best_by_outcome(df, "draw_odds", "best_draw_odds", "best_draw_bookie")
-    best_away = _best_by_outcome(df, "away_odds", "best_away_odds", "best_away_bookie")
+    best_home = _best_by_outcome(
+        df, "home_odds", "best_home_odds", "best_home_bookie", "best_home_event_id"
+    )
+    best_draw = _best_by_outcome(
+        df, "draw_odds", "best_draw_odds", "best_draw_bookie", "best_draw_event_id"
+    )
+    best_away = _best_by_outcome(
+        df, "away_odds", "best_away_odds", "best_away_bookie", "best_away_event_id"
+    )
 
     merged = match_info.merge(best_home, on=keys, how="left")
     merged = merged.merge(best_draw, on=keys, how="left")
@@ -614,9 +634,15 @@ def compute_arbitrage_opportunities(
     match_info["run_time"] = pd.to_datetime(match_info["last_updated"], errors="coerce")
     match_info["match_start"] = pd.to_datetime(match_info["start_time"], unit="s", errors="coerce")
 
-    best_home = _best_by_outcome(df, "home_odds", "best_home_odds", "best_home_bookie")
-    best_draw = _best_by_outcome(df, "draw_odds", "best_draw_odds", "best_draw_bookie")
-    best_away = _best_by_outcome(df, "away_odds", "best_away_odds", "best_away_bookie")
+    best_home = _best_by_outcome(
+        df, "home_odds", "best_home_odds", "best_home_bookie", "best_home_event_id"
+    )
+    best_draw = _best_by_outcome(
+        df, "draw_odds", "best_draw_odds", "best_draw_bookie", "best_draw_event_id"
+    )
+    best_away = _best_by_outcome(
+        df, "away_odds", "best_away_odds", "best_away_bookie", "best_away_event_id"
+    )
 
     merged = match_info.merge(best_home, on=keys, how="left")
     merged = merged.merge(best_draw, on=keys, how="left")
