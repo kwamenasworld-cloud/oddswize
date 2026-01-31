@@ -33,6 +33,7 @@ const GHANA_BOOKMAKERS = [
 const COMMENTS_RATE_LIMIT_SECONDS = 30;
 const COMMENTS_DAILY_LIMIT = 15;
 let commentsSchemaReady = false;
+let historySchemaReady = false;
 
 const LIVE_SCORE_TTL_SECONDS = 20;
 const ESPN_SCOREBOARD_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
@@ -156,6 +157,59 @@ function buildMatchKey(match: Match): string {
   const away = slugify(match.away_team);
   const start = match.start_time || 0;
   return `${home}-vs-${away}-${start}`;
+}
+
+async function ensureHistorySchema(env: Env): Promise<void> {
+  if (historySchemaReady) return;
+  const schema = `
+    CREATE TABLE IF NOT EXISTS odds_runs (
+      run_id TEXT PRIMARY KEY,
+      last_updated TEXT,
+      total_matches INTEGER,
+      total_leagues INTEGER,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS odds_matches (
+      run_id TEXT,
+      match_id TEXT,
+      league TEXT,
+      start_time INTEGER,
+      home_team TEXT,
+      away_team TEXT,
+      PRIMARY KEY (run_id, match_id)
+    );
+    CREATE TABLE IF NOT EXISTS odds_lines (
+      run_id TEXT,
+      match_id TEXT,
+      bookmaker TEXT,
+      home_odds REAL,
+      draw_odds REAL,
+      away_odds REAL,
+      PRIMARY KEY (run_id, match_id, bookmaker)
+    );
+    CREATE INDEX IF NOT EXISTS idx_odds_runs_updated ON odds_runs(last_updated);
+    CREATE INDEX IF NOT EXISTS idx_odds_matches_start ON odds_matches(start_time);
+    CREATE INDEX IF NOT EXISTS idx_odds_matches_league ON odds_matches(league);
+    CREATE INDEX IF NOT EXISTS idx_odds_lines_bookie ON odds_lines(bookmaker);
+  `;
+  await env.D1.exec(schema);
+  historySchemaReady = true;
+}
+
+function resolveHistoryApiKey(request: Request, env: Env): string | null {
+  const headerKey = request.headers.get('X-API-Key');
+  if (headerKey) return headerKey;
+  const auth = request.headers.get('Authorization') || '';
+  if (auth.toLowerCase().startsWith('bearer ')) {
+    return auth.slice(7).trim();
+  }
+  return null;
+}
+
+function authorizeHistoryRead(request: Request, env: Env): boolean {
+  if (!env.HISTORY_API_KEY) return true;
+  const key = resolveHistoryApiKey(request, env);
+  return Boolean(key && key === env.HISTORY_API_KEY);
 }
 
 function buildMatchSignature(match: Match): string {
@@ -1020,12 +1074,82 @@ function filterOddsDataByTime(
   };
 }
 
+async function batchStatements(env: Env, statements: D1PreparedStatement[], batchSize = 100): Promise<void> {
+  for (let i = 0; i < statements.length; i += batchSize) {
+    const chunk = statements.slice(i, i + batchSize);
+    if (chunk.length) {
+      await env.D1.batch(chunk);
+    }
+  }
+}
+
+async function storeOddsHistory(env: Env, oddsResponse: OddsResponse, runId: string): Promise<void> {
+  if (!oddsResponse?.data?.length) return;
+  await ensureHistorySchema(env);
+  const lastUpdated = oddsResponse.meta?.last_updated || new Date().toISOString();
+  const totalMatches = oddsResponse.meta?.total_matches ?? 0;
+  const totalLeagues = oddsResponse.data.length;
+
+  await env.D1.prepare(
+    `INSERT OR REPLACE INTO odds_runs (run_id, last_updated, total_matches, total_leagues, created_at)
+     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`
+  ).bind(runId, lastUpdated, totalMatches, totalLeagues).run();
+
+  const matchStmt = env.D1.prepare(
+    `INSERT OR REPLACE INTO odds_matches
+     (run_id, match_id, league, start_time, home_team, away_team)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  );
+  const oddsStmt = env.D1.prepare(
+    `INSERT OR REPLACE INTO odds_lines
+     (run_id, match_id, bookmaker, home_odds, draw_odds, away_odds)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  );
+
+  const matchStatements: D1PreparedStatement[] = [];
+  const oddsStatements: D1PreparedStatement[] = [];
+
+  for (const league of oddsResponse.data) {
+    for (const match of league.matches || []) {
+      const matchId = buildMatchKey(match);
+      matchStatements.push(
+        matchStmt.bind(
+          runId,
+          matchId,
+          match.league || league.league || null,
+          match.start_time || null,
+          match.home_team || null,
+          match.away_team || null
+        )
+      );
+
+      for (const line of match.odds || []) {
+        oddsStatements.push(
+          oddsStmt.bind(
+            runId,
+            matchId,
+            line.bookmaker || null,
+            line.home_odds ?? null,
+            line.draw_odds ?? null,
+            line.away_odds ?? null
+          )
+        );
+      }
+    }
+  }
+
+  await batchStatements(env, matchStatements, 100);
+  await batchStatements(env, oddsStatements, 100);
+}
+
 /**
  * Update odds data (called by external scraper or scheduled job)
  */
 async function updateOddsData(
   env: Env,
-  data: LeagueGroup[]
+  data: LeagueGroup[],
+  runId?: string | null,
+  lastUpdatedOverride?: string | null
 ): Promise<{ success: boolean; message: string }> {
   try {
     const normalizedData = attachLeagueKeys(data);
@@ -1034,6 +1158,8 @@ async function updateOddsData(
       0
     );
     const previous = await env.ODDS_CACHE.get('last_odds', 'json') as OddsResponse | null;
+    const lastUpdated = lastUpdatedOverride || new Date().toISOString();
+    const resolvedRunId = runId || lastUpdated;
 
     const oddsResponse: OddsResponse = {
       success: true,
@@ -1041,7 +1167,7 @@ async function updateOddsData(
       meta: {
         total_matches: totalMatches,
         total_bookmakers: GHANA_BOOKMAKERS.length,
-        last_updated: new Date().toISOString(),
+        last_updated: lastUpdated,
         cache_ttl: CACHE_TTL,
       },
     };
@@ -1076,6 +1202,12 @@ async function updateOddsData(
           },
         });
       }
+    }
+
+    try {
+      await storeOddsHistory(env, oddsResponse, resolvedRunId);
+    } catch (error) {
+      console.warn('Failed to store history in D1:', error);
     }
 
     return {
@@ -1396,7 +1528,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         console.log('Body parsed, leagues:', body.length);
 
         console.log('Updating odds data...');
-        const result = await updateOddsData(env, body);
+        const runId = request.headers.get('X-Run-Id') || null;
+        const runUpdated = request.headers.get('X-Run-Updated') || null;
+        const result = await updateOddsData(env, body, runId, runUpdated);
         console.log('Update result:', result);
 
         return jsonResponse(result, 200, env);
@@ -1580,6 +1714,103 @@ async function handleCanonical(request: Request, env: Env, path: string): Promis
   return errorResponse('Not found', 404, env);
 }
 
+// ---------------------------------------------------------------------------
+// D1 odds history
+// ---------------------------------------------------------------------------
+
+async function listHistoryRuns(request: Request, env: Env): Promise<Response> {
+  if (!authorizeHistoryRead(request, env)) {
+    return errorResponse('Unauthorized', 401, env);
+  }
+  await ensureHistorySchema(env);
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '200', 10), 1000);
+  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+
+  const res = await env.D1.prepare(
+    `SELECT run_id, last_updated, total_matches, total_leagues
+     FROM odds_runs
+     ORDER BY last_updated DESC
+     LIMIT ? OFFSET ?`
+  ).bind(limit, offset).all();
+
+  return jsonResponse({
+    success: true,
+    data: res.results || [],
+    meta: { limit, offset, returned: res.results?.length || 0 },
+  }, 200, env);
+}
+
+async function listHistoryOdds(request: Request, env: Env): Promise<Response> {
+  if (!authorizeHistoryRead(request, env)) {
+    return errorResponse('Unauthorized', 401, env);
+  }
+  await ensureHistorySchema(env);
+  const url = new URL(request.url);
+
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '5000', 10), 25000);
+  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+  const runStart = url.searchParams.get('run_start');
+  const runEnd = url.searchParams.get('run_end');
+  const matchStart = parseEpochSeconds(url.searchParams.get('match_start'));
+  const matchEnd = parseEpochSeconds(url.searchParams.get('match_end'));
+  const league = url.searchParams.get('league');
+  const bookmaker = url.searchParams.get('bookmaker');
+
+  const filters: string[] = [];
+  const params: any[] = [];
+  if (runStart) { filters.push('r.last_updated >= ?'); params.push(runStart); }
+  if (runEnd) { filters.push('r.last_updated <= ?'); params.push(runEnd); }
+  if (Number.isFinite(matchStart)) { filters.push('m.start_time >= ?'); params.push(matchStart); }
+  if (Number.isFinite(matchEnd)) { filters.push('m.start_time <= ?'); params.push(matchEnd); }
+  if (league) { filters.push('m.league = ?'); params.push(league); }
+  if (bookmaker) { filters.push('o.bookmaker = ?'); params.push(bookmaker); }
+
+  const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+  const sql = `
+    SELECT
+      r.run_id,
+      r.last_updated,
+      m.match_id,
+      m.league,
+      m.start_time,
+      m.home_team,
+      m.away_team,
+      o.bookmaker,
+      o.home_odds,
+      o.draw_odds,
+      o.away_odds
+    FROM odds_lines o
+    JOIN odds_matches m ON o.run_id = m.run_id AND o.match_id = m.match_id
+    JOIN odds_runs r ON o.run_id = r.run_id
+    ${where}
+    ORDER BY r.last_updated DESC, m.start_time ASC
+    LIMIT ? OFFSET ?
+  `;
+  params.push(limit, offset);
+
+  const res = await env.D1.prepare(sql).bind(...params).all();
+
+  return jsonResponse({
+    success: true,
+    data: res.results || [],
+    meta: { limit, offset, returned: res.results?.length || 0 },
+  }, 200, env);
+}
+
+async function handleHistory(request: Request, env: Env, path: string): Promise<Response> {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders(env) });
+  }
+  if (path === '/api/history/runs' && request.method === 'GET') {
+    return listHistoryRuns(request, env);
+  }
+  if (path === '/api/history/odds' && request.method === 'GET') {
+    return listHistoryOdds(request, env);
+  }
+  return errorResponse('Not found', 404, env);
+}
+
 /**
  * Scheduled handler - runs periodically to refresh data
  */
@@ -1607,6 +1838,9 @@ async function handleScheduled(
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/history/')) {
+      return handleHistory(request, env, url.pathname);
+    }
     if (url.pathname.startsWith('/api/canonical/')) {
       return handleCanonical(request, env, url.pathname);
     }

@@ -62,3 +62,37 @@ CREATE INDEX IF NOT EXISTS idx_leagues_slug ON leagues(sport, slug);
 CREATE INDEX IF NOT EXISTS idx_league_alias_provider ON league_aliases(provider, provider_league_id);
 CREATE INDEX IF NOT EXISTS idx_fixtures_league_time ON fixtures(league_id, kickoff_time);
 CREATE INDEX IF NOT EXISTS idx_fixtures_provider ON fixtures(provider, provider_fixture_id);
+
+-- Odds history tables (snapshots)
+CREATE TABLE IF NOT EXISTS odds_runs (
+  run_id TEXT PRIMARY KEY,
+  last_updated TEXT,
+  total_matches INTEGER,
+  total_leagues INTEGER,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS odds_matches (
+  run_id TEXT,
+  match_id TEXT,
+  league TEXT,
+  start_time INTEGER,
+  home_team TEXT,
+  away_team TEXT,
+  PRIMARY KEY (run_id, match_id)
+);
+
+CREATE TABLE IF NOT EXISTS odds_lines (
+  run_id TEXT,
+  match_id TEXT,
+  bookmaker TEXT,
+  home_odds REAL,
+  draw_odds REAL,
+  away_odds REAL,
+  PRIMARY KEY (run_id, match_id, bookmaker)
+);
+
+CREATE INDEX IF NOT EXISTS idx_odds_runs_updated ON odds_runs(last_updated);
+CREATE INDEX IF NOT EXISTS idx_odds_matches_start ON odds_matches(start_time);
+CREATE INDEX IF NOT EXISTS idx_odds_matches_league ON odds_matches(league);
+CREATE INDEX IF NOT EXISTS idx_odds_lines_bookie ON odds_lines(bookmaker);

@@ -41,4 +41,6 @@ Notes:
 - Set `RESULTS_DB_PATH` to point at a different results database.
 - To load from the GitHub scraper directly, toggle "Use remote odds snapshot" in the terminal
   and paste the raw `odds_data.json` URL.
+- To load from the Cloudflare D1 history API, toggle "Use remote history API" and set the
+  base worker URL (e.g. `https://oddswize-api.kwamenahb.workers.dev`).
 - Execution lag is modeled with a slippage buffer + minimum minutes to kickoff filter in the terminal controls.

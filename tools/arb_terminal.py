@@ -1,7 +1,9 @@
 import json
 import os
 import sys
+import urllib.parse
 import urllib.request
+from typing import Optional
 from datetime import datetime, timedelta, timezone
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -68,6 +70,15 @@ with st.sidebar:
     persist_remote = st.checkbox("Append remote snapshot locally", value=False)
     persist_db = st.checkbox("Write to history DB", value=True, disabled=not persist_remote)
     persist_jsonl = st.checkbox("Write to history JSONL", value=False, disabled=not persist_remote)
+    st.subheader("Remote History (D1)")
+    default_history_url = os.getenv(
+        "REMOTE_HISTORY_URL",
+        "https://oddswize-api.kwamenahb.workers.dev",
+    )
+    use_remote_history = st.checkbox("Use remote history API", value=False)
+    remote_history_url = st.text_input("Remote history base URL", value=default_history_url)
+    remote_history_timeout = st.number_input("History timeout (seconds)", min_value=5, value=20, step=5)
+    remote_history_api_key = st.text_input("History API key (optional)", value="", type="password")
 
     st.subheader("Date Filters")
     run_range = st.date_input(
@@ -178,6 +189,22 @@ def _load_remote_rows(url: str, timeout_seconds: int):
 
 
 @st.cache_data(show_spinner=False)
+def _load_remote_history_rows(base_url: str, params: dict, timeout_seconds: int, api_key: Optional[str]):
+    base = (base_url or "").rstrip("/")
+    endpoint = f"{base}/api/history/odds"
+    query = urllib.parse.urlencode(params)
+    url = f"{endpoint}?{query}" if query else endpoint
+    headers = {}
+    if api_key:
+        headers["X-API-Key"] = api_key
+    request = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(request, timeout=timeout_seconds) as handle:
+        payload = json.load(handle)
+    rows = payload.get("data") or []
+    return pd.DataFrame(rows), payload
+
+
+@st.cache_data(show_spinner=False)
 def _load_rows_cached(
     db_path_value,
     jsonl_path_value,
@@ -215,7 +242,34 @@ payload_snapshot = None
 
 with st.spinner("Loading history..."):
     rows = None
-    if use_remote:
+    if use_remote_history:
+        params = {}
+        if run_start:
+            params["run_start"] = datetime.combine(run_start, datetime.min.time()).replace(tzinfo=timezone.utc).isoformat()
+        if run_end:
+            params["run_end"] = datetime.combine(run_end, datetime.max.time()).replace(tzinfo=timezone.utc).isoformat()
+        if match_start:
+            params["match_start"] = int(
+                datetime.combine(match_start, datetime.min.time()).replace(tzinfo=timezone.utc).timestamp()
+            )
+        if match_end:
+            params["match_end"] = int(
+                datetime.combine(match_end, datetime.max.time()).replace(tzinfo=timezone.utc).timestamp()
+            )
+        if max_rows:
+            params["limit"] = int(max_rows)
+        try:
+            rows, payload_snapshot = _load_remote_history_rows(
+                remote_history_url,
+                params,
+                int(remote_history_timeout),
+                remote_history_api_key.strip() or None,
+            )
+        except Exception as exc:
+            st.warning(f"Remote history failed: {exc}")
+            rows = None
+
+    if rows is None and use_remote:
         try:
             rows, payload_snapshot = _load_remote_rows(remote_url, int(remote_timeout))
             rows = _filter_rows(rows, run_start, run_end, match_start, match_end)
@@ -241,7 +295,7 @@ if rows is None:
             st.error(str(exc))
             st.stop()
 
-if payload_snapshot and persist_remote:
+if payload_snapshot and persist_remote and isinstance(payload_snapshot, dict) and payload_snapshot.get("matches"):
     run_id = payload_snapshot.get("run_id") or payload_snapshot.get("last_updated")
     key = f"snapshot_appended_{run_id}"
     already_appended = st.session_state.get(key, False)

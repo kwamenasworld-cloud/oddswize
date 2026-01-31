@@ -1700,7 +1700,12 @@ def build_odds_endpoint(base_url: str, fast: bool) -> str:
     return f"{base}/api/odds/fast" if fast else f"{base}/api/odds/update"
 
 
-def push_to_cloudflare(matched_events: List[List[Dict]], fast: bool = False):
+def push_to_cloudflare(
+    matched_events: List[List[Dict]],
+    fast: bool = False,
+    run_id: Optional[str] = None,
+    last_updated: Optional[str] = None
+):
     """Push matched events to Cloudflare Worker."""
     if not CLOUDFLARE_WORKER_URL or not CLOUDFLARE_API_KEY:
         print("\n" + "="*60)
@@ -1787,13 +1792,19 @@ def push_to_cloudflare(matched_events: List[List[Dict]], fast: bool = False):
 
     try:
         print(f"  Sending POST request with {len(output)} leagues...")
+        headers = {
+            'Content-Type': 'application/json',
+            'X-API-Key': CLOUDFLARE_API_KEY,
+        }
+        if run_id:
+            headers['X-Run-Id'] = run_id
+        if last_updated:
+            headers['X-Run-Updated'] = last_updated
+
         resp = requests.post(
             api_url,
             json=output,
-            headers={
-                'Content-Type': 'application/json',
-                'X-API-Key': CLOUDFLARE_API_KEY
-            },
+            headers=headers,
             timeout=30
         )
         print(f"  [OK] Cloudflare response: {resp.status_code}")
@@ -1944,7 +1955,8 @@ def main():
         print(f"[WARN] Failed to append history snapshot: {e}")
 
     if not args.no_push:
-        push_to_cloudflare(matched, fast=FAST_MODE)
+        run_id = output.get('last_updated')
+        push_to_cloudflare(matched, fast=FAST_MODE, run_id=run_id, last_updated=run_id)
         if FAST_MODE:
             print("FAST MODE: skipping Postgres/D1 ingest for speed")
         else:

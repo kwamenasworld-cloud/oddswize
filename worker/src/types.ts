@@ -8,6 +8,7 @@ export interface Env {
   CORS_ORIGIN: string;
   API_SECRET: string;
   TURNSTILE_SECRET?: string;
+  HISTORY_API_KEY?: string;
 }
 
 // Match data types
