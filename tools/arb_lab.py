@@ -415,6 +415,48 @@ def _best_by_outcome(df: pd.DataFrame, outcome_col: str, odds_label: str, bookie
     return best.rename(columns={"bookmaker": bookie_label, outcome_col: odds_label})
 
 
+def build_best_lines(
+    rows: pd.DataFrame,
+    include_bookmakers: Optional[Iterable[str]] = None,
+    include_leagues: Optional[Iterable[str]] = None,
+) -> pd.DataFrame:
+    if rows is None or rows.empty:
+        return pd.DataFrame()
+
+    df = _prepare_odds_frame(rows)
+    if include_bookmakers:
+        df = df[df["bookmaker"].isin(list(include_bookmakers))]
+    if include_leagues:
+        df = df[df["league"].isin(list(include_leagues))]
+    if df.empty:
+        return pd.DataFrame()
+
+    keys = ["run_id", "match_id"]
+    match_info = df.groupby(keys, as_index=False).agg({
+        "league": "first",
+        "start_time": "first",
+        "home_team": "first",
+        "away_team": "first",
+        "last_updated": "first",
+    })
+    match_info["run_time"] = pd.to_datetime(match_info["last_updated"], errors="coerce")
+    match_info["match_start"] = pd.to_datetime(match_info["start_time"], unit="s", errors="coerce")
+
+    best_home = _best_by_outcome(df, "home_odds", "best_home_odds", "best_home_bookie")
+    best_draw = _best_by_outcome(df, "draw_odds", "best_draw_odds", "best_draw_bookie")
+    best_away = _best_by_outcome(df, "away_odds", "best_away_odds", "best_away_bookie")
+
+    merged = match_info.merge(best_home, on=keys, how="left")
+    merged = merged.merge(best_draw, on=keys, how="left")
+    merged = merged.merge(best_away, on=keys, how="left")
+
+    bookie_counts = df.groupby(keys, as_index=False)["bookmaker"].nunique().rename(columns={"bookmaker": "bookie_count"})
+    merged = merged.merge(bookie_counts, on=keys, how="left")
+
+    merged = merged.dropna(subset=["best_home_odds", "best_draw_odds", "best_away_odds"])
+    return merged
+
+
 def compute_arbitrage_opportunities(
     rows: pd.DataFrame,
     bankroll: float = 1000.0,

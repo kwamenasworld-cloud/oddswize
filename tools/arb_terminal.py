@@ -4,7 +4,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Optional
+from typing import Iterable, Optional
 from datetime import datetime, timedelta, timezone
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -25,6 +25,7 @@ except ImportError as exc:
 from tools.arb_lab import (
     add_slippage_adjustment,
     attach_results,
+    build_best_lines,
     compute_arbitrage_opportunities,
     compute_consensus_edges,
     load_snapshot_rows,
@@ -81,6 +82,19 @@ with st.sidebar:
     remote_history_timeout = st.number_input("History timeout (seconds)", min_value=5, value=20, step=5)
     remote_history_api_key = st.text_input("History API key (optional)", value="", type="password")
 
+    st.subheader("Live Updates")
+    refresh_seconds = st.number_input("Auto refresh (seconds)", min_value=0, value=0, step=5)
+    if refresh_seconds > 0:
+        if hasattr(st, "autorefresh"):
+            st.autorefresh(interval=int(refresh_seconds * 1000), key="auto_refresh")
+        else:
+            st.info("Upgrade Streamlit for auto-refresh support; use the Refresh button.")
+    if st.button("Refresh now"):
+        st.cache_data.clear()
+        rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+        if rerun:
+            rerun()
+
     st.subheader("Date Filters")
     run_range = st.date_input(
         "Snapshot run date range", value=(default_start, today)
@@ -98,6 +112,9 @@ with st.sidebar:
         (
             "Arbitrage (guaranteed when executed)",
             "Consensus Edge (model-free, not guaranteed)",
+            "Closing Line Value (CLV)",
+            "Price Movement (Line Drift)",
+            "Liquidity/Age Filters",
         ),
     )
 
@@ -244,6 +261,44 @@ def _check_history_api(base_url: str, timeout_seconds: int, api_key: Optional[st
         except Exception as exc:
             results[name] = {"ok": False, "error": str(exc)}
     return results
+
+
+def _build_best_lines(
+    rows: pd.DataFrame,
+    include_bookmakers: Optional[Iterable[str]] = None,
+    include_leagues: Optional[Iterable[str]] = None,
+) -> pd.DataFrame:
+    lines = build_best_lines(rows, include_bookmakers=include_bookmakers, include_leagues=include_leagues)
+    if lines is None or lines.empty:
+        return pd.DataFrame()
+    lines["run_time"] = pd.to_datetime(lines["run_time"], errors="coerce", utc=True)
+    lines["match_start"] = pd.to_datetime(lines["match_start"], errors="coerce", utc=True)
+    return lines
+
+
+def _build_open_close(lines: pd.DataFrame) -> pd.DataFrame:
+    if lines is None or lines.empty:
+        return pd.DataFrame()
+
+    df = lines.copy()
+    df = df.dropna(subset=["run_time"])
+    if df.empty:
+        return pd.DataFrame()
+
+    df = df.sort_values("run_time")
+    open_df = df.groupby("match_id", as_index=False).first()
+
+    def pick_close(group: pd.DataFrame) -> pd.Series:
+        cutoff = group["match_start"].iloc[0]
+        if pd.notna(cutoff):
+            pre = group[group["run_time"] <= cutoff]
+            if not pre.empty:
+                return pre.iloc[-1]
+        return group.iloc[-1]
+
+    close_df = df.groupby("match_id", group_keys=False).apply(pick_close).reset_index(drop=True)
+    merged = open_df.merge(close_df, on="match_id", suffixes=("_open", "_close"))
+    return merged
 
 
 @st.cache_data(show_spinner=False)
@@ -679,7 +734,7 @@ if strategy.startswith("Arbitrage"):
                         "expected_profit",
                     ]
                     st.dataframe(settled[settled_cols].head(300), use_container_width=True)
-else:
+elif strategy.startswith("Consensus"):
     edges = compute_consensus_edges(
         rows,
         bankroll=bankroll,
@@ -815,3 +870,212 @@ else:
                     "profit",
                 ]
                 st.dataframe(settled[settled_cols].head(300), use_container_width=True)
+elif strategy.startswith("Closing Line Value"):
+    st.caption(
+        "CLV compares early prices to the last pre-kickoff snapshot. "
+        "Positive CLV means the early price was better than the close. Analysis only."
+    )
+    lines = _build_best_lines(rows, include_bookmakers=selected_bookies, include_leagues=selected_leagues)
+    if lines.empty:
+        st.warning("Not enough data to compute CLV for this slice.")
+        st.stop()
+
+    clv_base = _build_open_close(lines)
+    if clv_base.empty:
+        st.warning("No open/close snapshots found for this slice.")
+        st.stop()
+
+    snap_counts = lines.groupby("match_id", as_index=False)["run_id"].nunique().rename(
+        columns={"run_id": "snapshot_count"}
+    )
+    clv = clv_base.merge(snap_counts, on="match_id", how="left")
+    clv = clv[clv["snapshot_count"] >= 2]
+    if clv.empty:
+        st.warning("CLV requires at least 2 snapshots per match.")
+        st.stop()
+
+    clv["clv_home"] = clv["best_home_odds_open"] / clv["best_home_odds_close"] - 1
+    clv["clv_draw"] = clv["best_draw_odds_open"] / clv["best_draw_odds_close"] - 1
+    clv["clv_away"] = clv["best_away_odds_open"] / clv["best_away_odds_close"] - 1
+
+    clv["clv_best"] = clv[["clv_home", "clv_draw", "clv_away"]].max(axis=1)
+    clv["clv_outcome"] = clv[["clv_home", "clv_draw", "clv_away"]].idxmax(axis=1).str.replace("clv_", "")
+
+    run_clv = st.button("Run CLV backtest")
+    if run_clv or "clv_table" not in st.session_state:
+        st.session_state["clv_table"] = clv
+    clv_table = st.session_state.get("clv_table")
+
+    if clv_table is None or clv_table.empty:
+        st.info("Click 'Run CLV backtest' to compute results.")
+        st.stop()
+
+    pos_rate = (clv_table["clv_best"] > 0).mean()
+    clv_col1, clv_col2, clv_col3, clv_col4 = st.columns(4)
+    clv_col1.metric("Matches w/ CLV", f"{len(clv_table):,}")
+    clv_col2.metric("Positive CLV %", f"{pos_rate*100:.2f}%")
+    clv_col3.metric("Median CLV", f"{clv_table['clv_best'].median()*100:.2f}%")
+    clv_col4.metric("Max CLV", f"{clv_table['clv_best'].max()*100:.2f}%")
+
+    chart_col1, chart_col2 = st.columns(2)
+    with chart_col1:
+        fig = px.histogram(clv_table, x="clv_best", nbins=30, title="CLV Distribution (Best Outcome)")
+        st.plotly_chart(fig, use_container_width=True)
+    with chart_col2:
+        top_leagues = (
+            clv_table.groupby("league_open")["match_id"].count().sort_values(ascending=False).head(12).reset_index()
+        )
+        fig = px.bar(top_leagues, x="league_open", y="match_id", title="Top Leagues by CLV Coverage")
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Top CLV Signals (Research)")
+    display_cols = [
+        "run_time_open",
+        "run_time_close",
+        "league_open",
+        "home_team_open",
+        "away_team_open",
+        "match_start_open",
+        "clv_outcome",
+        "clv_best",
+        "best_home_odds_open",
+        "best_draw_odds_open",
+        "best_away_odds_open",
+        "best_home_odds_close",
+        "best_draw_odds_close",
+        "best_away_odds_close",
+        "snapshot_count",
+    ]
+    table = clv_table.sort_values("clv_best", ascending=False)[display_cols].copy()
+    table["clv_best_pct"] = table["clv_best"] * 100
+    st.dataframe(table.head(300), use_container_width=True)
+
+    csv_data = table.to_csv(index=False).encode("utf-8")
+    st.download_button("Download CSV", csv_data, file_name="clv_signals.csv")
+elif strategy.startswith("Price Movement"):
+    st.caption(
+        "Price movement tracks line drift between the opening snapshot and the last pre-kickoff snapshot."
+    )
+    lines = _build_best_lines(rows, include_bookmakers=selected_bookies, include_leagues=selected_leagues)
+    if lines.empty:
+        st.warning("Not enough data to compute price movement for this slice.")
+        st.stop()
+
+    movement_base = _build_open_close(lines)
+    if movement_base.empty:
+        st.warning("No open/close snapshots found for this slice.")
+        st.stop()
+
+    snap_counts = lines.groupby("match_id", as_index=False)["run_id"].nunique().rename(
+        columns={"run_id": "snapshot_count"}
+    )
+    movement = movement_base.merge(snap_counts, on="match_id", how="left")
+    movement = movement[movement["snapshot_count"] >= 2]
+    if movement.empty:
+        st.warning("Price movement requires at least 2 snapshots per match.")
+        st.stop()
+
+    movement["move_home_pct"] = (movement["best_home_odds_close"] - movement["best_home_odds_open"]) / movement["best_home_odds_open"]
+    movement["move_draw_pct"] = (movement["best_draw_odds_close"] - movement["best_draw_odds_open"]) / movement["best_draw_odds_open"]
+    movement["move_away_pct"] = (movement["best_away_odds_close"] - movement["best_away_odds_open"]) / movement["best_away_odds_open"]
+    movement["move_abs"] = movement[["move_home_pct", "move_draw_pct", "move_away_pct"]].abs().max(axis=1)
+    movement["move_outcome"] = movement[["move_home_pct", "move_draw_pct", "move_away_pct"]].abs().idxmax(axis=1)
+    movement["move_outcome"] = movement["move_outcome"].str.replace("move_", "").str.replace("_pct", "")
+
+    run_move = st.button("Run movement backtest")
+    if run_move or "movement_table" not in st.session_state:
+        st.session_state["movement_table"] = movement
+    movement_table = st.session_state.get("movement_table")
+
+    if movement_table is None or movement_table.empty:
+        st.info("Click 'Run movement backtest' to compute results.")
+        st.stop()
+
+    mv_col1, mv_col2, mv_col3, mv_col4 = st.columns(4)
+    mv_col1.metric("Matches w/ Movement", f"{len(movement_table):,}")
+    mv_col2.metric("Median Move", f"{movement_table['move_abs'].median()*100:.2f}%")
+    mv_col3.metric("Max Move", f"{movement_table['move_abs'].max()*100:.2f}%")
+    mv_col4.metric("Avg Move", f"{movement_table['move_abs'].mean()*100:.2f}%")
+
+    chart_col1, chart_col2 = st.columns(2)
+    with chart_col1:
+        fig = px.histogram(movement_table, x="move_abs", nbins=30, title="Price Movement (Abs %)")
+        st.plotly_chart(fig, use_container_width=True)
+    with chart_col2:
+        top_leagues = (
+            movement_table.groupby("league_open")["match_id"].count().sort_values(ascending=False).head(12).reset_index()
+        )
+        fig = px.bar(top_leagues, x="league_open", y="match_id", title="Top Leagues by Movement Coverage")
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Top Movers (Research)")
+    display_cols = [
+        "run_time_open",
+        "run_time_close",
+        "league_open",
+        "home_team_open",
+        "away_team_open",
+        "match_start_open",
+        "move_outcome",
+        "move_abs",
+        "move_home_pct",
+        "move_draw_pct",
+        "move_away_pct",
+        "snapshot_count",
+    ]
+    table = movement_table.sort_values("move_abs", ascending=False)[display_cols].copy()
+    table["move_abs_pct"] = table["move_abs"] * 100
+    st.dataframe(table.head(300), use_container_width=True)
+
+    csv_data = table.to_csv(index=False).encode("utf-8")
+    st.download_button("Download CSV", csv_data, file_name="price_movement_signals.csv")
+elif strategy.startswith("Liquidity"):
+    st.caption("Liquidity and age filters help you focus on matches with more bookies and fresher snapshots.")
+    lines = _build_best_lines(rows, include_bookmakers=selected_bookies, include_leagues=selected_leagues)
+    if lines.empty:
+        st.warning("Not enough data to compute liquidity for this slice.")
+        st.stop()
+
+    latest = lines.sort_values("run_time").groupby("match_id", as_index=False).tail(1)
+    now_utc = datetime.now(timezone.utc)
+    latest["snapshot_age_min"] = (now_utc - latest["run_time"]).dt.total_seconds() / 60.0
+    latest["kickoff_minutes"] = (latest["match_start"] - now_utc).dt.total_seconds() / 60.0
+
+    st.subheader("Liquidity & Age Controls")
+    liq_col1, liq_col2, liq_col3 = st.columns(3)
+    with liq_col1:
+        min_bookies = st.number_input("Min bookies per match", min_value=1, value=3, step=1)
+    with liq_col2:
+        max_age = st.number_input("Max snapshot age (minutes)", min_value=0, value=15, step=5)
+    with liq_col3:
+        min_kickoff = st.number_input("Min minutes to kickoff", min_value=0, value=10, step=5)
+
+    filtered = latest.copy()
+    if min_bookies:
+        filtered = filtered[filtered["bookie_count"] >= int(min_bookies)]
+    if max_age:
+        filtered = filtered[filtered["snapshot_age_min"] <= float(max_age)]
+    if min_kickoff:
+        filtered = filtered[filtered["kickoff_minutes"] >= float(min_kickoff)]
+
+    liq_col1, liq_col2, liq_col3, liq_col4 = st.columns(4)
+    liq_col1.metric("Matches (filtered)", f"{len(filtered):,}")
+    liq_col2.metric("Median Bookies", f"{filtered['bookie_count'].median():.0f}" if not filtered.empty else "0")
+    liq_col3.metric("Median Snapshot Age", f"{filtered['snapshot_age_min'].median():.1f} min" if not filtered.empty else "0")
+    liq_col4.metric("Median Minutes to KO", f"{filtered['kickoff_minutes'].median():.1f}" if not filtered.empty else "0")
+
+    st.subheader("Filtered Matches")
+    display_cols = [
+        "run_time",
+        "league",
+        "home_team",
+        "away_team",
+        "match_start",
+        "bookie_count",
+        "snapshot_age_min",
+        "kickoff_minutes",
+        "best_home_odds",
+        "best_draw_odds",
+        "best_away_odds",
+    ]
+    st.dataframe(filtered[display_cols].head(300), use_container_width=True)
