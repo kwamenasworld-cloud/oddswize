@@ -700,8 +700,11 @@ def load_results_rows(
     completed_only: bool = True,
 ) -> pd.DataFrame:
     path = resolve_results_db_path(db_path)
-    if not path or not os.path.exists(path):
-        raise FileNotFoundError(f"Results DB not found: {path or '<empty>'}")
+    if not path:
+        return pd.DataFrame()
+    if not os.path.exists(path):
+        _init_results_db(path)
+        return pd.DataFrame()
 
     start_iso = _to_iso(start_date, end_of_day=False)
     end_iso = _to_iso(end_date, end_of_day=True)
@@ -724,6 +727,42 @@ def load_results_rows(
     conn = sqlite3.connect(path)
     try:
         return pd.read_sql_query(query, conn, params=params)
+    finally:
+        conn.close()
+
+
+def _init_results_db(path: str) -> None:
+    base_dir = os.path.dirname(path)
+    if base_dir:
+        os.makedirs(base_dir, exist_ok=True)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS results (
+                event_id TEXT PRIMARY KEY,
+                league_key TEXT,
+                league_id TEXT,
+                league_name TEXT,
+                start_time INTEGER,
+                event_date TEXT,
+                home_team_raw TEXT,
+                away_team_raw TEXT,
+                home_team_norm TEXT,
+                away_team_norm TEXT,
+                home_score INTEGER,
+                away_score INTEGER,
+                status TEXT,
+                completed INTEGER,
+                updated_at TEXT
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_results_event_date ON results(event_date)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_results_start ON results(start_time)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_results_norm ON results(home_team_norm, away_team_norm)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_results_completed ON results(completed)")
+        conn.commit()
     finally:
         conn.close()
 
