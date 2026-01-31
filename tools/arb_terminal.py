@@ -499,9 +499,9 @@ if strategy.startswith("Arbitrage"):
                 "stake_home",
                 "stake_draw",
                 "stake_away",
-            "profit",
-        ]
-        st.dataframe(picks_sim[pick_cols].head(300), use_container_width=True)
+                "profit",
+            ]
+            st.dataframe(picks_sim[pick_cols].head(300), use_container_width=True)
 
         st.subheader("Results Backtest (Arb Execution Risk)")
         if not enable_results:

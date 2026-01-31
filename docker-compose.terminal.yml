@@ -1,0 +1,13 @@
+services:
+  arb-terminal:
+    build:
+      context: .
+      dockerfile: docker/terminal/Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "8501:8501"
+    environment:
+      REMOTE_HISTORY_URL: ${REMOTE_HISTORY_URL:-https://oddswize-api.kwamenahb.workers.dev}
+      REMOTE_HISTORY_API_KEY: ${REMOTE_HISTORY_API_KEY:-}
+      REMOTE_ODDS_URL: ${REMOTE_ODDS_URL:-https://raw.githubusercontent.com/kwamenasworld-cloud/oddswize/data/odds_data.json}

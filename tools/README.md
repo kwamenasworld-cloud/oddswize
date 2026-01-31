@@ -30,6 +30,17 @@ Schedule the puller (Windows Task Scheduler, every 15 minutes):
 powershell -ExecutionPolicy Bypass -File tools/schedule_pull_remote_snapshot.ps1
 ```
 
+## Run Terminal with Docker
+
+```
+docker compose -f docker-compose.terminal.yml up --build
+```
+
+Optional environment variables (create `.env` from `.env.terminal.example`):
+- `REMOTE_HISTORY_URL`
+- `REMOTE_HISTORY_API_KEY`
+- `REMOTE_ODDS_URL`
+
 CLI backtest example:
 ```
 python tools/arb_backtest.py --strategy arb --run-start 2026-01-01 --run-end 2026-01-31 --output-csv data/analysis/arbs_jan.csv
