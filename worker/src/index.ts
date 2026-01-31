@@ -1803,6 +1803,9 @@ async function handleHistory(request: Request, env: Env, path: string): Promise<
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders(env) });
     }
+    if (path === '/api/history/ping' && request.method === 'GET') {
+      return jsonResponse({ success: true, status: 'ok' }, 200, env);
+    }
     if (path === '/api/history/runs' && request.method === 'GET') {
       return listHistoryRuns(request, env);
     }
