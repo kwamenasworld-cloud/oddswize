@@ -15,6 +15,7 @@ import requests
 import cloudscraper
 import asyncio
 import argparse
+import sqlite3
 from collections import Counter
 from datetime import datetime
 from typing import Dict, List, Set, Optional
@@ -44,6 +45,28 @@ def env_bool(name: str) -> bool:
 
 
 # Configuration - AGGRESSIVE MODE
+EXPECTED_BOOKMAKERS = [
+    'Betway Ghana',
+    'SportyBet Ghana',
+    '1xBet Ghana',
+    '22Bet Ghana',
+    'SoccaBet Ghana',
+    'Betfox Ghana',
+]
+OPTIONAL_BOOKMAKERS = [
+    'Betfox Ghana',
+]
+REQUIRED_COVERAGE_BOOKMAKERS = [
+    b for b in EXPECTED_BOOKMAKERS if b not in OPTIONAL_BOOKMAKERS
+]
+REQUIRE_FULL_TOP_LEAGUE_COVERAGE = os.getenv('REQUIRE_FULL_TOP_LEAGUE_COVERAGE', '1').strip().lower() in (
+    "1", "true", "yes", "on"
+)
+REQUIRE_ALL_EXPECTED_BOOKIES = os.getenv('REQUIRE_ALL_EXPECTED_BOOKIES', '0').strip().lower() in (
+    "1", "true", "yes", "on"
+)
+ALLOW_SINGLE_BOOKIE_MAJORS = env_bool("ALLOW_SINGLE_BOOKIE_MAJORS")
+MATCH_TIME_TOLERANCE_SECONDS = env_int("MATCH_TIME_TOLERANCE_SECONDS", 6 * 3600)
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
 D1_CANONICAL_INGEST = os.getenv('D1_CANONICAL_INGEST')  # optional override; defaults to CLOUDFLARE_WORKER_URL/api/canonical/ingest
@@ -59,6 +82,12 @@ SPORTYBET_TOURNAMENT_MAX_PAGES = env_int("SPORTYBET_TOURNAMENT_MAX_PAGES", 6)
 SPORTYBET_TOURNAMENT_PAGE_SIZE = env_int("SPORTYBET_TOURNAMENT_PAGE_SIZE", 100)
 BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE", 1200)
 BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP", 20000)
+HISTORY_DIR = os.getenv("HISTORY_DIR", "data")
+HISTORY_MATCHED_FILE = os.getenv("HISTORY_MATCHED_FILE", "odds_history.jsonl")
+HISTORY_RAW_FILE = os.getenv("HISTORY_RAW_FILE", "raw_scraped_history.jsonl")
+SAVE_RAW_HISTORY = env_bool("SAVE_RAW_HISTORY")
+HISTORY_DB_PATH = os.getenv("HISTORY_DB_PATH", os.path.join(HISTORY_DIR, "odds_history.db"))
+SAVE_HISTORY_DB = os.getenv("SAVE_HISTORY_DB", "1").strip().lower() in ("1", "true", "yes", "on")
 
 def apply_fast_mode() -> None:
     global FAST_MODE, MAX_MATCHES, MAX_CHAMPIONSHIPS, TIMEOUT, BATCH_SIZE, PARALLEL_PAGES
@@ -81,6 +110,164 @@ def apply_fast_mode() -> None:
 
 if FAST_MODE:
     apply_fast_mode()
+
+def resolve_history_path(filename: str) -> str:
+    if not filename:
+        return ''
+    if os.path.isabs(filename):
+        return filename
+    if HISTORY_DIR:
+        return os.path.join(HISTORY_DIR, filename)
+    return filename
+
+def append_jsonl(path: str, record: Dict) -> None:
+    if not path:
+        return
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    with open(path, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(record, ensure_ascii=False) + '\n')
+
+def slugify_simple(value: str) -> str:
+    value = (value or '').strip().lower()
+    value = re.sub(r'[^a-z0-9]+', '-', value)
+    return value.strip('-')
+
+def build_fixture_id(match: Dict) -> str:
+    home = slugify_simple(match.get('home_team', ''))
+    away = slugify_simple(match.get('away_team', ''))
+    start = int(match.get('start_time') or 0)
+    if home and away:
+        return f"{home}-vs-{away}-{start}"
+    return f"match-{start}"
+
+def init_history_db(conn: sqlite3.Connection) -> None:
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS runs (
+            run_id TEXT PRIMARY KEY,
+            last_updated TEXT,
+            total_scraped INTEGER,
+            matched_events INTEGER,
+            scrape_time_seconds REAL,
+            fast_mode INTEGER,
+            created_at TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS matches (
+            run_id TEXT,
+            match_id TEXT,
+            league TEXT,
+            start_time INTEGER,
+            home_team TEXT,
+            away_team TEXT,
+            PRIMARY KEY (run_id, match_id)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS odds (
+            run_id TEXT,
+            match_id TEXT,
+            bookmaker TEXT,
+            home_odds REAL,
+            draw_odds REAL,
+            away_odds REAL,
+            PRIMARY KEY (run_id, match_id, bookmaker)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_league ON matches(league)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_start ON matches(start_time)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_odds_bookie ON odds(bookmaker)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_runs_updated ON runs(last_updated)")
+
+def save_history_sqlite(output: Dict) -> None:
+    if not output:
+        return
+    db_path = resolve_history_path(HISTORY_DB_PATH)
+    if not db_path:
+        return
+    directory = os.path.dirname(db_path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    run_id = output.get('last_updated') or datetime.now().isoformat()
+    stats = output.get('stats', {}) or {}
+
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        init_history_db(conn)
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO runs (
+                run_id, last_updated, total_scraped, matched_events, scrape_time_seconds, fast_mode, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                run_id,
+                output.get('last_updated'),
+                stats.get('total_scraped'),
+                stats.get('matched_events'),
+                stats.get('scrape_time_seconds'),
+                1 if FAST_MODE else 0,
+                datetime.now().isoformat(),
+            )
+        )
+
+        match_rows = []
+        odds_rows = []
+        for match in output.get('matches', []) or []:
+            match_id = build_fixture_id(match)
+            match_rows.append((
+                run_id,
+                match_id,
+                match.get('league', ''),
+                int(match.get('start_time') or 0),
+                match.get('home_team', ''),
+                match.get('away_team', ''),
+            ))
+            for odds in match.get('odds', []) or []:
+                odds_rows.append((
+                    run_id,
+                    match_id,
+                    odds.get('bookmaker', ''),
+                    odds.get('home_odds'),
+                    odds.get('draw_odds'),
+                    odds.get('away_odds'),
+                ))
+
+        if match_rows:
+            conn.executemany(
+                "INSERT OR REPLACE INTO matches (run_id, match_id, league, start_time, home_team, away_team) VALUES (?, ?, ?, ?, ?, ?)",
+                match_rows
+            )
+        if odds_rows:
+            conn.executemany(
+                "INSERT OR REPLACE INTO odds (run_id, match_id, bookmaker, home_odds, draw_odds, away_odds) VALUES (?, ?, ?, ?, ?, ?)",
+                odds_rows
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+def save_history_snapshot(output: Dict, all_matches: Dict[str, List[Dict]]) -> None:
+    if not output:
+        return
+    run_id = output.get('last_updated') or datetime.now().isoformat()
+    matched_path = resolve_history_path(HISTORY_MATCHED_FILE)
+    history_record = {**output, 'run_id': run_id}
+    append_jsonl(matched_path, history_record)
+    if SAVE_RAW_HISTORY:
+        raw_path = resolve_history_path(HISTORY_RAW_FILE)
+        raw_record = {
+            'run_id': run_id,
+            'stats': output.get('stats', {}),
+            'matches': all_matches,
+        }
+        append_jsonl(raw_path, raw_record)
+    if SAVE_HISTORY_DB:
+        save_history_sqlite(output)
 
 # Top leagues to prioritize (keywords to search for in league names)
 TOP_LEAGUE_KEYWORDS = [
@@ -1011,6 +1198,17 @@ def token_similarity(a: str, b: str) -> float:
         return 0.0
     return len(ta & tb) / len(ta | tb)
 
+def is_start_time_close(a: int, b: int, tolerance_seconds: int = MATCH_TIME_TOLERANCE_SECONDS) -> bool:
+    """Return True if start times are within tolerance or missing."""
+    try:
+        a_val = int(a or 0)
+        b_val = int(b or 0)
+    except Exception:
+        return True
+    if a_val <= 0 or b_val <= 0:
+        return True
+    return abs(a_val - b_val) <= tolerance_seconds
+
 # Known teams for major leagues (for validation to prevent cross-contamination)
 RAW_LEAGUE_TEAMS = {
     'Premier League': [
@@ -1193,6 +1391,38 @@ def pick_league_for_group(event_group: List[Dict]) -> str:
 
     return league
 
+def resolve_required_bookies(all_matches: Dict[str, List[Dict]]) -> List[str]:
+    """Resolve which bookmakers are required for top-league full coverage."""
+    base = EXPECTED_BOOKMAKERS if REQUIRE_ALL_EXPECTED_BOOKIES else REQUIRED_COVERAGE_BOOKMAKERS
+    return [b for b in base if b in all_matches]
+
+def filter_top_league_full_coverage(
+    matched_events: List[List[Dict]],
+    required_bookies: List[str]
+) -> List[List[Dict]]:
+    """Drop top-league matches that lack full bookmaker coverage."""
+    if not matched_events or not required_bookies:
+        return matched_events
+    required_set = set(required_bookies)
+    kept = []
+    dropped = 0
+    for group in matched_events:
+        if not group:
+            continue
+        league = pick_league_for_group(group)
+        is_top = league in LEAGUE_TEAMS or is_major_league_name(league)
+        if not is_top:
+            kept.append(group)
+            continue
+        group_bookies = {m.get('bookmaker') for m in group if m.get('bookmaker')}
+        if required_set.issubset(group_bookies):
+            kept.append(group)
+        else:
+            dropped += 1
+    if dropped:
+        print(f"  [COVERAGE] Dropped {dropped} top-league matches without full bookmaker coverage")
+    return kept
+
 def normalize_league(league: str) -> str:
     """Normalize league name to prevent duplicates across bookmakers."""
     if not league:
@@ -1287,17 +1517,34 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
             if key in groups:
                 groups[key].append(match)
                 continue
+            reverse_key = f"{away}|{home}"
+            if reverse_key in groups:
+                groups[reverse_key].append(match)
+                continue
 
             # Fuzzy matching
             matched = False
             for existing_key in list(groups.keys()):
                 eh, ea = existing_key.split('|')
+                existing_group = groups.get(existing_key) or []
+                existing_time = existing_group[0].get('start_time') if existing_group else 0
+                if not is_start_time_close(match.get('start_time'), existing_time):
+                    continue
                 home_sim = SequenceMatcher(None, home, eh).ratio()
                 away_sim = SequenceMatcher(None, away, ea).ratio()
                 home_tok = token_similarity(home, eh)
                 away_tok = token_similarity(away, ea)
+                home_sim_swap = SequenceMatcher(None, home, ea).ratio()
+                away_sim_swap = SequenceMatcher(None, away, eh).ratio()
+                home_tok_swap = token_similarity(home, ea)
+                away_tok_swap = token_similarity(away, eh)
 
-                if (home_sim > 0.75 and away_sim > 0.75) or (home_tok >= 0.55 and away_tok >= 0.55):
+                if (
+                    (home_sim > 0.75 and away_sim > 0.75)
+                    or (home_tok >= 0.55 and away_tok >= 0.55)
+                    or (home_sim_swap > 0.75 and away_sim_swap > 0.75)
+                    or (home_tok_swap >= 0.55 and away_tok_swap >= 0.55)
+                ):
                     groups[existing_key].append(match)
                     matched = True
                     break
@@ -1653,7 +1900,19 @@ def main():
         return
 
     matched = match_events(all_matches)
-    matched = add_single_bookie_major_league_matches(all_matches, matched)
+    if REQUIRE_FULL_TOP_LEAGUE_COVERAGE:
+        required_targets = EXPECTED_BOOKMAKERS if REQUIRE_ALL_EXPECTED_BOOKIES else REQUIRED_COVERAGE_BOOKMAKERS
+        missing_required = [b for b in required_targets if b not in all_matches]
+        if missing_required:
+            print(f"  [WARN] Missing required bookmakers this run: {', '.join(missing_required)}")
+        optional_missing = [b for b in OPTIONAL_BOOKMAKERS if b not in all_matches]
+        if optional_missing:
+            print(f"  [INFO] Optional bookmakers missing (ignored for coverage): {', '.join(optional_missing)}")
+        required_bookies = resolve_required_bookies(all_matches)
+        matched = filter_top_league_full_coverage(matched, required_bookies)
+
+    if ALLOW_SINGLE_BOOKIE_MAJORS and not REQUIRE_FULL_TOP_LEAGUE_COVERAGE:
+        matched = add_single_bookie_major_league_matches(all_matches, matched)
 
     if not matched:
         print("No matched events - exiting")
@@ -1674,6 +1933,15 @@ def main():
     with open('odds_data.json', 'w') as f:
         json.dump(output, f, indent=2)
     print(f"\nSaved to odds_data.json")
+    try:
+        save_history_snapshot(output, all_matches)
+        print(f"[HISTORY] Appended snapshot to {resolve_history_path(HISTORY_MATCHED_FILE)}")
+        if SAVE_RAW_HISTORY:
+            print(f"[HISTORY] Appended raw snapshot to {resolve_history_path(HISTORY_RAW_FILE)}")
+        if SAVE_HISTORY_DB:
+            print(f"[HISTORY] Stored snapshot in {resolve_history_path(HISTORY_DB_PATH)}")
+    except Exception as e:
+        print(f"[WARN] Failed to append history snapshot: {e}")
 
     if not args.no_push:
         push_to_cloudflare(matched, fast=FAST_MODE)

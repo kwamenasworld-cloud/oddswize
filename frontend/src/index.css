@@ -136,6 +136,10 @@ a {
   background: rgba(255,255,255,0.1);
 }
 
+.nav-account {
+  display: none;
+}
+
 /* 18+ Badge */
 .header-badge {
   display: flex;
@@ -488,6 +492,36 @@ a {
   flex-wrap: wrap;
 }
 
+.bookie-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border: 1px solid #e2e6ee;
+  border-radius: 999px;
+  background: #f7f8fa;
+}
+
+.bookie-view-btn {
+  padding: 0.35rem 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #667085;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bookie-view-btn.active {
+  background: #1f2937;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.18);
+}
+
 .bookie-toggle {
   display: flex;
   align-items: center;
@@ -539,6 +573,55 @@ a {
   color: #333;
 }
 
+.coverage-row {
+  margin-top: 0.3rem;
+}
+
+.coverage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.coverage-pill.complete {
+  background: #e7f7ee;
+  color: #0f8a44;
+}
+
+.coverage-pill.partial {
+  background: #fff4e5;
+  color: #b25c00;
+}
+
+.more-odds-btn {
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.more-odds-btn:hover {
+  border-color: #94a3b8;
+  color: #1f2937;
+  background: #f8fafc;
+}
+
 /* ========================= */
 /* CTA Section               */
 /* ========================= */
@@ -586,7 +669,19 @@ a {
   transform: translateY(-1px);
 }
 
+.cta-watchlist.active {
+  background: linear-gradient(135deg, #ffe0b2, #ffd39a);
+  border-color: #ffc37a;
+  color: #c25600;
+  box-shadow: 0 4px 12px rgba(255, 167, 38, 0.35);
+}
+
 .cta-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   font-size: 0.95rem;
 }
 
@@ -704,6 +799,11 @@ a {
     font-size: 0.65rem;
     padding: 0.35rem 0.65rem;
   }
+
+  .bookie-view-btn {
+    font-size: 0.6rem;
+    padding: 0.3rem 0.55rem;
+  }
 }
 
 /* Toolbar */
@@ -740,6 +840,39 @@ a {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #f4f6f8;
+  border: 1px solid #e0e6ed;
+}
+
+.view-toggle-btn {
+  border: none;
+  background: transparent;
+  color: #556;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn.active {
+  background: #1a73e8;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(26, 115, 232, 0.3);
+}
+
+.view-toggle-btn:focus-visible {
+  outline: 2px solid rgba(26, 115, 232, 0.35);
+  outline-offset: 2px;
 }
 
 .search-wrapper {
@@ -1493,6 +1626,41 @@ a {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.favorite-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #b0b7c3;
+  border-radius: 8px;
+  padding: 2px;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.favorite-toggle svg {
+  display: block;
+}
+
+.favorite-toggle:hover {
+  color: #f5a623;
+  background: #fff6e5;
+  border-color: #ffe2b8;
+}
+
+.favorite-toggle:focus-visible {
+  outline: 2px solid rgba(245, 166, 35, 0.45);
+  outline-offset: 2px;
+}
+
+.favorite-toggle.active {
+  color: #f5a623;
+  background: #fff1d6;
+  border-color: #ffdba4;
 }
 
 .team-name {
@@ -2813,13 +2981,47 @@ body.modal-open {
   }
 
   .nav.nav-open {
-    max-height: 250px;
+    max-height: 340px;
   }
 
   .nav a {
     padding: 0.85rem 1.25rem;
     border-bottom: 1px solid rgba(255,255,255,0.1);
     border-radius: 0;
+  }
+
+  .nav-account {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem 1rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .nav-account-name {
+    font-size: 0.75rem;
+    color: #aaa;
+  }
+
+  .nav-account-btn {
+    width: 100%;
+    padding: 0.55rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .nav-account-btn.primary {
+    background: #1a73e8;
+    border-color: rgba(26, 115, 232, 0.6);
+  }
+
+  .nav-account-btn.secondary {
+    background: transparent;
   }
 
   .odds-toolbar {
@@ -2857,6 +3059,35 @@ body.modal-open {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .filter-card-top {
+    align-items: stretch;
+  }
+
+  .filter-top-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .country-select,
+  .sort-selector,
+  .view-toggle,
+  .refresh-btn {
+    width: 100%;
+  }
+
+  .view-toggle {
+    justify-content: space-between;
+  }
+
+  .sort-select {
+    width: 100%;
+  }
+
+  .refresh-btn {
+    justify-content: center;
   }
 
   .sort-selector {
@@ -3492,6 +3723,11 @@ body.modal-open {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.header-account {
+  display: flex;
+  align-items: center;
 }
 
 /* Login Button */
@@ -5269,6 +5505,16 @@ body.modal-open {
 
 .detail-icon {
   font-size: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-icon svg,
+.info-icon svg,
+.check-icon svg,
+.cta-icon svg {
+  display: block;
 }
 
 .detail-item > div {
@@ -5372,6 +5618,9 @@ body.modal-open {
 .check-icon {
   color: var(--success);
   font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .join-btn {
@@ -5421,7 +5670,9 @@ body.modal-open {
 
 .info-icon {
   font-size: 2.5rem;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 0.75rem;
 }
 

@@ -1,5 +1,12 @@
-// Affiliate Configuration - Replace with your actual affiliate tracking URLs
-// These URLs should include your affiliate ID/tracking parameters
+// Affiliate Configuration
+// Use VITE_AFFILIATE_* environment variables to inject affiliate IDs when available.
+
+const resolveAffiliateUrl = (baseUrl, param, envKey) => {
+  const id = typeof import.meta !== 'undefined' ? import.meta.env?.[envKey] : '';
+  if (!id) return baseUrl;
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${separator}${param}=${encodeURIComponent(id)}`;
+};
 
 export const BOOKMAKER_AFFILIATES = {
   'Betway Ghana': {
@@ -10,8 +17,7 @@ export const BOOKMAKER_AFFILIATES = {
     colorLight: '#e6f7ea',
     colorDark: '#008a1f',
     logo: '/logos/betway.png',
-    // Replace YOUR_AFFILIATE_ID with your actual Betway affiliate tracking ID
-    affiliateUrl: 'https://www.betway.com.gh/?btag=YOUR_AFFILIATE_ID',
+    affiliateUrl: resolveAffiliateUrl('https://www.betway.com.gh/', 'btag', 'VITE_AFFILIATE_BETWAY_ID'),
     signupBonus: 'Get 50% up to GHS 200',
     rating: 4.8,
     features: ['Fast Payouts', 'Live Streaming', 'Cash Out'],
@@ -24,7 +30,7 @@ export const BOOKMAKER_AFFILIATES = {
     colorLight: '#fce8ea',
     colorDark: '#c62e3b',
     logo: '/logos/sportybet.png',
-    affiliateUrl: 'https://www.sportybet.com/gh/?affiliate=YOUR_AFFILIATE_ID',
+    affiliateUrl: resolveAffiliateUrl('https://www.sportybet.com/gh/', 'affiliate', 'VITE_AFFILIATE_SPORTYBET_ID'),
     signupBonus: 'Get 300% Welcome Bonus',
     rating: 4.7,
     features: ['300% Bonus', 'Mobile App', 'Fast Odds'],
@@ -63,7 +69,7 @@ export const BOOKMAKER_AFFILIATES = {
     colorLight: '#fce6ea',
     colorDark: '#c2142e',
     logo: '/logos/soccabet.png',
-    affiliateUrl: 'https://www.soccabet.com/?ref=YOUR_AFFILIATE_ID',
+    affiliateUrl: resolveAffiliateUrl('https://www.soccabet.com/', 'ref', 'VITE_AFFILIATE_SOCCABET_ID'),
     signupBonus: 'Get 100% First Deposit Bonus',
     rating: 4.4,
     features: ['Local Focus', 'Easy Deposit', 'SMS Betting'],
@@ -110,6 +116,16 @@ export const BOOKMAKER_ORDER = [
   'SoccaBet Ghana',
   'Betfox Ghana',
 ];
+
+// Bookmakers that are optional for primary coverage
+export const OPTIONAL_BOOKMAKERS = [
+  'Betfox Ghana',
+];
+
+// Primary bookmakers for core coverage views
+export const PRIMARY_BOOKMAKERS = BOOKMAKER_ORDER.filter(
+  (bookmaker) => !OPTIONAL_BOOKMAKERS.includes(bookmaker)
+);
 
 // Bookmaker Logo Component
 export const BookmakerLogo = ({ bookmaker, size = 40 }) => {

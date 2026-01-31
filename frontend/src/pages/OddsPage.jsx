@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+﻿import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { clearOddsCacheMemory, connectOddsStream, getCachedOdds, getLiveScores, getMatchesByLeague, getStatus, triggerScan } from '../services/api';
-import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER } from '../config/affiliates';
+import { BOOKMAKER_AFFILIATES, BOOKMAKER_ORDER, OPTIONAL_BOOKMAKERS, PRIMARY_BOOKMAKERS } from '../config/affiliates';
 import { LEAGUES, COUNTRIES, isCountryMatch, getLeagueTier, matchLeague, matchLeagueFuzzy } from '../config/leagues';
 import { BookmakerLogo, LiveIndicator } from '../components/BookmakerLogo';
 import { TeamLogo } from '../components/TeamLogo';
@@ -10,6 +10,8 @@ import { normalizeTeamName, preloadTeamLogos } from '../services/teamLogos';
 import ShareButton from '../components/ShareButton';
 import { trackAffiliateClick } from '../services/analytics';
 import { getRecommendedBookmakers } from '../services/bookmakerRecommendations';
+import { getPreferences, toggleFavoriteTeam, updateDisplaySetting } from '../services/userPreferences';
+import { usePageMeta } from '../services/seo';
 const CommentsSection = lazy(() => import('../components/CommentsSection'));
 
 // Market types
@@ -18,6 +20,40 @@ const MARKETS = {
   'double_chance': { id: 'double_chance', name: 'Double Chance', labels: ['1X', 'X2', '12'], description: 'Double Chance' },
   'over_under': { id: 'over_under', name: 'O/U 2.5', labels: ['Over', 'Under'], description: 'Over/Under 2.5 Goals' },
 };
+
+const StarIcon = ({ filled = false }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    strokeWidth="2"
+    aria-hidden="true"
+  >
+    <path d="M12 17.3l-6.18 3.26 1.18-6.9L1 8.77l6.91-1L12 1l3.09 6.77 6.91 1-5 4.89 1.18 6.9z" />
+  </svg>
+);
+
+const TrophyIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M8 21h8" />
+    <path d="M12 17v4" />
+    <path d="M7 4h10v3a5 5 0 0 1-10 0z" />
+    <path d="M7 7H5a2 2 0 0 1-2-2V4h4" />
+    <path d="M17 7h2a2 2 0 0 0 2-2V4h-4" />
+  </svg>
+);
 
 const DEFAULT_REFRESH_MS = 5 * 60 * 1000;
 const MIN_REFRESH_MS = 2 * 60 * 1000;
@@ -28,6 +64,27 @@ const PAGE_SIZE_MOBILE = 15;
 const LIVE_SCORE_REFRESH_MS = 30 * 1000;
 const LIVE_SCORE_TIME_TOLERANCE_MS = 6 * 60 * 60 * 1000;
 const STREAM_RECONNECT_MS = 2000;
+const EDGE_FILTER_MIN = 5;
+const PENDING_MIN_BOOKIES = 4;
+const PENDING_MAX_MISSING = 2;
+const PENDING_WINDOW_HOURS = 24;
+const PENDING_EXCLUDED_BOOKMAKERS = new Set(OPTIONAL_BOOKMAKERS);
+
+const buildBookieState = (defaults) => {
+  const enabledDefaults = Array.isArray(defaults) ? defaults : [];
+  if (!enabledDefaults.length) {
+    return BOOKMAKER_ORDER.reduce((acc, b) => ({ ...acc, [b]: true }), {});
+  }
+  const enabledSet = new Set(enabledDefaults);
+  return BOOKMAKER_ORDER.reduce(
+    (acc, b) => ({ ...acc, [b]: enabledSet.has(b) }),
+    {}
+  );
+};
+
+const normalizeFilterTerm = (value) => (
+  (value || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '')
+);
 
 const normalizeScoreKey = (value) => {
   const normalized = normalizeTeamName(value || '');
@@ -76,7 +133,7 @@ const resolveScoreEvent = (match, liveIndex) => {
   return score;
 };
 
-const resolveMatchStatus = (match, scoreEvent) => {
+const resolveMatchStatus = (match, scoreEvent, pendingActive = false) => {
   const state = (scoreEvent?.state || '').toLowerCase();
   if (state === 'in') {
     return { type: 'live', label: 'LIVE' };
@@ -85,15 +142,15 @@ const resolveMatchStatus = (match, scoreEvent) => {
     return { type: 'final', label: 'FT' };
   }
   if (state === 'pre') {
-    return match?.pendingOdds
-      ? { type: 'pending', label: 'Pending' }
+    return pendingActive
+      ? { type: 'pending', label: 'Updating' }
       : { type: 'upcoming', label: 'Upcoming' };
   }
   if (state) {
     return { type: 'state', label: state.toUpperCase() };
   }
-  if (match?.pendingOdds) {
-    return { type: 'pending', label: 'Pending' };
+  if (pendingActive) {
+    return { type: 'pending', label: 'Updating' };
   }
   return null;
 };
@@ -204,18 +261,18 @@ const LEAGUE_QUERY_TILES = [
 // Date filter options
 const DATE_FILTERS = [
   { id: 'next24', name: 'Next 24h', icon: '24h' },
-  { id: 'today', name: 'Today', icon: '📅' },
-  { id: 'tomorrow', name: 'Tomorrow', icon: '📆' },
-  { id: 'weekend', name: 'Weekend', icon: '🗓️' },
-  { id: 'all', name: 'All', icon: '📋' },
+  { id: 'today', name: 'Today', icon: 'Tod' },
+  { id: 'tomorrow', name: 'Tomorrow', icon: 'Tmr' },
+  { id: 'weekend', name: 'Weekend', icon: 'Wkd' },
+  { id: 'all', name: 'All', icon: 'All' },
 ];
 
 // Sort options for matches
 const SORT_OPTIONS = [
-  { id: 'time', name: 'Kick-off Time', icon: '🕐' },
-  { id: 'popularity', name: 'Popularity', icon: '🔥' },
-  { id: 'bookmakers', name: 'Most Bookmakers', icon: '📊' },
-  { id: 'league', name: 'League Name', icon: '🏆' },
+  { id: 'time', name: 'Kick-off Time', icon: 'KO' },
+  { id: 'popularity', name: 'Popularity', icon: 'Pop' },
+  { id: 'bookmakers', name: 'Most Bookmakers', icon: 'Book' },
+  { id: 'league', name: 'League Name', icon: 'A-Z' },
 ];
 
 // Calculate popularity score for a match using centralized league tiers
@@ -299,11 +356,20 @@ const MARKET_FIELDS = {
   'over_under': ['over_25', 'under_25'],
 };
 
-function OddsPage() {
+function OddsPage({ prefsVersion = 0 }) {
   const [searchParams] = useSearchParams();
   const preferCanonical = searchParams.get('source') === 'canonical';
   const countryParam = searchParams.get('country');
   const matchParam = searchParams.get('match');
+  const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://oddswize.com';
+  const oddsUrl = `${siteUrl}/odds`;
+
+  usePageMeta({
+    title: 'Live Odds Comparison | OddsWize',
+    description: 'Compare real-time odds across Ghana bookmakers. Track value edges, filter by league, and save favorite teams.',
+    url: oddsUrl,
+    image: `${siteUrl}/og-image.png`,
+  });
   const [matches, setMatches] = useState([]);
   const [canonicalLeagues, setCanonicalLeagues] = useState([]);
   const [useCanonical, setUseCanonical] = useState(false);
@@ -335,9 +401,12 @@ function OddsPage() {
   const [selectedMarket, setSelectedMarket] = useState('1x2');
   const [selectedOdd, setSelectedOdd] = useState(null);
   const [selectedDate, setSelectedDate] = useState('next24');
+  const [prefs, setPrefs] = useState(() => getPreferences());
+  const [viewMode, setViewMode] = useState(() => prefs.display?.defaultView || 'all');
   const [enabledBookies, setEnabledBookies] = useState(() =>
-    BOOKMAKER_ORDER.reduce((acc, b) => ({ ...acc, [b]: true }), {})
+    buildBookieState(prefs.defaultBookmakers)
   );
+  const [bookmakerView, setBookmakerView] = useState('primary');
   const [showAllMatches, setShowAllMatches] = useState(false);
   const [selectedSort, setSelectedSort] = useState('time');
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(DEFAULT_REFRESH_MS);
@@ -347,6 +416,9 @@ function OddsPage() {
   const [pageIndex, setPageIndex] = useState(0);
   const streamUpdateRef = useRef(() => {});
   const tooltipPinnedRef = useRef(false);
+  const [expandedCards, setExpandedCards] = useState(() => new Set());
+  const [oddsUpdating, setOddsUpdating] = useState(false);
+  const oddsUpdateTimerRef = useRef(null);
   const [canHover, setCanHover] = useState(true);
   const [compactView, setCompactView] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -355,14 +427,48 @@ function OddsPage() {
     }
     return window.innerWidth <= COMPACT_BREAKPOINT;
   });
-  const hasFilters =
-    Boolean(searchQuery || leagueQuery || selectedLeagues.length > 0 || selectedCountry !== 'all');
+  const hasViewFilter = viewMode !== 'all';
+  const hasFilters = Boolean(
+    searchQuery || leagueQuery || selectedLeagues.length > 0 || selectedCountry !== 'all' || hasViewFilter
+  );
   const hasDateFilter = selectedDate !== 'all';
   const useServerPagination = !hasFilters && selectedSort === 'time';
   const pageSize = compactView ? PAGE_SIZE_MOBILE : PAGE_SIZE_DESKTOP;
+  const currentMarket = MARKETS[selectedMarket];
+  const marketFields = MARKET_FIELDS[selectedMarket];
   const loadDataRef = useRef(() => {});
   const oddsContainerRef = useRef(null);
   const hasLoadedRef = useRef(false);
+
+  const toggleCardExpanded = useCallback((matchId) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(matchId)) {
+        next.delete(matchId);
+      } else {
+        next.add(matchId);
+      }
+      return next;
+    });
+  }, []);
+
+  const startOddsUpdate = useCallback(() => {
+    if (oddsUpdateTimerRef.current) {
+      clearTimeout(oddsUpdateTimerRef.current);
+      oddsUpdateTimerRef.current = null;
+    }
+    setOddsUpdating(true);
+  }, []);
+
+  const endOddsUpdate = useCallback((delayMs = 1000) => {
+    if (oddsUpdateTimerRef.current) {
+      clearTimeout(oddsUpdateTimerRef.current);
+    }
+    oddsUpdateTimerRef.current = setTimeout(() => {
+      setOddsUpdating(false);
+      oddsUpdateTimerRef.current = null;
+    }, delayMs);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined;
@@ -376,6 +482,13 @@ function OddsPage() {
     media.addListener(update);
     return () => media.removeListener(update);
   }, []);
+
+  useEffect(() => {
+    const nextPrefs = getPreferences();
+    setPrefs(nextPrefs);
+    setEnabledBookies(buildBookieState(nextPrefs.defaultBookmakers));
+    setViewMode(nextPrefs.display?.defaultView || 'all');
+  }, [prefsVersion]);
 
   const flattenWorkerLeagues = (leagues) => (
     (leagues || []).flatMap(league =>
@@ -423,7 +536,7 @@ function OddsPage() {
 
   useEffect(() => {
     setPageIndex(0);
-  }, [searchQuery, leagueQuery, selectedLeagues, selectedCountry, selectedDate, selectedSort]);
+  }, [searchQuery, leagueQuery, selectedLeagues, selectedCountry, selectedDate, selectedSort, viewMode]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
@@ -461,6 +574,13 @@ function OddsPage() {
     handleVisibility();
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  useEffect(() => () => {
+    if (oddsUpdateTimerRef.current) {
+      clearTimeout(oddsUpdateTimerRef.current);
+      oddsUpdateTimerRef.current = null;
+    }
   }, []);
 
   // Auto-refresh odds periodically to keep prices fresh without manual refresh
@@ -596,6 +716,7 @@ function OddsPage() {
     const pageOffset = useServerPagination ? pageIndex * pageSize : undefined;
     const timeFilters = buildTimeFilterOptions(selectedDate);
     setError(null);
+    startOddsUpdate();
     try {
       let statusData = null;
       let fetchedMatches = null;
@@ -695,6 +816,7 @@ function OddsPage() {
       setTotalMatchCount(0);
     } finally {
       clearOddsCacheMemory();
+      endOddsUpdate(silent ? 800 : 1200);
       if (!silent) setLoading(false);
     }
   };
@@ -745,6 +867,22 @@ function OddsPage() {
       const numberValue = Number(value);
       return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
     };
+    const enabledBookmakersList = BOOKMAKER_ORDER.filter(b => enabledBookies[b]);
+    const pendingBookmakersList = (enabledBookmakersList.length ? enabledBookmakersList : BOOKMAKER_ORDER).filter(
+      bookmaker => !PENDING_EXCLUDED_BOOKMAKERS.has(bookmaker)
+    );
+    const availableBookmakers = new Set();
+    (rawMatches || []).forEach(match => {
+      const oddsList = Array.isArray(match?.odds) ? match.odds : [];
+      oddsList.forEach(odds => {
+        if (odds?.bookmaker) {
+          availableBookmakers.add(odds.bookmaker);
+        }
+      });
+    });
+    const expectedBookmakers = pendingBookmakersList.filter(b => availableBookmakers.has(b));
+    const expectedBookmakersCount = expectedBookmakers.length || pendingBookmakersList.length;
+    const expectedBookmakersSet = new Set(expectedBookmakers);
     return (rawMatches || []).map(match => {
       const baseOdds = Array.isArray(match.odds) ? match.odds : [];
       const oddsArr = baseOdds.map(odds => {
@@ -771,13 +909,23 @@ function OddsPage() {
         };
       }).filter(Boolean);
 
+      const visibleOddsCount = expectedBookmakersSet.size
+        ? oddsArr.filter(odds => expectedBookmakersSet.has(odds.bookmaker)).length
+        : oddsArr.length;
       const startMs = (match.start_time || 0) * 1000;
-      const hasOdds = oddsArr.length > 0;
-      const missingBookies = oddsArr.length < BOOKMAKER_ORDER.length;
+      const hasOdds = visibleOddsCount > 0;
+      const totalBookies = expectedBookmakersCount || BOOKMAKER_ORDER.length;
+      const missingCount = Math.max(0, totalBookies - visibleOddsCount);
+      const missingBookies = missingCount > 0;
+      const pendingMinBookies = Math.min(PENDING_MIN_BOOKIES, totalBookies);
       const withinWindow = startMs
-        ? (startMs > nowMs - 2 * 3600 * 1000 && startMs < nowMs + 48 * 3600 * 1000)
+        ? (startMs > nowMs - 2 * 3600 * 1000 && startMs < nowMs + PENDING_WINDOW_HOURS * 3600 * 1000)
         : true;
-      const pendingOdds = hasOdds && missingBookies && withinWindow;
+      const pendingOdds = hasOdds
+        && missingBookies
+        && oddsArr.length >= pendingMinBookies
+        && missingCount <= PENDING_MAX_MISSING
+        && withinWindow;
 
       const leagueName = match.league || '';
       const derivedKey = match.league_key || matchLeague(leagueName)?.id || null;
@@ -801,6 +949,7 @@ function OddsPage() {
     const removedIds = Array.isArray(payload?.removed_ids) ? payload.removed_ids : [];
     if (updates.length === 0 && removedIds.length === 0) return;
 
+    startOddsUpdate();
     const enrichedUpdates = updates.length ? enrichMatches(updates) : [];
     const removedSet = new Set(removedIds);
 
@@ -820,6 +969,7 @@ function OddsPage() {
       }
       return Array.from(next.values());
     });
+    endOddsUpdate(1200);
   };
   streamUpdateRef.current = applyStreamUpdate;
 
@@ -860,10 +1010,16 @@ function OddsPage() {
   };
 
   // Get best odds for a specific field
-  const getBestOdds = (match, field) => {
+  const getBestOdds = (match, field, bookmakersFilter = null) => {
     const odds = match.odds || [];
     if (odds.length === 0) return { value: 0, bookmaker: '' };
-    const validOdds = odds.filter(o => o[field] && o[field] > 0);
+    const validOdds = odds.filter(o => {
+      if (!o[field] || o[field] <= 0) return false;
+      if (bookmakersFilter && bookmakersFilter.length) {
+        return bookmakersFilter.includes(o.bookmaker);
+      }
+      return true;
+    });
     if (validOdds.length === 0) return { value: 0, bookmaker: '' };
     const best = validOdds.reduce((max, o) => (o[field] > max[field] ? o : max), validOdds[0]);
     return { value: best[field], bookmaker: best.bookmaker };
@@ -882,9 +1038,15 @@ function OddsPage() {
   const closeDiscussion = () => setDiscussionMatch(null);
 
   // Calculate market average for an outcome
-  const getMarketAverage = (match, field) => {
+  const getMarketAverage = (match, field, bookmakersFilter = null) => {
     const odds = match.odds || [];
-    const validOdds = odds.filter(o => o[field] && o[field] > 0);
+    const validOdds = odds.filter(o => {
+      if (!o[field] || o[field] <= 0) return false;
+      if (bookmakersFilter && bookmakersFilter.length) {
+        return bookmakersFilter.includes(o.bookmaker);
+      }
+      return true;
+    });
     if (validOdds.length === 0) return 0;
     const sum = validOdds.reduce((acc, o) => acc + o[field], 0);
     return sum / validOdds.length;
@@ -906,7 +1068,7 @@ function OddsPage() {
   const getBestValueOffer = (match, marketFields, labels, activeBookmakers) => {
     const odds = match.odds || [];
     if (!odds.length) return null;
-    const averages = marketFields.map(field => getMarketAverage(match, field));
+    const averages = marketFields.map(field => getMarketAverage(match, field, activeBookmakers));
     let best = null;
 
     odds.forEach((bookie) => {
@@ -1040,6 +1202,40 @@ function OddsPage() {
     });
   };
 
+  const favoriteTeamSet = useMemo(
+    () => new Set((prefs.favoriteTeams || []).map(normalizeFilterTerm)),
+    [prefs.favoriteTeams]
+  );
+  const favoriteLeagueFilters = useMemo(
+    () => (prefs.favoriteLeagues || []).map(normalizeFilterTerm).filter(Boolean),
+    [prefs.favoriteLeagues]
+  );
+
+  const matchesFavoriteLeague = useCallback((match) => {
+    if (!favoriteLeagueFilters.length) return false;
+    const leagueName = normalizeFilterTerm(match.league);
+    const leagueKey = normalizeFilterTerm(match.league_key || matchLeague(match.league)?.id || '');
+    const canonicalName = normalizeFilterTerm(matchLeague(match.league)?.name || '');
+    return favoriteLeagueFilters.some((filter) => {
+      if (!filter) return false;
+      const matchesName = leagueName && (leagueName.includes(filter) || filter.includes(leagueName));
+      const matchesKey = leagueKey && (leagueKey.includes(filter) || filter.includes(leagueKey));
+      const matchesCanonical = canonicalName && (canonicalName.includes(filter) || filter.includes(canonicalName));
+      return matchesName || matchesKey || matchesCanonical;
+    });
+  }, [favoriteLeagueFilters]);
+
+  const toggleTeamFavorite = (team) => {
+    toggleFavoriteTeam(team);
+    setPrefs(getPreferences());
+  };
+
+  const handleViewChange = (nextView) => {
+    setViewMode(nextView);
+    updateDisplaySetting('defaultView', nextView);
+    setPrefs(getPreferences());
+  };
+
   const searchLeagueId = useMemo(() => {
     const query = searchQuery.trim();
     if (!query) return null;
@@ -1088,9 +1284,52 @@ function OddsPage() {
 
       const matchesDate = matchesDateFilter(match.start_time, selectedDate);
 
-      return matchesSearch && matchesLeagueText && matchesLeague && matchesCountry && matchesDate;
+      const matchesFavoriteTeam = favoriteTeamSet.size > 0 && (
+        favoriteTeamSet.has(normalizeFilterTerm(match.home_team))
+        || favoriteTeamSet.has(normalizeFilterTerm(match.away_team))
+      );
+      const matchesFavorites = viewMode !== 'favorites' || matchesFavoriteTeam || matchesFavoriteLeague(match);
+
+      const matchesEdge = viewMode !== 'edges' || (() => {
+        if (!marketFields.length) return false;
+        const averages = marketFields.map((field) => getMarketAverage(match, field));
+        const odds = match.odds || [];
+        return odds.some((bookie) => {
+          if (!enabledBookies[bookie.bookmaker]) return false;
+          return marketFields.some((field, index) => {
+            const oddsValue = Number(bookie[field]);
+            const average = averages[index];
+            if (!Number.isFinite(oddsValue) || !Number.isFinite(average) || average <= 0) return false;
+            const edge = ((oddsValue - average) / average) * 100;
+            return edge >= EDGE_FILTER_MIN;
+          });
+        });
+      })();
+
+      return matchesSearch
+        && matchesLeagueText
+        && matchesLeague
+        && matchesCountry
+        && matchesDate
+        && matchesFavorites
+        && matchesEdge;
     });
-  }, [matches, searchQuery, leagueQuery, selectedLeagues, selectedCountry, selectedDate, useCanonical, canonicalLeagues]);
+  }, [
+    matches,
+    searchQuery,
+    leagueQuery,
+    selectedLeagues,
+    selectedCountry,
+    selectedDate,
+    useCanonical,
+    canonicalLeagues,
+    viewMode,
+    favoriteTeamSet,
+    matchesFavoriteLeague,
+    marketFields,
+    enabledBookies,
+    searchLeagueId,
+  ]);
 
   useEffect(() => {
     if (loading) return;
@@ -1123,6 +1362,7 @@ function OddsPage() {
     setSelectedLeagues([]);
     setSelectedCountry('all');
     setSelectedDate('next24');
+    handleViewChange('all');
     setShowAllMatches(true);
   };
 
@@ -1212,8 +1452,11 @@ function OddsPage() {
   };
 
   // Get active bookmakers
-  const activeBookmakers = BOOKMAKER_ORDER.filter(b => enabledBookies[b]);
-  const oddsColumns = `minmax(var(--odds-match-min), var(--odds-match-max)) var(--odds-time) repeat(${activeBookmakers.length}, minmax(var(--odds-bookie-min), 1fr))`;
+  const enabledBookmakersList = BOOKMAKER_ORDER.filter(b => enabledBookies[b]);
+  const baseBookmakers = bookmakerView === 'primary' ? PRIMARY_BOOKMAKERS : BOOKMAKER_ORDER;
+  const visibleBookmakersBase = baseBookmakers.filter(b => enabledBookies[b]);
+  const visibleBookmakers = visibleBookmakersBase.length ? visibleBookmakersBase : enabledBookmakersList;
+  const oddsColumns = `minmax(var(--odds-match-min), var(--odds-match-max)) var(--odds-time) repeat(${visibleBookmakers.length}, minmax(var(--odds-bookie-min), 1fr))`;
 
   // Sort function based on selected sort option
   const sortMatches = (matchList) => {
@@ -1444,9 +1687,6 @@ function OddsPage() {
     return recommended || null;
   }, [selectedLeagues, filteredMatches]);
 
-  // Get current market config
-  const currentMarket = MARKETS[selectedMarket];
-  const marketFields = MARKET_FIELDS[selectedMarket];
   const hasPagination = totalPages > 1;
 
   const renderPagination = (className = '') => {
@@ -1589,6 +1829,24 @@ function OddsPage() {
             );
           })}
         </div>
+        <div className="bookie-view-toggle" role="group" aria-label="Bookmaker view">
+          <button
+            type="button"
+            className={`bookie-view-btn ${bookmakerView === 'primary' ? 'active' : ''}`}
+            onClick={() => setBookmakerView('primary')}
+            aria-pressed={bookmakerView === 'primary'}
+          >
+            Primary
+          </button>
+          <button
+            type="button"
+            className={`bookie-view-btn ${bookmakerView === 'all' ? 'active' : ''}`}
+            onClick={() => setBookmakerView('all')}
+            aria-pressed={bookmakerView === 'all'}
+          >
+            All
+          </button>
+        </div>
         <button
           className="toggle-all-btn"
           onClick={() => {
@@ -1612,11 +1870,19 @@ function OddsPage() {
             setShowAllMatches(true);
           }}
         >
-          <span className="cta-icon">🏆</span>
+          <span className="cta-icon" aria-hidden="true">
+            <TrophyIcon />
+          </span>
           <span className="cta-text">View All Leagues</span>
         </button>
-        <button className="cta-btn cta-watchlist">
-          <span className="cta-icon">⭐</span>
+        <button
+          type="button"
+          className={`cta-btn cta-watchlist ${viewMode === 'favorites' ? 'active' : ''}`}
+          onClick={() => handleViewChange(viewMode === 'favorites' ? 'all' : 'favorites')}
+        >
+          <span className="cta-icon" aria-hidden="true">
+            <StarIcon filled={viewMode === 'favorites'} />
+          </span>
           <span className="cta-text">My Watchlist</span>
         </button>
       </div>
@@ -1637,7 +1903,14 @@ function OddsPage() {
               className="search-field"
             />
             {searchQuery && (
-              <button className="clear-btn" onClick={() => setSearchQuery('')}>×</button>
+              <button
+                type="button"
+                className="clear-btn"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+              >
+                x
+              </button>
             )}
           </div>
           <div className="filter-top-actions">
@@ -1655,6 +1928,32 @@ function OddsPage() {
                 </option>
               ))}
             </select>
+            <div className="view-toggle" role="group" aria-label="View">
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+                onClick={() => handleViewChange('all')}
+                aria-pressed={viewMode === 'all'}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === 'favorites' ? 'active' : ''}`}
+                onClick={() => handleViewChange('favorites')}
+                aria-pressed={viewMode === 'favorites'}
+              >
+                Favorites
+              </button>
+              <button
+                type="button"
+                className={`view-toggle-btn ${viewMode === 'edges' ? 'active' : ''}`}
+                onClick={() => handleViewChange('edges')}
+                aria-pressed={viewMode === 'edges'}
+              >
+                Edges
+              </button>
+            </div>
             <div className="sort-selector">
               <label className="sort-label">Sort:</label>
               <select
@@ -1734,7 +2033,7 @@ function OddsPage() {
                   <LeagueLogo leagueId={pill.logoId} size={14} className="league-query-logo" />
                 ) : (
                   <span className="league-query-logo league-logo-fallback">
-                    {(pill.label || '•').slice(0, 2)}
+                    {(pill.label || '*').slice(0, 2)}
                   </span>
                 )}
                 <span className="league-name">{pill.label}</span>
@@ -1775,7 +2074,7 @@ function OddsPage() {
             <div className="odds-header">
               <div className="header-match">Match</div>
               <div className="header-time">Kick-off</div>
-              {activeBookmakers.map((name) => {
+              {visibleBookmakers.map((name) => {
                 const config = BOOKMAKER_AFFILIATES[name];
                 return (
                   <a
@@ -1801,7 +2100,7 @@ function OddsPage() {
             <div className="outcome-row">
               <div className="outcome-match"></div>
               <div className="outcome-time"></div>
-              {activeBookmakers.map((name) => (
+              {visibleBookmakers.map((name) => (
                 <div key={name} className={`outcome-labels ${selectedMarket === 'over_under' ? 'two-col' : ''}`}>
                   {currentMarket.labels.map((label, i) => (
                     <span key={i}>{label}</span>
@@ -1901,24 +2200,38 @@ function OddsPage() {
             </div>
 
             {leagueMatches.map((match, idx) => {
-              // Calculate best odds and averages for current market
-              const bestOdds = marketFields.map(field => getBestOdds(match, field));
-              const avgOdds = marketFields.map(field => getMarketAverage(match, field));
+              const matchId = buildMatchId(match);
+              const matchLabel = `${match.home_team} vs ${match.away_team}`;
+              const oddsByBookie = new Map((match.odds || []).map((odds) => [odds.bookmaker, odds]));
+              const primaryBookmakers = PRIMARY_BOOKMAKERS.filter(b => enabledBookies[b]);
+              const primaryCoverageTotal = primaryBookmakers.length;
+              const primaryCoverageCount = primaryBookmakers.filter(b => oddsByBookie.has(b)).length;
+              const isTopLeague = getLeagueTier(match.league) === 1;
+              const showPrimaryCoverage = isTopLeague && primaryCoverageTotal > 0;
+              const compactBaseBookmakers = isTopLeague && primaryBookmakers.length
+                ? primaryBookmakers
+                : visibleBookmakers;
+              const isCardExpanded = expandedCards.has(matchId);
+              const compactBookmakers = isCardExpanded ? enabledBookmakersList : compactBaseBookmakers;
+              const canExpandOdds = isTopLeague && enabledBookmakersList.length > compactBaseBookmakers.length;
+              const displayBookmakers = compactView ? compactBookmakers : visibleBookmakers;
+
+              // Calculate best odds and averages for current market (based on display list)
+              const bestOdds = marketFields.map(field => getBestOdds(match, field, displayBookmakers));
+              const avgOdds = marketFields.map(field => getMarketAverage(match, field, displayBookmakers));
 
               // Calculate best 1x2 odds for sharing (always use 1x2 regardless of selected market)
               const best1x2Home = getBestOdds(match, 'home_odds');
               const best1x2Draw = getBestOdds(match, 'draw_odds');
               const best1x2Away = getBestOdds(match, 'away_odds');
 
-              const matchLabel = `${match.home_team} vs ${match.away_team}`;
-              const oddsByBookie = new Map((match.odds || []).map((odds) => [odds.bookmaker, odds]));
               const bestMarketOffer = getBestMarketOffer(
                 oddsByBookie,
                 marketFields,
                 currentMarket.labels,
-                activeBookmakers
+                displayBookmakers
               );
-              const bestValue = getBestValueOffer(match, marketFields, currentMarket.labels, activeBookmakers);
+              const bestValue = getBestValueOffer(match, marketFields, currentMarket.labels, displayBookmakers);
               const bestValueConfig = bestValue ? BOOKMAKER_AFFILIATES[bestValue.bookmaker] : null;
               const bestValuePercent = bestValue ? Math.round(bestValue.edge) : 0;
               const hasBestValue = Boolean(bestValue && bestValueConfig && bestValuePercent > 0);
@@ -1932,18 +2245,21 @@ function OddsPage() {
                   : '';
 
               // Create share link for this specific match
-              const shareLink = `${window.location.origin}/odds?match=${encodeURIComponent(matchLabel)}&ref=share`;
+              const shareLink = `${oddsUrl}?match=${encodeURIComponent(matchLabel)}&ref=share`;
               const rankedBookmakers = compactView
-                ? rankBookmakersByPrice(activeBookmakers, oddsByBookie, marketFields)
-                : activeBookmakers;
+                ? rankBookmakersByPrice(displayBookmakers, oddsByBookie, marketFields)
+                : displayBookmakers;
               const scoreEvent = resolveScoreEvent(match, liveScoreIndex);
-              const matchStatus = resolveMatchStatus(match, scoreEvent);
+              const pendingActive = Boolean(match.pendingOdds && oddsUpdating);
+              const matchStatus = resolveMatchStatus(match, scoreEvent, pendingActive);
               const scoreline = scoreEvent ? formatLiveScore(scoreEvent) : null;
               const hasScoreline = Boolean(scoreline && scoreline !== '-');
               const liveDetail = matchStatus?.type === 'live' ? formatLiveDetail(scoreEvent) : '';
               const isLive = matchStatus?.type === 'live';
               const isFinal = matchStatus?.type === 'final';
               const showStatus = Boolean(matchStatus && !isLive && !isFinal);
+              const isHomeFavorite = favoriteTeamSet.has(normalizeFilterTerm(match.home_team));
+              const isAwayFavorite = favoriteTeamSet.has(normalizeFilterTerm(match.away_team));
 
               if (compactView) {
                 return (
@@ -1953,10 +2269,28 @@ function OddsPage() {
                         <div className="odds-card-team">
                           <TeamLogo teamName={match.home_team} size={18} />
                           <span className="team-name">{match.home_team}</span>
+                          <button
+                            type="button"
+                            className={`favorite-toggle ${isHomeFavorite ? 'active' : ''}`}
+                            onClick={() => toggleTeamFavorite(match.home_team)}
+                            aria-label={`${isHomeFavorite ? 'Remove' : 'Add'} ${match.home_team} as favorite`}
+                            aria-pressed={isHomeFavorite}
+                          >
+                            <StarIcon filled={isHomeFavorite} />
+                          </button>
                         </div>
                         <div className="odds-card-team">
                           <TeamLogo teamName={match.away_team} size={18} />
                           <span className="team-name">{match.away_team}</span>
+                          <button
+                            type="button"
+                            className={`favorite-toggle ${isAwayFavorite ? 'active' : ''}`}
+                            onClick={() => toggleTeamFavorite(match.away_team)}
+                            aria-label={`${isAwayFavorite ? 'Remove' : 'Add'} ${match.away_team} as favorite`}
+                            aria-pressed={isAwayFavorite}
+                          >
+                            <StarIcon filled={isAwayFavorite} />
+                          </button>
                         </div>
                       </div>
                       <div className="odds-card-meta">
@@ -1980,6 +2314,11 @@ function OddsPage() {
                           <span className={`match-status ${matchStatus.type}`}>{matchStatus.label}</span>
                         )}
                         <span className="odds-card-league">{match.league}</span>
+                        {showPrimaryCoverage && (
+                          <span className={`coverage-pill ${primaryCoverageCount >= primaryCoverageTotal ? 'complete' : 'partial'}`}>
+                            Primary {primaryCoverageCount}/{primaryCoverageTotal}
+                          </span>
+                        )}
                         <div className="odds-card-actions">
                           <ShareButton
                             home_team={match.home_team}
@@ -2148,14 +2487,14 @@ function OddsPage() {
                                 })
                               ) : (
                                 marketFields.map((_, i) => {
-                                  const pendingLabel = i === 0 ? 'Pending' : '-';
-                                  const pendingClass = match.pendingOdds
+                                  const pendingLabel = i === 0 ? 'Updating' : '-';
+                                  const pendingClass = pendingActive
                                     ? `pending ${i === 0 ? 'pending-primary' : 'pending-muted'}`
                                     : '';
                                   return (
                                     <span key={i} className={`odd empty ${pendingClass}`}>
                                       <span className="odds-card-odd-label">{currentMarket.labels[i]}</span>
-                                      <span className="odds-card-odd-value">{match.pendingOdds ? pendingLabel : '-'}</span>
+                                      <span className="odds-card-odd-value">{pendingActive ? pendingLabel : '-'}</span>
                                     </span>
                                   );
                                 })
@@ -2165,6 +2504,15 @@ function OddsPage() {
                         );
                       })}
                     </div>
+                    {canExpandOdds && (
+                      <button
+                        type="button"
+                        className="more-odds-btn"
+                        onClick={() => toggleCardExpanded(matchId)}
+                      >
+                        {isCardExpanded ? 'Hide odds' : 'More odds'}
+                      </button>
+                    )}
                   </div>
                 );
               }
@@ -2176,10 +2524,28 @@ function OddsPage() {
                     <div className="team-row">
                       <TeamLogo teamName={match.home_team} size={20} />
                       <span className="team-name">{match.home_team}</span>
+                      <button
+                        type="button"
+                        className={`favorite-toggle ${isHomeFavorite ? 'active' : ''}`}
+                        onClick={() => toggleTeamFavorite(match.home_team)}
+                        aria-label={`${isHomeFavorite ? 'Remove' : 'Add'} ${match.home_team} as favorite`}
+                        aria-pressed={isHomeFavorite}
+                      >
+                        <StarIcon filled={isHomeFavorite} />
+                      </button>
                     </div>
                     <div className="team-row">
                       <TeamLogo teamName={match.away_team} size={20} />
                       <span className="team-name">{match.away_team}</span>
+                      <button
+                        type="button"
+                        className={`favorite-toggle ${isAwayFavorite ? 'active' : ''}`}
+                        onClick={() => toggleTeamFavorite(match.away_team)}
+                        aria-label={`${isAwayFavorite ? 'Remove' : 'Add'} ${match.away_team} as favorite`}
+                        aria-pressed={isAwayFavorite}
+                      >
+                        <StarIcon filled={isAwayFavorite} />
+                      </button>
                     </div>
                     <div className="match-actions">
                       <ShareButton
@@ -2251,10 +2617,17 @@ function OddsPage() {
                         )}
                       </div>
                     )}
+                    {showPrimaryCoverage && (
+                      <div className="coverage-row">
+                        <span className={`coverage-pill ${primaryCoverageCount >= primaryCoverageTotal ? 'complete' : 'partial'}`}>
+                          Primary {primaryCoverageCount}/{primaryCoverageTotal}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Odds for each bookmaker */}
-                  {activeBookmakers.map((bookmaker) => {
+                  {visibleBookmakers.map((bookmaker) => {
                     const bookieOdds = oddsByBookie.get(bookmaker);
                     const config = BOOKMAKER_AFFILIATES[bookmaker];
 
@@ -2354,9 +2727,9 @@ function OddsPage() {
                           })
                         ) : (
                           marketFields.map((_, i) => {
-                            const pendingLabel = i === 0 ? 'Pending' : '-';
+                            const pendingLabel = i === 0 ? 'Updating' : '-';
                             const pendingClass = i === 0 ? 'pending-primary' : 'pending-muted';
-                            return match.pendingOdds ? (
+                            return pendingActive ? (
                               <span key={i} className={`odd empty pending ${pendingClass}`}>
                                 {pendingLabel}
                               </span>
@@ -2399,7 +2772,7 @@ function OddsPage() {
           <span className="stat-lbl">Leagues</span>
         </div>
         <div className="stat">
-          <span className="stat-num">{activeBookmakers.length}</span>
+          <span className="stat-num">{visibleBookmakers.length}</span>
           <span className="stat-lbl">Bookmakers</span>
         </div>
         <div className="stat last-updated-stat">
@@ -2420,7 +2793,7 @@ function OddsPage() {
               Bet with {stickyRecommendation.name}
             </span>
             <span className="sticky-cta-subtitle">
-              {stickyRecommendation.reason} · {stickyRecommendation.signupBonus}
+              {stickyRecommendation.reason} - {stickyRecommendation.signupBonus}
             </span>
           </div>
           <a
