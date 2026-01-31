@@ -1,9 +1,9 @@
 name: Scrape Odds Data
 
 on:
-  # Run every 15 minutes
+  # Run every 3 minutes
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/3 * * * *'
 
   # Allow manual trigger
   workflow_dispatch:

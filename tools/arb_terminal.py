@@ -91,7 +91,7 @@ with st.sidebar:
     refresh_clicked = st.button("Refresh now")
     effective_refresh = refresh_seconds
     if effective_refresh <= 0 and auto_refresh_remote and (use_remote or use_remote_history):
-        effective_refresh = 60
+        effective_refresh = 180
     if effective_refresh > 0:
         if hasattr(st, "autorefresh"):
             st.autorefresh(interval=int(effective_refresh * 1000), key="auto_refresh")
