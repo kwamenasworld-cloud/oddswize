@@ -161,15 +161,15 @@ function buildMatchKey(match: Match): string {
 
 async function ensureHistorySchema(env: Env): Promise<void> {
   if (historySchemaReady) return;
-  const schema = `
-    CREATE TABLE IF NOT EXISTS odds_runs (
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS odds_runs (
       run_id TEXT PRIMARY KEY,
       last_updated TEXT,
       total_matches INTEGER,
       total_leagues INTEGER,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS odds_matches (
+    )`,
+    `CREATE TABLE IF NOT EXISTS odds_matches (
       run_id TEXT,
       match_id TEXT,
       league TEXT,
@@ -177,8 +177,8 @@ async function ensureHistorySchema(env: Env): Promise<void> {
       home_team TEXT,
       away_team TEXT,
       PRIMARY KEY (run_id, match_id)
-    );
-    CREATE TABLE IF NOT EXISTS odds_lines (
+    )`,
+    `CREATE TABLE IF NOT EXISTS odds_lines (
       run_id TEXT,
       match_id TEXT,
       bookmaker TEXT,
@@ -186,13 +186,15 @@ async function ensureHistorySchema(env: Env): Promise<void> {
       draw_odds REAL,
       away_odds REAL,
       PRIMARY KEY (run_id, match_id, bookmaker)
-    );
-    CREATE INDEX IF NOT EXISTS idx_odds_runs_updated ON odds_runs(last_updated);
-    CREATE INDEX IF NOT EXISTS idx_odds_matches_start ON odds_matches(start_time);
-    CREATE INDEX IF NOT EXISTS idx_odds_matches_league ON odds_matches(league);
-    CREATE INDEX IF NOT EXISTS idx_odds_lines_bookie ON odds_lines(bookmaker);
-  `;
-  await env.D1.exec(schema);
+    )`,
+    'CREATE INDEX IF NOT EXISTS idx_odds_runs_updated ON odds_runs(last_updated)',
+    'CREATE INDEX IF NOT EXISTS idx_odds_matches_start ON odds_matches(start_time)',
+    'CREATE INDEX IF NOT EXISTS idx_odds_matches_league ON odds_matches(league)',
+    'CREATE INDEX IF NOT EXISTS idx_odds_lines_bookie ON odds_lines(bookmaker)',
+  ];
+  for (const statement of statements) {
+    await env.D1.prepare(statement).run();
+  }
   historySchemaReady = true;
 }
 
