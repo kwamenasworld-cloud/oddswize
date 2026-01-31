@@ -8,7 +8,7 @@ import json
 import os
 import subprocess
 import time
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 API_URL = "https://www.sportybet.com/api/gh/factsCenter/pcUpcomingEvents"
 DEFAULT_MAX_MATCHES = 1200
