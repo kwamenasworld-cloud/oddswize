@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import sqlite3
 import sys
 import urllib.error
 import urllib.parse
@@ -76,6 +77,7 @@ BOOKMAKER_EVENT_TEMPLATES = {
 BOOKMAKER_EVENT_TEMPLATES.update(
     json.loads(os.getenv("BOOKMAKER_EVENT_TEMPLATES", "{}") or "{}")
 )
+DEFAULT_RESEARCH_DB_PATH = os.getenv("RESEARCH_DB_PATH", os.path.join("data", "research.db"))
 
 
 def _build_search_url(*parts: object) -> str:
@@ -124,6 +126,196 @@ def _render_link_button(label: str, url: str) -> None:
         st.link_button(label, url)
     else:
         st.markdown(f"[{label}]({url})")
+
+
+def _init_research_db(path: str) -> None:
+    if not path:
+        return
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS research_picks (
+                pick_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT,
+                mode TEXT,
+                strategy TEXT,
+                match_id TEXT,
+                league TEXT,
+                start_time INTEGER,
+                home_team TEXT,
+                away_team TEXT,
+                bookmaker TEXT,
+                outcome TEXT,
+                odds REAL,
+                stake REAL,
+                expected_roi REAL,
+                expected_profit REAL,
+                source_run_time TEXT,
+                notes TEXT
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_research_created ON research_picks(created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_research_start ON research_picks(start_time)")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _append_research_pick(path: str, record: dict) -> None:
+    if not path:
+        return
+    _init_research_db(path)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO research_picks (
+                created_at,
+                mode,
+                strategy,
+                match_id,
+                league,
+                start_time,
+                home_team,
+                away_team,
+                bookmaker,
+                outcome,
+                odds,
+                stake,
+                expected_roi,
+                expected_profit,
+                source_run_time,
+                notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.get("created_at"),
+                record.get("mode"),
+                record.get("strategy"),
+                record.get("match_id"),
+                record.get("league"),
+                record.get("start_time"),
+                record.get("home_team"),
+                record.get("away_team"),
+                record.get("bookmaker"),
+                record.get("outcome"),
+                record.get("odds"),
+                record.get("stake"),
+                record.get("expected_roi"),
+                record.get("expected_profit"),
+                record.get("source_run_time"),
+                record.get("notes"),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _load_research_picks(path: str, start_date=None, end_date=None) -> pd.DataFrame:
+    if not path:
+        return pd.DataFrame()
+    _init_research_db(path)
+    conn = sqlite3.connect(path)
+    try:
+        df = pd.read_sql_query("SELECT * FROM research_picks ORDER BY created_at DESC", conn)
+    finally:
+        conn.close()
+    if df.empty:
+        return df
+    df["created_at"] = pd.to_datetime(df["created_at"], errors="coerce")
+    df["start_time"] = pd.to_numeric(df["start_time"], errors="coerce")
+    df["match_date"] = pd.to_datetime(df["start_time"], unit="s", errors="coerce").dt.date
+    df["created_date"] = df["created_at"].dt.date
+    use_date = df["match_date"].fillna(df["created_date"])
+    if start_date:
+        df = df[use_date >= start_date]
+    if end_date:
+        df = df[use_date <= end_date]
+    return df
+
+
+def _evaluate_research_picks(picks: pd.DataFrame, results: pd.DataFrame, tolerance_hours: float) -> pd.DataFrame:
+    if picks is None or picks.empty:
+        return pd.DataFrame()
+    df = picks.copy()
+    df["stake"] = pd.to_numeric(df["stake"], errors="coerce")
+    df["odds"] = pd.to_numeric(df["odds"], errors="coerce")
+    df["expected_roi"] = pd.to_numeric(df["expected_roi"], errors="coerce")
+    df["expected_profit"] = pd.to_numeric(df["expected_profit"], errors="coerce")
+    df["expected_profit"] = df["expected_profit"].fillna(df["expected_roi"] * df["stake"])
+    df["realized_profit"] = np.nan
+    df["realized_roi"] = np.nan
+    df["result_outcome"] = None
+    df["result_outcome_adj"] = None
+    df["result_event_date"] = None
+    df["result_home_score"] = None
+    df["result_away_score"] = None
+
+    arb_mask = df["strategy"].str.contains("arb", case=False, na=False)
+    df.loc[arb_mask, "realized_profit"] = df.loc[arb_mask, "expected_profit"]
+    df.loc[arb_mask, "realized_roi"] = df.loc[arb_mask, "expected_roi"]
+
+    if results is None or results.empty:
+        return df
+
+    candidates = df[
+        (~arb_mask)
+        & df["home_team"].notna()
+        & df["away_team"].notna()
+        & df["outcome"].notna()
+        & df["stake"].notna()
+        & df["odds"].notna()
+    ].copy()
+    if candidates.empty:
+        return df
+
+    matched = attach_results(candidates, results, time_tolerance_seconds=int(tolerance_hours * 3600))
+    if matched.empty:
+        return df
+    matched["result_outcome"] = matched.apply(
+        lambda row: outcome_from_scores(row.get("result_home_score"), row.get("result_away_score")),
+        axis=1,
+    )
+    matched["result_outcome_adj"] = matched["result_outcome"]
+    swapped = matched["result_swapped"] == True
+    matched.loc[swapped & (matched["result_outcome"] == "home"), "result_outcome_adj"] = "away"
+    matched.loc[swapped & (matched["result_outcome"] == "away"), "result_outcome_adj"] = "home"
+
+    matched["win"] = matched["outcome"] == matched["result_outcome_adj"]
+    matched["realized_profit"] = np.where(
+        matched["win"],
+        matched["stake"] * (matched["odds"] - 1),
+        -matched["stake"],
+    )
+    matched["realized_roi"] = matched["realized_profit"] / matched["stake"]
+
+    result_cols = [
+        "pick_id",
+        "result_outcome",
+        "result_outcome_adj",
+        "result_event_date",
+        "result_home_score",
+        "result_away_score",
+        "realized_profit",
+        "realized_roi",
+    ]
+    update = matched[result_cols].copy()
+    df = df.merge(update, on="pick_id", how="left", suffixes=("", "_result"))
+    df["realized_profit"] = df["realized_profit"].fillna(df.get("realized_profit_result"))
+    df["realized_roi"] = df["realized_roi"].fillna(df.get("realized_roi_result"))
+    df["result_outcome"] = df["result_outcome"].fillna(df.get("result_outcome_result"))
+    df["result_outcome_adj"] = df["result_outcome_adj"].fillna(df.get("result_outcome_adj_result"))
+    df["result_event_date"] = df["result_event_date"].fillna(df.get("result_event_date_result"))
+    df["result_home_score"] = df["result_home_score"].fillna(df.get("result_home_score_result"))
+    df["result_away_score"] = df["result_away_score"].fillna(df.get("result_away_score_result"))
+    drop_cols = [col for col in df.columns if col.endswith("_result")]
+    if drop_cols:
+        df = df.drop(columns=drop_cols)
+    return df
 
 
 with st.sidebar:
@@ -218,6 +410,9 @@ with st.sidebar:
     )
     auto_relax_filters = st.checkbox("Auto relax filters if empty", value=True)
     show_quick_links = st.checkbox("Show quick links in tables", value=True)
+    st.subheader("Research Log")
+    research_db_path = st.text_input("Research DB path", value=DEFAULT_RESEARCH_DB_PATH)
+    log_mode = st.selectbox("Log mode", ("paper", "live"), index=0)
     min_roi_adj = st.slider(
         "Minimum arb ROI (after slippage)",
         min_value=0.0,
@@ -808,8 +1003,9 @@ if strategy.startswith("Arbitrage"):
         st.download_button("Download CSV", csv_data, file_name="arbitrage_opportunities_adjusted.csv")
 
         st.subheader("Stake Allocator (Arb)")
-        allocator_cols = [
+        allocator_base_cols = [
             "run_time",
+            "match_id",
             "league",
             "home_team",
             "away_team",
@@ -827,7 +1023,10 @@ if strategy.startswith("Arbitrage"):
             for col in ("best_home_event_id", "best_draw_event_id", "best_away_event_id")
             if col in arbs_filtered.columns
         ]
-        allocator_table = arbs_filtered[allocator_cols + allocator_event_cols].copy()
+        allocator_table = arbs_filtered[allocator_base_cols + allocator_event_cols].copy()
+        allocator_cols = [
+            col for col in allocator_base_cols if col != "match_id"
+        ]
         allocator_table["pick_label"] = (
             allocator_table["home_team"].fillna("")
             + " vs "
@@ -928,6 +1127,38 @@ if strategy.startswith("Arbitrage"):
                 _render_link_button("Draw bookie", draw_link)
             with link_col4:
                 _render_link_button("Away bookie", away_link)
+
+        log_note = st.text_input("Research note (optional)", value="", key="arb_log_note")
+        if st.button("Log arb pick", key="log_arb_pick"):
+            bookie_label = (
+                f"home:{selected_row.get('best_home_bookie')} | "
+                f"draw:{selected_row.get('best_draw_bookie')} | "
+                f"away:{selected_row.get('best_away_bookie')}"
+            )
+            expected_roi = float(selected_row.get("arb_roi_adj") or 0.0)
+            _append_research_pick(
+                research_db_path,
+                {
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "mode": log_mode,
+                    "strategy": "arb",
+                    "match_id": selected_row.get("match_id"),
+                    "league": selected_row.get("league"),
+                    "start_time": int(pd.to_datetime(selected_row.get("match_start"), errors="coerce").timestamp())
+                    if pd.notna(selected_row.get("match_start")) else 0,
+                    "home_team": selected_row.get("home_team"),
+                    "away_team": selected_row.get("away_team"),
+                    "bookmaker": bookie_label,
+                    "outcome": "arb",
+                    "odds": None,
+                    "stake": float(stake_total),
+                    "expected_roi": expected_roi,
+                    "expected_profit": float(profit),
+                    "source_run_time": selected_row.get("run_time"),
+                    "notes": log_note.strip(),
+                },
+            )
+            st.success("Arb pick logged to research database.")
 
         st.subheader("Daily Compounding Simulator (Arb)")
         st.caption(
@@ -1152,6 +1383,49 @@ elif strategy.startswith("Consensus"):
 
     csv_data = table.to_csv(index=False).encode("utf-8")
     st.download_button("Download CSV", csv_data, file_name="consensus_edge_candidates.csv")
+
+    st.subheader("Log Consensus Pick (Research)")
+    log_candidates = edges.head(300).copy()
+    log_candidates["pick_label"] = (
+        log_candidates["home_team"].fillna("")
+        + " vs "
+        + log_candidates["away_team"].fillna("")
+        + " - "
+        + log_candidates["pick_outcome"].fillna("")
+        + " @ "
+        + log_candidates["pick_odds"].round(2).astype(str)
+    )
+    pick_label = st.selectbox(
+        "Select candidate",
+        log_candidates["pick_label"].tolist(),
+        key="consensus_log_pick",
+    )
+    picked_row = log_candidates[log_candidates["pick_label"] == pick_label].iloc[0]
+    note = st.text_input("Research note (optional)", value="", key="consensus_log_note")
+    if st.button("Log consensus pick", key="log_consensus_pick"):
+        _append_research_pick(
+            research_db_path,
+            {
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "mode": log_mode,
+                "strategy": "consensus",
+                "match_id": picked_row.get("match_id"),
+                "league": picked_row.get("league"),
+                "start_time": int(pd.to_datetime(picked_row.get("match_start"), errors="coerce").timestamp())
+                if pd.notna(picked_row.get("match_start")) else 0,
+                "home_team": picked_row.get("home_team"),
+                "away_team": picked_row.get("away_team"),
+                "bookmaker": picked_row.get("pick_bookie"),
+                "outcome": picked_row.get("pick_outcome"),
+                "odds": float(picked_row.get("pick_odds") or 0.0),
+                "stake": float(stake_per_pick),
+                "expected_roi": float(picked_row.get("pick_edge") or 0.0),
+                "expected_profit": float(picked_row.get("expected_profit") or 0.0),
+                "source_run_time": picked_row.get("run_time"),
+                "notes": note.strip(),
+            },
+        )
+        st.success("Consensus pick logged to research database.")
 
     st.subheader("Results Backtest (Consensus Edge)")
     if not enable_results:
@@ -1448,3 +1722,69 @@ elif strategy.startswith("Liquidity"):
         "best_away_odds",
     ]
     st.dataframe(filtered[display_cols].head(300), use_container_width=True)
+
+st.markdown("---")
+st.subheader("Research Log")
+log_start = match_start if match_filter_on else run_start
+log_end = match_end if match_filter_on else run_end
+research_picks = _load_research_picks(research_db_path, log_start, log_end)
+if research_picks.empty:
+    st.info("No research picks logged yet.")
+else:
+    try:
+        results_rows = load_results_rows(
+            db_path=results_db_path,
+            start_date=log_start,
+            end_date=log_end,
+            completed_only=True,
+        )
+    except FileNotFoundError:
+        results_rows = pd.DataFrame()
+
+    evaluated = _evaluate_research_picks(research_picks, results_rows, results_tolerance_hours)
+    settled = evaluated[evaluated["realized_profit"].notna()].copy()
+
+    total_picks = len(evaluated)
+    settled_picks = len(settled)
+    avg_expected_roi = evaluated["expected_roi"].mean() if total_picks else 0.0
+    avg_realized_roi = settled["realized_roi"].mean() if settled_picks else 0.0
+    roi_std = settled["realized_roi"].std() if settled_picks else 0.0
+    total_realized_profit = settled["realized_profit"].sum() if settled_picks else 0.0
+
+    res_col1, res_col2, res_col3, res_col4, res_col5 = st.columns(5)
+    res_col1.metric("Logged Picks", f"{total_picks:,}")
+    res_col2.metric("Settled Picks", f"{settled_picks:,}")
+    res_col3.metric("Avg Expected ROI", f"{avg_expected_roi*100:.2f}%")
+    res_col4.metric("Avg Realized ROI", f"{avg_realized_roi*100:.2f}%")
+    res_col5.metric("ROI Std Dev", f"{roi_std*100:.2f}%")
+
+    st.metric("Total Realized Profit", f"{total_realized_profit:,.2f}")
+
+    show_cols = [
+        "created_at",
+        "mode",
+        "strategy",
+        "league",
+        "home_team",
+        "away_team",
+        "outcome",
+        "bookmaker",
+        "odds",
+        "stake",
+        "expected_roi",
+        "expected_profit",
+        "realized_roi",
+        "realized_profit",
+        "result_outcome_adj",
+        "result_event_date",
+        "notes",
+    ]
+    display = evaluated[show_cols].copy()
+    display["expected_roi"] = display["expected_roi"] * 100
+    display["realized_roi"] = display["realized_roi"] * 100
+    st.dataframe(display.head(300), use_container_width=True)
+    st.download_button(
+        "Download research log CSV",
+        display.to_csv(index=False).encode("utf-8"),
+        file_name="research_log.csv",
+    )
