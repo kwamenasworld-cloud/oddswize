@@ -1,9 +1,10 @@
 name: Scrape Odds Data
 
 on:
-  # Run every 3 minutes
+  # GitHub Actions minimum schedule is 5 minutes.
+  # We still scrape every 4 minutes inside the job.
   schedule:
-    - cron: '*/3 * * * *'
+    - cron: '*/5 * * * *'
 
   # Allow manual trigger
   workflow_dispatch:
@@ -12,11 +13,14 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    concurrency:
+      group: odds-scrape
+      cancel-in-progress: false
     permissions:
       contents: write
     env:
       ODDS_FAST: 1
-      SCRAPE_REPEAT: 4
+      SCRAPE_REPEAT: 2
       SCRAPE_INTERVAL_SECONDS: 240
 
     steps:
@@ -51,7 +55,7 @@ jobs:
           D1_CANONICAL_INGEST: ${{ secrets.D1_CANONICAL_INGEST }}
           DISPLAY: ':99'
         run: |
-          set -euo pipefail
+          set -u
           # Start Xvfb (virtual display) in background
           Xvfb :99 -screen 0 1920x1080x24 &
           sleep 2
@@ -63,10 +67,16 @@ jobs:
             echo "Scrape cycle $i/$repeat"
             # Remove any stale snapshot so a failed scrape cannot be re-published
             rm -f odds_data.json
-            # Run scraper with virtual display
-            python scrape_odds_github.py
+            # Run scraper with virtual display (don't abort whole job on a single failure)
+            if ! python scrape_odds_github.py; then
+              echo "Scrape failed; skipping this cycle."
+              continue
+            fi
 
-            python -c $'import json\nfrom datetime import datetime, timezone\nfrom pathlib import Path\npath = Path(\"odds_data.json\")\nif not path.exists():\n    raise SystemExit(\"odds_data.json missing after scrape\")\npayload = json.loads(path.read_text(encoding=\"utf-8\"))\nlast_updated = payload.get(\"last_updated\")\nif not last_updated:\n    raise SystemExit(\"odds_data.json missing last_updated\")\ntry:\n    ts = datetime.fromisoformat(last_updated.replace(\"Z\", \"+00:00\"))\nexcept Exception as exc:\n    raise SystemExit(f\"Invalid last_updated format: {last_updated}\") from exc\nif ts.tzinfo is None:\n    ts = ts.replace(tzinfo=timezone.utc)\nage_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0\nprint(f\"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)\")\nif age_min > 20:\n    raise SystemExit(f\"Snapshot too old: {age_min:.1f} min\")'
+            if ! python -c $'import json\nfrom datetime import datetime, timezone\nfrom pathlib import Path\npath = Path(\"odds_data.json\")\nif not path.exists():\n    raise SystemExit(\"odds_data.json missing after scrape\")\npayload = json.loads(path.read_text(encoding=\"utf-8\"))\nlast_updated = payload.get(\"last_updated\")\nif not last_updated:\n    raise SystemExit(\"odds_data.json missing last_updated\")\ntry:\n    ts = datetime.fromisoformat(last_updated.replace(\"Z\", \"+00:00\"))\nexcept Exception as exc:\n    raise SystemExit(f\"Invalid last_updated format: {last_updated}\") from exc\nif ts.tzinfo is None:\n    ts = ts.replace(tzinfo=timezone.utc)\nage_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0\nprint(f\"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)\")\nif age_min > 20:\n    raise SystemExit(f\"Snapshot too old: {age_min:.1f} min\")'; then
+              echo "Snapshot validation failed; skipping this cycle."
+              continue
+            fi
 
             git -C /tmp/odds-data rm -rf . || true
             cp odds_data.json /tmp/odds-data/odds_data.json
