@@ -567,7 +567,11 @@ if strategy.startswith("Arbitrage"):
                 "stake_away",
                 "profit",
             ]
-            st.dataframe(picks_sim[pick_cols].head(300), use_container_width=True)
+            available_cols = [col for col in pick_cols if col in picks_sim.columns]
+            if not available_cols:
+                st.warning("Simulated picks are available but no display columns were found.")
+            else:
+                st.dataframe(picks_sim[available_cols].head(300), use_container_width=True)
 
         st.subheader("Results Backtest (Arb Execution Risk)")
         if not enable_results:

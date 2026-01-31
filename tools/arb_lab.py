@@ -890,6 +890,8 @@ def simulate_daily_compounding(
                 "home_team": row.get("home_team"),
                 "away_team": row.get("away_team"),
                 "match_start": row.get("match_start"),
+                "snapshot_age_min": row.get("snapshot_age_min"),
+                "kickoff_minutes": row.get("kickoff_minutes"),
                 "best_home_bookie": row.get("best_home_bookie"),
                 "best_draw_bookie": row.get("best_draw_bookie"),
                 "best_away_bookie": row.get("best_away_bookie"),
