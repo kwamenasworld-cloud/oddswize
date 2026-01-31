@@ -208,8 +208,8 @@ function resolveHistoryApiKey(request: Request, env: Env): string | null {
 
 function authorizeHistoryRead(request: Request, env: Env): boolean {
   if (!env.HISTORY_API_KEY) return true;
-  const key = resolveHistoryApiKey(request, env);
-  return Boolean(key && key === env.HISTORY_API_KEY);
+  // Explicitly allow public access even if a history key exists.
+  return true;
 }
 
 function buildMatchSignature(match: Match): string {
