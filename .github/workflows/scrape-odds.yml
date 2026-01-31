@@ -1,10 +1,9 @@
 name: Scrape Odds Data
 
 on:
-  # GitHub Actions minimum schedule is 5 minutes.
-  # We still scrape every 4 minutes inside the job.
+  # Run hourly; the job itself loops every 4 minutes.
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '0 * * * *'
 
   # Allow manual trigger
   workflow_dispatch:
@@ -12,7 +11,7 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 70
     concurrency:
       group: odds-scrape
       cancel-in-progress: false
@@ -20,7 +19,7 @@ jobs:
       contents: write
     env:
       ODDS_FAST: 1
-      SCRAPE_REPEAT: 2
+      SCRAPE_REPEAT: 14
       SCRAPE_INTERVAL_SECONDS: 240
 
     steps:
