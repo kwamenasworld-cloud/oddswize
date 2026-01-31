@@ -11,9 +11,13 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: write
+    env:
+      ODDS_FAST: 1
+      SCRAPE_REPEAT: 4
+      SCRAPE_INTERVAL_SECONDS: 240
 
     steps:
       - name: Checkout repository
@@ -34,7 +38,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb
 
-      - name: Run odds scraper
+      - name: Prepare data worktree
+        run: |
+          git fetch origin data || true
+          git worktree add -B data /tmp/odds-data origin/data || git worktree add -B data /tmp/odds-data
+
+      - name: Run odds scraper loop
         env:
           # Cloudflare worker env for odds upload
           CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
@@ -42,39 +51,61 @@ jobs:
           D1_CANONICAL_INGEST: ${{ secrets.D1_CANONICAL_INGEST }}
           DISPLAY: ':99'
         run: |
+          set -euo pipefail
           # Start Xvfb (virtual display) in background
           Xvfb :99 -screen 0 1920x1080x24 &
           sleep 2
-          # Remove any stale snapshot so a failed scrape cannot be re-published
-          rm -f odds_data.json
-          # Run scraper with virtual display
-          python scrape_odds_github.py
 
-      - name: Validate snapshot freshness
-        run: |
-          python - <<'PY'
-          import json
-          from datetime import datetime, timezone
-          from pathlib import Path
+          repeat="${SCRAPE_REPEAT:-1}"
+          interval="${SCRAPE_INTERVAL_SECONDS:-240}"
+          for i in $(seq 1 "$repeat"); do
+            start_ts=$(date +%s)
+            echo "Scrape cycle $i/$repeat"
+            # Remove any stale snapshot so a failed scrape cannot be re-published
+            rm -f odds_data.json
+            # Run scraper with virtual display
+            python scrape_odds_github.py
 
-          path = Path("odds_data.json")
-          if not path.exists():
-              raise SystemExit("odds_data.json missing after scrape")
-          payload = json.loads(path.read_text(encoding="utf-8"))
-          last_updated = payload.get("last_updated")
-          if not last_updated:
-              raise SystemExit("odds_data.json missing last_updated")
-          try:
-              ts = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
-          except Exception as exc:
-              raise SystemExit(f"Invalid last_updated format: {last_updated}") from exc
-          if ts.tzinfo is None:
-              ts = ts.replace(tzinfo=timezone.utc)
-          age_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0
-          print(f"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)")
-          if age_min > 20:
-              raise SystemExit(f"Snapshot too old: {age_min:.1f} min")
-          PY
+            python - <<'PY'
+            import json
+            from datetime import datetime, timezone
+            from pathlib import Path
+
+            path = Path("odds_data.json")
+            if not path.exists():
+                raise SystemExit("odds_data.json missing after scrape")
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            last_updated = payload.get("last_updated")
+            if not last_updated:
+                raise SystemExit("odds_data.json missing last_updated")
+            try:
+                ts = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
+            except Exception as exc:
+                raise SystemExit(f"Invalid last_updated format: {last_updated}") from exc
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            age_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0
+            print(f"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)")
+            if age_min > 20:
+                raise SystemExit(f"Snapshot too old: {age_min:.1f} min")
+            PY
+
+            git -C /tmp/odds-data rm -rf . || true
+            cp odds_data.json /tmp/odds-data/odds_data.json
+            git -C /tmp/odds-data add odds_data.json
+            git -C /tmp/odds-data -c user.name="oddswize-bot" -c user.email="actions@github.com" commit -m "Update odds data" || true
+            git -C /tmp/odds-data push -f origin data
+
+            if [ "$i" -lt "$repeat" ]; then
+              end_ts=$(date +%s)
+              elapsed=$((end_ts - start_ts))
+              sleep_for=$((interval - elapsed))
+              if [ "$sleep_for" -gt 0 ]; then
+                echo "Sleeping ${sleep_for}s before next cycle"
+                sleep "$sleep_for"
+              fi
+            fi
+          done
 
       - name: Upload results as artifact
         uses: actions/upload-artifact@v4
@@ -83,20 +114,3 @@ jobs:
           name: odds-data-${{ github.run_number }}
           path: odds_data.json
           retention-days: 1
-
-      - name: Publish odds data to repo (data branch)
-        if: success()
-        run: |
-          if [ ! -f odds_data.json ]; then
-            echo "No odds_data.json to publish"
-            exit 0
-          fi
-          cp odds_data.json /tmp/odds_data.json
-          git config user.name "oddswize-bot"
-          git config user.email "actions@github.com"
-          git checkout --orphan data
-          git rm -rf . || true
-          mv /tmp/odds_data.json odds_data.json
-          git add odds_data.json
-          git commit -m "Update odds data" || exit 0
-          git push -f origin data
