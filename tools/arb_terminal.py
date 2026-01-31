@@ -1171,12 +1171,6 @@ if strategy.startswith("Arbitrage"):
                     row.get("away_team"),
                     row.get("league"),
                     row.get("best_home_league_id"),
-                )
-                or _build_search_url(
-                    row.get("best_home_bookie"),
-                    row.get("home_team"),
-                    "vs",
-                    row.get("away_team"),
                 ),
                 axis=1,
             )
@@ -1188,12 +1182,6 @@ if strategy.startswith("Arbitrage"):
                     row.get("away_team"),
                     row.get("league"),
                     row.get("best_draw_league_id"),
-                )
-                or _build_search_url(
-                    row.get("best_draw_bookie"),
-                    row.get("home_team"),
-                    "vs",
-                    row.get("away_team"),
                 ),
                 axis=1,
             )
@@ -1205,12 +1193,6 @@ if strategy.startswith("Arbitrage"):
                     row.get("away_team"),
                     row.get("league"),
                     row.get("best_away_league_id"),
-                )
-                or _build_search_url(
-                    row.get("best_away_bookie"),
-                    row.get("home_team"),
-                    "vs",
-                    row.get("away_team"),
                 ),
                 axis=1,
             )
@@ -1346,11 +1328,6 @@ if strategy.startswith("Arbitrage"):
                 selected_row.get("away_team"),
                 selected_row.get("league"),
                 selected_row.get("best_home_league_id"),
-            ) or _build_search_url(
-                selected_row.get("best_home_bookie"),
-                selected_row.get("home_team"),
-                "vs",
-                selected_row.get("away_team"),
             )
             draw_link = _build_bookie_event_url(
                 selected_row.get("best_draw_bookie"),
@@ -1359,11 +1336,6 @@ if strategy.startswith("Arbitrage"):
                 selected_row.get("away_team"),
                 selected_row.get("league"),
                 selected_row.get("best_draw_league_id"),
-            ) or _build_search_url(
-                selected_row.get("best_draw_bookie"),
-                selected_row.get("home_team"),
-                "vs",
-                selected_row.get("away_team"),
             )
             away_link = _build_bookie_event_url(
                 selected_row.get("best_away_bookie"),
@@ -1372,11 +1344,6 @@ if strategy.startswith("Arbitrage"):
                 selected_row.get("away_team"),
                 selected_row.get("league"),
                 selected_row.get("best_away_league_id"),
-            ) or _build_search_url(
-                selected_row.get("best_away_bookie"),
-                selected_row.get("home_team"),
-                "vs",
-                selected_row.get("away_team"),
             )
             link_col1, link_col2, link_col3, link_col4 = st.columns(4)
             with link_col1:
