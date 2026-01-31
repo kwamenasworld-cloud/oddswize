@@ -4,6 +4,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import math
 import time
 from typing import Iterable, Optional
 from datetime import datetime, timedelta, timezone
@@ -132,8 +133,12 @@ with st.sidebar:
     slippage_per_min_pct = st.slider(
         "Slippage per minute (%)", min_value=0.0, max_value=0.02, value=0.001, step=0.0005
     )
-    min_minutes_to_kickoff = st.number_input("Min minutes to kickoff", min_value=0, value=5, step=1)
-    max_snapshot_age_minutes = st.number_input("Max snapshot age (minutes)", min_value=0, value=15, step=5)
+    min_minutes_to_kickoff = st.number_input(
+        "Min minutes to kickoff", min_value=0, value=5, step=1, key="min_minutes_to_kickoff"
+    )
+    max_snapshot_age_minutes = st.number_input(
+        "Max snapshot age (minutes)", min_value=0, value=15, step=5, key="max_snapshot_age_minutes"
+    )
     min_roi_adj = st.slider(
         "Minimum arb ROI (after slippage)",
         min_value=0.0,
@@ -464,6 +469,16 @@ summary_col3.metric("Bookmakers", f"{rows['bookmaker'].nunique():,}")
 summary_col4.metric("Latest snapshot", latest_label)
 if snapshot_age is not None:
     st.caption(f"Snapshot age: {snapshot_age:.1f} min")
+    if max_snapshot_age_minutes > 0 and snapshot_age > float(max_snapshot_age_minutes):
+        st.warning(
+            "Latest snapshot is older than your max snapshot age filter. "
+            "Increase the limit or refresh data to see opportunities."
+        )
+        if st.button("Set max snapshot age to latest", key="set_max_snapshot_age"):
+            st.session_state["max_snapshot_age_minutes"] = int(math.ceil(snapshot_age))
+            rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+            if rerun:
+                rerun()
 last_refresh_ts = st.session_state.get("last_refresh_ts")
 if last_refresh_ts:
     st.caption(f"Last refresh: {last_refresh_ts} UTC")
@@ -553,7 +568,10 @@ if strategy.startswith("Arbitrage"):
         st.warning("No arbitrage opportunities found for this slice.")
     else:
         if arbs_filtered.empty:
-            st.warning("No arbitrage opportunities remain after slippage + lag filters.")
+            st.warning(
+                "No arbitrage opportunities remain after slippage + age/lag filters "
+                f"(max snapshot age {max_snapshot_age_minutes} min, min kickoff {min_minutes_to_kickoff} min)."
+            )
             st.stop()
         arbs_filtered["run_date"] = pd.to_datetime(arbs_filtered["run_time"], errors="coerce").dt.date
         daily = (
