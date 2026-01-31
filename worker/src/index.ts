@@ -1844,14 +1844,21 @@ async function handleScheduled(
 // Export the worker
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.pathname.startsWith('/api/history/')) {
-      return handleHistory(request, env, url.pathname);
+    try {
+      const url = new URL(request.url);
+      if (url.pathname.startsWith('/api/history/')) {
+        return handleHistory(request, env, url.pathname);
+      }
+      if (url.pathname.startsWith('/api/canonical/')) {
+        return handleCanonical(request, env, url.pathname);
+      }
+      return handleRequest(request, env);
+    } catch (error) {
+      console.error('Worker fetch error:', error);
+      const details =
+        error instanceof Error ? error.stack || error.message : String(error);
+      return errorResponse(`Worker fetch error: ${details}`, 500, env);
     }
-    if (url.pathname.startsWith('/api/canonical/')) {
-      return handleCanonical(request, env, url.pathname);
-    }
-    return handleRequest(request, env);
   },
 
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
