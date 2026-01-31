@@ -65,6 +65,26 @@ def _apply_widget_overrides():
 
 _apply_widget_overrides()
 
+
+SEARCH_BASE_URL = os.getenv("SEARCH_BASE_URL", "https://www.google.com/search?q=")
+
+
+def _build_search_url(*parts: object) -> str:
+    query = " ".join(str(part).strip() for part in parts if part and str(part).strip())
+    if not query:
+        return ""
+    return f"{SEARCH_BASE_URL}{urllib.parse.quote_plus(query)}"
+
+
+def _render_link_button(label: str, url: str) -> None:
+    if not url:
+        return
+    if hasattr(st, "link_button"):
+        st.link_button(label, url)
+    else:
+        st.markdown(f"[{label}]({url})")
+
+
 with st.sidebar:
     st.subheader("Data Source")
     db_path = st.text_input("History DB path", value=resolve_db_path())
@@ -156,6 +176,7 @@ with st.sidebar:
         "Max snapshot age (minutes)", min_value=0, value=15, step=5, key="max_snapshot_age_minutes"
     )
     auto_relax_filters = st.checkbox("Auto relax filters if empty", value=True)
+    show_quick_links = st.checkbox("Show quick links in tables", value=True)
     min_roi_adj = st.slider(
         "Minimum arb ROI (after slippage)",
         min_value=0.0,
@@ -661,9 +682,62 @@ if strategy.startswith("Arbitrage"):
         ]
         table = arbs_filtered[display_cols].copy()
         table["arb_roi_adj_pct"] = table["arb_roi_adj"] * 100
-        st.dataframe(table.head(300), use_container_width=True)
+        link_cols = []
+        column_config = None
+        if show_quick_links:
+            table["match_search"] = table.apply(
+                lambda row: _build_search_url(
+                    row.get("home_team"),
+                    "vs",
+                    row.get("away_team"),
+                    row.get("league"),
+                    "odds",
+                ),
+                axis=1,
+            )
+            table["home_search"] = table.apply(
+                lambda row: _build_search_url(
+                    row.get("best_home_bookie"),
+                    row.get("home_team"),
+                    "vs",
+                    row.get("away_team"),
+                ),
+                axis=1,
+            )
+            table["draw_search"] = table.apply(
+                lambda row: _build_search_url(
+                    row.get("best_draw_bookie"),
+                    row.get("home_team"),
+                    "vs",
+                    row.get("away_team"),
+                ),
+                axis=1,
+            )
+            table["away_search"] = table.apply(
+                lambda row: _build_search_url(
+                    row.get("best_away_bookie"),
+                    row.get("home_team"),
+                    "vs",
+                    row.get("away_team"),
+                ),
+                axis=1,
+            )
+            link_cols = ["match_search", "home_search", "draw_search", "away_search"]
+            if hasattr(st, "column_config"):
+                column_config = {
+                    "match_search": st.column_config.LinkColumn("Match search", display_text="Open"),
+                    "home_search": st.column_config.LinkColumn("Home bookie", display_text="Open"),
+                    "draw_search": st.column_config.LinkColumn("Draw bookie", display_text="Open"),
+                    "away_search": st.column_config.LinkColumn("Away bookie", display_text="Open"),
+                }
 
-        csv_data = table.to_csv(index=False).encode("utf-8")
+        display_table = table[display_cols + link_cols].copy()
+        if column_config:
+            st.dataframe(display_table.head(300), use_container_width=True, column_config=column_config)
+        else:
+            st.dataframe(display_table.head(300), use_container_width=True)
+
+        csv_data = display_table.to_csv(index=False).encode("utf-8")
         st.download_button("Download CSV", csv_data, file_name="arbitrage_opportunities_adjusted.csv")
 
         st.subheader("Stake Allocator (Arb)")
@@ -730,6 +804,40 @@ if strategy.startswith("Arbitrage"):
         st.caption(
             f"Payout per outcome: {payout:,.2f} - ROI: {(profit / stake_total) * 100:.2f}%"
         )
+        if show_quick_links:
+            match_link = _build_search_url(
+                selected_row.get("home_team"),
+                "vs",
+                selected_row.get("away_team"),
+                selected_row.get("league"),
+            )
+            home_link = _build_search_url(
+                selected_row.get("best_home_bookie"),
+                selected_row.get("home_team"),
+                "vs",
+                selected_row.get("away_team"),
+            )
+            draw_link = _build_search_url(
+                selected_row.get("best_draw_bookie"),
+                selected_row.get("home_team"),
+                "vs",
+                selected_row.get("away_team"),
+            )
+            away_link = _build_search_url(
+                selected_row.get("best_away_bookie"),
+                selected_row.get("home_team"),
+                "vs",
+                selected_row.get("away_team"),
+            )
+            link_col1, link_col2, link_col3, link_col4 = st.columns(4)
+            with link_col1:
+                _render_link_button("Match search", match_link)
+            with link_col2:
+                _render_link_button("Home bookie", home_link)
+            with link_col3:
+                _render_link_button("Draw bookie", draw_link)
+            with link_col4:
+                _render_link_button("Away bookie", away_link)
 
         st.subheader("Daily Compounding Simulator (Arb)")
         st.caption(
