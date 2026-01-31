@@ -647,6 +647,12 @@ def compute_arbitrage_opportunities(
     merged = match_info.merge(best_home, on=keys, how="left")
     merged = merged.merge(best_draw, on=keys, how="left")
     merged = merged.merge(best_away, on=keys, how="left")
+    bookie_counts = (
+        df.groupby(keys, as_index=False)["bookmaker"]
+        .nunique()
+        .rename(columns={"bookmaker": "bookie_count"})
+    )
+    merged = merged.merge(bookie_counts, on=keys, how="left")
     merged = merged.dropna(subset=["best_home_odds", "best_draw_odds", "best_away_odds"])
     if merged.empty:
         return pd.DataFrame(), match_info

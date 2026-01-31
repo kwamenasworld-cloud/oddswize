@@ -78,6 +78,8 @@ BOOKMAKER_EVENT_TEMPLATES.update(
     json.loads(os.getenv("BOOKMAKER_EVENT_TEMPLATES", "{}") or "{}")
 )
 DEFAULT_RESEARCH_DB_PATH = os.getenv("RESEARCH_DB_PATH", os.path.join("data", "research.db"))
+CLV_TIME_BINS = [-float("inf"), 2, 6, 12, 24, 48, float("inf")]
+CLV_TIME_LABELS = ["<2h", "2-6h", "6-12h", "12-24h", "24-48h", "48h+"]
 
 
 def _build_search_url(*parts: object) -> str:
@@ -126,6 +128,126 @@ def _render_link_button(label: str, url: str) -> None:
         st.link_button(label, url)
     else:
         st.markdown(f"[{label}]({url})")
+
+
+def _compute_liquidity_score(
+    bookie_count: Optional[float],
+    snapshot_age_min: Optional[float],
+    kickoff_minutes: Optional[float],
+    target_bookies: float,
+    max_age_min: float,
+    target_kickoff_min: float,
+) -> float:
+    if target_bookies <= 0:
+        target_bookies = 1.0
+    if max_age_min <= 0:
+        max_age_min = 1.0
+    if target_kickoff_min <= 0:
+        target_kickoff_min = 1.0
+    bookie_val = float(bookie_count) if bookie_count is not None else 1.0
+    age_val = float(snapshot_age_min) if snapshot_age_min is not None else 0.0
+    kickoff_val = float(kickoff_minutes) if kickoff_minutes is not None else target_kickoff_min
+
+    bookie_score = min(1.0, max(0.0, bookie_val / target_bookies))
+    age_score = max(0.0, 1.0 - (age_val / max_age_min))
+    kickoff_score = min(1.0, max(0.0, kickoff_val / target_kickoff_min))
+    return max(0.0, min(1.0, bookie_score * age_score * kickoff_score))
+
+
+def _filter_low_liquidity_local_leagues(
+    rows: pd.DataFrame,
+    keywords: Iterable[str],
+    min_bookies: int,
+) -> pd.DataFrame:
+    if rows is None or rows.empty:
+        return rows
+    if "league" not in rows.columns:
+        return rows
+    cleaned = [kw.strip().lower() for kw in keywords if kw and kw.strip()]
+    if not cleaned:
+        return rows
+    pattern = "|".join(re.escape(kw) for kw in cleaned)
+    df = rows.copy()
+    df["league_norm"] = df["league"].astype(str).str.lower()
+    local_mask = df["league_norm"].str.contains(pattern, na=False)
+
+    group_cols = []
+    if "run_id" in df.columns:
+        group_cols.append("run_id")
+    if "match_id" in df.columns:
+        group_cols.append("match_id")
+    if not group_cols or "bookmaker" not in df.columns:
+        return df[~local_mask].drop(columns=["league_norm"])
+
+    counts = (
+        df.groupby(group_cols, as_index=False)["bookmaker"]
+        .nunique()
+        .rename(columns={"bookmaker": "bookie_count"})
+    )
+    df = df.merge(counts, on=group_cols, how="left")
+    df = df[~(local_mask & (df["bookie_count"] < int(min_bookies)))]
+    return df.drop(columns=["league_norm", "bookie_count"])
+
+
+def _compute_clv_table(lines: pd.DataFrame) -> pd.DataFrame:
+    if lines is None or lines.empty:
+        return pd.DataFrame()
+    clv_base = _build_open_close(lines)
+    if clv_base.empty:
+        return pd.DataFrame()
+    snap_counts = lines.groupby("match_id", as_index=False)["run_time"].nunique().rename(columns={"run_time": "snapshot_count"})
+    clv = clv_base.merge(snap_counts, on="match_id", how="left")
+    clv = clv[clv["snapshot_count"] >= 2]
+    if clv.empty:
+        return pd.DataFrame()
+    for col in (
+        "best_home_odds_open",
+        "best_draw_odds_open",
+        "best_away_odds_open",
+        "best_home_odds_close",
+        "best_draw_odds_close",
+        "best_away_odds_close",
+    ):
+        if col in clv.columns:
+            clv[col] = pd.to_numeric(clv[col], errors="coerce")
+    clv = clv[
+        (clv["best_home_odds_open"] > 1)
+        & (clv["best_draw_odds_open"] > 1)
+        & (clv["best_away_odds_open"] > 1)
+        & (clv["best_home_odds_close"] > 1)
+        & (clv["best_draw_odds_close"] > 1)
+        & (clv["best_away_odds_close"] > 1)
+    ]
+    if clv.empty:
+        return pd.DataFrame()
+    clv["clv_home"] = clv["best_home_odds_open"] / clv["best_home_odds_close"] - 1
+    clv["clv_draw"] = clv["best_draw_odds_open"] / clv["best_draw_odds_close"] - 1
+    clv["clv_away"] = clv["best_away_odds_open"] / clv["best_away_odds_close"] - 1
+    clv["clv_best"] = clv[["clv_home", "clv_draw", "clv_away"]].max(axis=1)
+    clv["clv_outcome"] = (
+        clv[["clv_home", "clv_draw", "clv_away"]]
+        .idxmax(axis=1)
+        .str.replace("clv_", "")
+    )
+    return clv
+
+
+def _compute_clv_league_stats(clv: pd.DataFrame) -> pd.DataFrame:
+    if clv is None or clv.empty:
+        return pd.DataFrame()
+    league_col = "league_open" if "league_open" in clv.columns else "league"
+    stats = (
+        clv.groupby(league_col, dropna=True)
+        .agg(
+            clv_matches=("match_id", "count"),
+            clv_pos_rate=("clv_best", lambda x: (x > 0).mean()),
+            clv_median=("clv_best", "median"),
+            clv_avg=("clv_best", "mean"),
+        )
+        .reset_index()
+        .rename(columns={league_col: "league"})
+    )
+    return stats
 
 
 def _init_research_db(path: str) -> None:
@@ -410,6 +532,68 @@ with st.sidebar:
     )
     auto_relax_filters = st.checkbox("Auto relax filters if empty", value=True)
     show_quick_links = st.checkbox("Show quick links in tables", value=True)
+    st.subheader("CLV Filters")
+    use_clv_filter = st.checkbox("Only show picks with positive historical CLV", value=False)
+    clv_min_pos_rate = st.slider(
+        "Min positive CLV rate",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.55,
+        step=0.05,
+        disabled=not use_clv_filter,
+    )
+    clv_min_median_pct = st.slider(
+        "Min median CLV (%)",
+        min_value=-5.0,
+        max_value=5.0,
+        value=0.0,
+        step=0.25,
+        disabled=not use_clv_filter,
+    )
+    clv_min_matches = st.number_input(
+        "Min CLV samples",
+        min_value=5,
+        value=20,
+        step=5,
+        disabled=not use_clv_filter,
+    )
+    st.subheader("Local League Filter")
+    filter_local_leagues = st.checkbox("Auto-filter low-liquidity local leagues", value=True)
+    local_league_keywords = st.text_input(
+        "Local league keywords (comma-separated)",
+        value="Ghana",
+        disabled=not filter_local_leagues,
+    )
+    local_min_bookies = st.number_input(
+        "Min bookies for local leagues",
+        min_value=1,
+        value=3,
+        step=1,
+        disabled=not filter_local_leagues,
+    )
+    st.subheader("Liquidity Weighting")
+    use_liquidity_weight = st.checkbox("Liquidity-weighted staking", value=True)
+    liq_target_bookies = st.number_input(
+        "Target bookies for full weight",
+        min_value=1,
+        value=6,
+        step=1,
+        disabled=not use_liquidity_weight,
+    )
+    liq_max_age = st.number_input(
+        "Max snapshot age for full weight (min)",
+        min_value=1,
+        value=10,
+        step=1,
+        disabled=not use_liquidity_weight,
+    )
+    liq_target_kickoff = st.number_input(
+        "Minutes to kickoff for full weight",
+        min_value=1,
+        value=60,
+        step=5,
+        disabled=not use_liquidity_weight,
+    )
     st.subheader("Research Log")
     research_db_path = st.text_input("Research DB path", value=DEFAULT_RESEARCH_DB_PATH)
     log_mode = st.selectbox("Log mode", ("paper", "live"), index=0)
@@ -687,6 +871,11 @@ if rows is None:
             st.error(str(exc))
             st.stop()
 
+if rows is not None and filter_local_leagues:
+    keyword_list = [kw.strip() for kw in (local_league_keywords or "").split(",") if kw.strip()]
+    if keyword_list:
+        rows = _filter_low_liquidity_local_leagues(rows, keyword_list, int(local_min_bookies))
+
 if payload_snapshot and persist_remote and isinstance(payload_snapshot, dict) and payload_snapshot.get("matches"):
     run_id = payload_snapshot.get("run_id") or payload_snapshot.get("last_updated")
     key = f"snapshot_appended_{run_id}"
@@ -768,6 +957,16 @@ with st.sidebar:
     selected_leagues = st.multiselect("Leagues", available_leagues, default=available_leagues)
     selected_bookies = st.multiselect("Bookmakers", available_bookies, default=available_bookies)
 
+clv_table_cached = None
+clv_league_stats = pd.DataFrame()
+if use_clv_filter:
+    with st.spinner("Computing CLV filter..."):
+        lines_for_clv = _build_best_lines(rows, include_bookmakers=selected_bookies, include_leagues=selected_leagues)
+        clv_table_cached = _compute_clv_table(lines_for_clv)
+        clv_league_stats = _compute_clv_league_stats(clv_table_cached)
+    if clv_league_stats.empty:
+        st.info("CLV filter enabled, but not enough history to compute CLV stats.")
+
 st.divider()
 with st.expander("Target Growth Calculator", expanded=True):
     growth_col1, growth_col2, growth_col3, growth_col4 = st.columns(4)
@@ -824,6 +1023,14 @@ if strategy.startswith("Arbitrage"):
             arbs_filtered = arbs_filtered[arbs_filtered["snapshot_age_min"] <= float(max_snapshot_age_minutes)]
         if min_minutes_to_kickoff > 0:
             arbs_filtered = arbs_filtered[arbs_filtered["kickoff_minutes"] >= float(min_minutes_to_kickoff)]
+        if use_clv_filter and not clv_league_stats.empty:
+            clv_min_median = float(clv_min_median_pct) / 100.0
+            arbs_filtered = arbs_filtered.merge(clv_league_stats, on="league", how="left")
+            arbs_filtered = arbs_filtered[
+                (arbs_filtered["clv_matches"] >= int(clv_min_matches))
+                & (arbs_filtered["clv_pos_rate"] >= float(clv_min_pos_rate))
+                & (arbs_filtered["clv_median"] >= clv_min_median)
+            ]
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Matches", f"{summary['matches']:,}")
@@ -1010,6 +1217,9 @@ if strategy.startswith("Arbitrage"):
             "home_team",
             "away_team",
             "match_start",
+            "snapshot_age_min",
+            "kickoff_minutes",
+            "bookie_count",
             "home_odds_adj",
             "draw_odds_adj",
             "away_odds_adj",
@@ -1025,7 +1235,9 @@ if strategy.startswith("Arbitrage"):
         ]
         allocator_table = arbs_filtered[allocator_base_cols + allocator_event_cols].copy()
         allocator_cols = [
-            col for col in allocator_base_cols if col != "match_id"
+            col
+            for col in allocator_base_cols
+            if col not in ("match_id", "snapshot_age_min", "kickoff_minutes", "bookie_count")
         ]
         allocator_table["pick_label"] = (
             allocator_table["home_team"].fillna("")
@@ -1057,24 +1269,41 @@ if strategy.startswith("Arbitrage"):
         stake_total = st.number_input(
             "Total stake to allocate", min_value=1.0, value=100.0, step=10.0, key="stake_allocator_total"
         )
+        liquidity_score = None
+        effective_stake = float(stake_total)
+        if use_liquidity_weight:
+            liquidity_score = _compute_liquidity_score(
+                selected_row.get("bookie_count"),
+                selected_row.get("snapshot_age_min"),
+                selected_row.get("kickoff_minutes"),
+                float(liq_target_bookies),
+                float(liq_max_age),
+                float(liq_target_kickoff),
+            )
+            effective_stake = float(stake_total) * float(liquidity_score)
         odds_home = float(selected_row["home_odds_adj"])
         odds_draw = float(selected_row["draw_odds_adj"])
         odds_away = float(selected_row["away_odds_adj"])
         inv_sum = (1 / odds_home) + (1 / odds_draw) + (1 / odds_away)
-        stake_home = stake_total / (odds_home * inv_sum)
-        stake_draw = stake_total / (odds_draw * inv_sum)
-        stake_away = stake_total / (odds_away * inv_sum)
-        payout = stake_total / inv_sum
-        profit = payout - stake_total
+        stake_home = effective_stake / (odds_home * inv_sum)
+        stake_draw = effective_stake / (odds_draw * inv_sum)
+        stake_away = effective_stake / (odds_away * inv_sum)
+        payout = effective_stake / inv_sum
+        profit = payout - effective_stake
 
         alloc_col1, alloc_col2, alloc_col3, alloc_col4 = st.columns(4)
         alloc_col1.metric("Home stake", f"{stake_home:,.2f}")
         alloc_col2.metric("Draw stake", f"{stake_draw:,.2f}")
         alloc_col3.metric("Away stake", f"{stake_away:,.2f}")
         alloc_col4.metric("Guaranteed profit", f"{profit:,.2f}")
+        roi_value = (profit / effective_stake) * 100 if effective_stake else 0.0
         st.caption(
-            f"Payout per outcome: {payout:,.2f} - ROI: {(profit / stake_total) * 100:.2f}%"
+            f"Payout per outcome: {payout:,.2f} - ROI: {roi_value:.2f}%"
         )
+        if use_liquidity_weight:
+            liq_cols = st.columns(2)
+            liq_cols[0].metric("Liquidity score", f"{float(liquidity_score or 0.0):.2f}")
+            liq_cols[1].metric("Liquidity-weighted stake", f"{effective_stake:,.2f}")
         if show_quick_links:
             match_link = _build_search_url(
                 selected_row.get("home_team"),
@@ -1342,6 +1571,14 @@ elif strategy.startswith("Consensus"):
         include_bookmakers=selected_bookies,
         include_leagues=selected_leagues,
     )
+    if use_clv_filter and not clv_league_stats.empty and not edges.empty:
+        clv_min_median = float(clv_min_median_pct) / 100.0
+        edges = edges.merge(clv_league_stats, on="league", how="left")
+        edges = edges[
+            (edges["clv_matches"] >= int(clv_min_matches))
+            & (edges["clv_pos_rate"] >= float(clv_min_pos_rate))
+            & (edges["clv_median"] >= clv_min_median)
+        ]
     if edges.empty:
         st.warning("No consensus-edge candidates found for this slice.")
         st.stop()
@@ -1523,30 +1760,10 @@ elif strategy.startswith("Closing Line Value"):
         st.warning("Not enough data to compute CLV for this slice.")
         st.stop()
 
-    clv_base = _build_open_close(lines)
-    if clv_base.empty:
-        st.warning("No open/close snapshots found for this slice.")
-        st.stop()
-
-    snap_counts = lines.groupby("match_id", as_index=False)["run_id"].nunique().rename(
-        columns={"run_id": "snapshot_count"}
-    )
-    clv = clv_base.merge(snap_counts, on="match_id", how="left")
-    clv = clv[clv["snapshot_count"] >= 2]
-    if clv.empty:
-        st.warning("CLV requires at least 2 snapshots per match.")
-        st.stop()
-
-    clv["clv_home"] = clv["best_home_odds_open"] / clv["best_home_odds_close"] - 1
-    clv["clv_draw"] = clv["best_draw_odds_open"] / clv["best_draw_odds_close"] - 1
-    clv["clv_away"] = clv["best_away_odds_open"] / clv["best_away_odds_close"] - 1
-
-    clv["clv_best"] = clv[["clv_home", "clv_draw", "clv_away"]].max(axis=1)
-    clv["clv_outcome"] = clv[["clv_home", "clv_draw", "clv_away"]].idxmax(axis=1).str.replace("clv_", "")
-
     run_clv = st.button("Run CLV backtest")
     if run_clv or "clv_table" not in st.session_state:
-        st.session_state["clv_table"] = clv
+        clv_data = clv_table_cached if clv_table_cached is not None and not clv_table_cached.empty else _compute_clv_table(lines)
+        st.session_state["clv_table"] = clv_data
     clv_table = st.session_state.get("clv_table")
 
     if clv_table is None or clv_table.empty:
@@ -1570,6 +1787,73 @@ elif strategy.startswith("Closing Line Value"):
         )
         fig = px.bar(top_leagues, x="league_open", y="match_id", title="Top Leagues by CLV Coverage")
         st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("CLV Scoreboards")
+    league_stats = _compute_clv_league_stats(clv_table)
+    if not league_stats.empty:
+        league_stats["clv_pos_rate_pct"] = league_stats["clv_pos_rate"] * 100
+        league_stats["clv_median_pct"] = league_stats["clv_median"] * 100
+        st.dataframe(
+            league_stats.sort_values("clv_pos_rate", ascending=False).head(20),
+            use_container_width=True,
+        )
+    else:
+        st.info("Not enough data for league-level CLV stats.")
+
+    if "run_time_open" in clv_table.columns and "match_start_open" in clv_table.columns:
+        clv_table["kickoff_hours_open"] = (
+            (pd.to_datetime(clv_table["match_start_open"], errors="coerce") - pd.to_datetime(clv_table["run_time_open"], errors="coerce"))
+            .dt.total_seconds()
+            / 3600.0
+        )
+        clv_table["time_window"] = pd.cut(
+            clv_table["kickoff_hours_open"],
+            bins=CLV_TIME_BINS,
+            labels=CLV_TIME_LABELS,
+        )
+        window_stats = (
+            clv_table.groupby("time_window", dropna=True)
+            .agg(
+                matches=("match_id", "count"),
+                pos_rate=("clv_best", lambda x: (x > 0).mean()),
+                median_clv=("clv_best", "median"),
+            )
+            .reset_index()
+        )
+        if not window_stats.empty:
+            window_stats["pos_rate_pct"] = window_stats["pos_rate"] * 100
+            window_stats["median_clv_pct"] = window_stats["median_clv"] * 100
+            st.dataframe(window_stats, use_container_width=True)
+
+    if "best_home_bookie_open" in clv_table.columns:
+        clv_table["clv_bookie_open"] = np.select(
+            [
+                clv_table["clv_outcome"] == "home",
+                clv_table["clv_outcome"] == "draw",
+                clv_table["clv_outcome"] == "away",
+            ],
+            [
+                clv_table.get("best_home_bookie_open"),
+                clv_table.get("best_draw_bookie_open"),
+                clv_table.get("best_away_bookie_open"),
+            ],
+            default=None,
+        )
+        bookie_stats = (
+            clv_table.dropna(subset=["clv_bookie_open"])
+            .groupby("clv_bookie_open", dropna=True)
+            .agg(
+                matches=("match_id", "count"),
+                pos_rate=("clv_best", lambda x: (x > 0).mean()),
+                median_clv=("clv_best", "median"),
+            )
+            .reset_index()
+            .rename(columns={"clv_bookie_open": "bookmaker"})
+        )
+        if not bookie_stats.empty:
+            bookie_stats["pos_rate_pct"] = bookie_stats["pos_rate"] * 100
+            bookie_stats["median_clv_pct"] = bookie_stats["median_clv"] * 100
+            st.dataframe(bookie_stats.sort_values("pos_rate", ascending=False).head(15), use_container_width=True)
 
     st.subheader("Top CLV Signals (Research)")
     display_cols = [
