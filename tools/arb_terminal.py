@@ -4,6 +4,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import time
 from typing import Iterable, Optional
 from datetime import datetime, timedelta, timezone
 
@@ -69,7 +70,7 @@ with st.sidebar:
     use_remote = st.checkbox("Use remote odds snapshot", value=False)
     remote_url = st.text_input("Remote odds_data.json URL", value=default_remote_url)
     st.caption("Tip: use the Worker /api/odds endpoint for the freshest snapshot.")
-    remote_timeout = st.number_input("Remote timeout (seconds)", min_value=5, value=15, step=5)
+    remote_timeout = st.number_input("Remote timeout (seconds)", min_value=5, value=30, step=5)
     persist_remote = st.checkbox("Append remote snapshot locally", value=False)
     persist_db = st.checkbox("Write to history DB", value=True, disabled=not persist_remote)
     persist_jsonl = st.checkbox("Write to history JSONL", value=False, disabled=not persist_remote)
@@ -212,10 +213,20 @@ def _load_remote_rows(url: str, timeout_seconds: int):
             "User-Agent": "OddsWizeTerminal/1.0 (+https://oddswize.com)",
         },
     )
-    with urllib.request.urlopen(request, timeout=timeout_seconds) as handle:
-        payload = json.load(handle)
-    rows = rows_from_odds_payload(payload)
-    return rows, payload
+    last_exc = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout_seconds) as handle:
+                payload = json.load(handle)
+            rows = rows_from_odds_payload(payload)
+            return rows, payload
+        except Exception as exc:
+            last_exc = exc
+            if attempt < 2:
+                time.sleep(1 + attempt)
+                continue
+            break
+    raise last_exc
 
 
 @st.cache_data(show_spinner=False)
