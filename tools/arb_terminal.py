@@ -143,6 +143,59 @@ def _render_link_button(label: str, url: str) -> None:
         st.markdown(f"[{label}]({url})")
 
 
+def _build_event_lookup(rows: Optional[pd.DataFrame]) -> dict:
+    if rows is None or rows.empty:
+        return {}
+    if "event_id" not in rows.columns or "match_id" not in rows.columns:
+        return {}
+    cols = ["match_id", "bookmaker", "event_id"]
+    if "event_league_id" in rows.columns:
+        cols.append("event_league_id")
+    df = rows[cols].copy()
+    if "event_league_id" not in df.columns:
+        df["event_league_id"] = None
+    df = df[df["event_id"].notna()]
+    df["event_id"] = df["event_id"].astype(str)
+    df = df[df["event_id"].str.strip() != ""]
+    lookup = {}
+    for row in df.itertuples(index=False):
+        key = (getattr(row, "match_id", None), getattr(row, "bookmaker", None))
+        if key[0] is None or key[1] is None:
+            continue
+        lookup[key] = (getattr(row, "event_id", None), getattr(row, "event_league_id", None))
+    return lookup
+
+
+def _apply_event_lookup(arbs_df: pd.DataFrame, lookup: dict) -> pd.DataFrame:
+    if arbs_df is None or arbs_df.empty or not lookup:
+        return arbs_df
+    if "match_id" not in arbs_df.columns:
+        return arbs_df
+    updated = arbs_df.copy()
+    for side in ("home", "draw", "away"):
+        bookie_col = f"best_{side}_bookie"
+        event_col = f"best_{side}_event_id"
+        league_col = f"best_{side}_league_id"
+        if bookie_col not in updated.columns:
+            continue
+        if event_col not in updated.columns:
+            updated[event_col] = None
+        if league_col not in updated.columns:
+            updated[league_col] = None
+        keys = list(zip(updated["match_id"], updated[bookie_col]))
+        event_vals = [lookup.get(key, (None, None))[0] for key in keys]
+        league_vals = [lookup.get(key, (None, None))[1] for key in keys]
+        event_series = pd.Series(event_vals, index=updated.index)
+        league_series = pd.Series(league_vals, index=updated.index)
+        missing_event = updated[event_col].isna() | (updated[event_col].astype(str).str.strip() == "")
+        if missing_event.any():
+            updated.loc[missing_event, event_col] = event_series[missing_event]
+        missing_league = updated[league_col].isna() | (updated[league_col].astype(str).str.strip() == "")
+        if missing_league.any():
+            updated.loc[missing_league, league_col] = league_series[missing_league]
+    return updated
+
+
 def _compute_liquidity_score(
     bookie_count: Optional[float],
     snapshot_age_min: Optional[float],
@@ -1123,6 +1176,17 @@ if strategy.startswith("Arbitrage"):
             )
             fig = px.bar(top_leagues, x="league", y="match_id", title="Top Leagues by Arb Count")
             st.plotly_chart(fig, use_container_width=True)
+
+        if show_quick_links:
+            event_lookup = _build_event_lookup(rows)
+            if not event_lookup and remote_url:
+                try:
+                    snapshot_rows_for_links, _ = _load_remote_rows(remote_url, min(int(remote_timeout), 10))
+                    event_lookup = _build_event_lookup(snapshot_rows_for_links)
+                except Exception:
+                    event_lookup = {}
+            if event_lookup:
+                arbs_filtered = _apply_event_lookup(arbs_filtered, event_lookup)
 
         st.subheader("Top Arbitrage Opportunities")
         display_cols = [

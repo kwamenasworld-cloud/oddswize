@@ -18,6 +18,8 @@ export interface BookmakerOdds {
   home_odds: number | null;
   draw_odds: number | null;
   away_odds: number | null;
+  event_id?: string;
+  event_league_id?: string;
   url?: string;
   last_updated?: string;
 }

@@ -208,6 +208,8 @@ function buildOddsResponseFromSnapshot(payload: any): OddsResponse | null {
         home_odds: coerceNumber(line.home_odds),
         draw_odds: coerceNumber(line.draw_odds),
         away_odds: coerceNumber(line.away_odds),
+        event_id: line.event_id ?? line.eventId ?? undefined,
+        event_league_id: line.event_league_id ?? line.league_id ?? undefined,
         url: line.url,
         last_updated: line.last_updated,
       });
@@ -285,6 +287,8 @@ async function ensureHistorySchema(env: Env): Promise<void> {
       home_odds REAL,
       draw_odds REAL,
       away_odds REAL,
+      event_id TEXT,
+      event_league_id TEXT,
       PRIMARY KEY (run_id, match_id, bookmaker)
     )`,
     'CREATE INDEX IF NOT EXISTS idx_odds_runs_updated ON odds_runs(last_updated)',
@@ -294,6 +298,14 @@ async function ensureHistorySchema(env: Env): Promise<void> {
   ];
   for (const statement of statements) {
     await env.D1.prepare(statement).run();
+  }
+  const columns = await env.D1.prepare('PRAGMA table_info(odds_lines)').all();
+  const columnNames = new Set((columns.results || []).map((row: any) => row.name));
+  if (!columnNames.has('event_id')) {
+    await env.D1.prepare('ALTER TABLE odds_lines ADD COLUMN event_id TEXT').run();
+  }
+  if (!columnNames.has('event_league_id')) {
+    await env.D1.prepare('ALTER TABLE odds_lines ADD COLUMN event_league_id TEXT').run();
   }
   historySchemaReady = true;
 }
@@ -1225,8 +1237,8 @@ async function storeOddsHistory(env: Env, oddsResponse: OddsResponse, runId: str
   );
   const oddsStmt = env.D1.prepare(
     `INSERT OR REPLACE INTO odds_lines
-     (run_id, match_id, bookmaker, home_odds, draw_odds, away_odds)
-     VALUES (?, ?, ?, ?, ?, ?)`
+     (run_id, match_id, bookmaker, home_odds, draw_odds, away_odds, event_id, event_league_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
   const matchStatements: D1PreparedStatement[] = [];
@@ -1254,7 +1266,9 @@ async function storeOddsHistory(env: Env, oddsResponse: OddsResponse, runId: str
             line.bookmaker || null,
             line.home_odds ?? null,
             line.draw_odds ?? null,
-            line.away_odds ?? null
+            line.away_odds ?? null,
+            line.event_id ?? null,
+            line.event_league_id ?? null
           )
         );
       }
@@ -1902,7 +1916,9 @@ async function listHistoryOdds(request: Request, env: Env): Promise<Response> {
       o.bookmaker,
       o.home_odds,
       o.draw_odds,
-      o.away_odds
+      o.away_odds,
+      o.event_id,
+      o.event_league_id
     FROM odds_lines o
     JOIN odds_matches m ON o.run_id = m.run_id AND o.match_id = m.match_id
     JOIN odds_runs r ON o.run_id = r.run_id

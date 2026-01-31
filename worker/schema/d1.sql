@@ -89,6 +89,8 @@ CREATE TABLE IF NOT EXISTS odds_lines (
   home_odds REAL,
   draw_odds REAL,
   away_odds REAL,
+  event_id TEXT,
+  event_league_id TEXT,
   PRIMARY KEY (run_id, match_id, bookmaker)
 );
 

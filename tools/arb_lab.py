@@ -86,6 +86,8 @@ def init_history_db(conn: sqlite3.Connection) -> None:
             home_odds REAL,
             draw_odds REAL,
             away_odds REAL,
+            event_id TEXT,
+            event_league_id TEXT,
             PRIMARY KEY (run_id, match_id, bookmaker)
         )
         """
@@ -94,6 +96,12 @@ def init_history_db(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_matches_start ON matches(start_time)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_odds_bookie ON odds(bookmaker)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_runs_updated ON runs(last_updated)")
+
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(odds)").fetchall()}
+    if "event_id" not in cols:
+        conn.execute("ALTER TABLE odds ADD COLUMN event_id TEXT")
+    if "event_league_id" not in cols:
+        conn.execute("ALTER TABLE odds ADD COLUMN event_league_id TEXT")
 
 
 def rows_from_odds_payload(payload: Dict) -> pd.DataFrame:
@@ -244,6 +252,8 @@ def append_snapshot_to_history_db(payload: Dict, db_path: Optional[str] = None) 
                     odds.get("home_odds"),
                     odds.get("draw_odds"),
                     odds.get("away_odds"),
+                    odds.get("event_id"),
+                    odds.get("event_league_id") or odds.get("league_id"),
                 ))
 
         if match_rows:
@@ -254,8 +264,9 @@ def append_snapshot_to_history_db(payload: Dict, db_path: Optional[str] = None) 
             )
         if odds_rows:
             conn.executemany(
-                "INSERT OR REPLACE INTO odds (run_id, match_id, bookmaker, home_odds, draw_odds, away_odds)"
-                " VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO odds "
+                "(run_id, match_id, bookmaker, home_odds, draw_odds, away_odds, event_id, event_league_id)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 odds_rows,
             )
         conn.commit()
@@ -387,7 +398,9 @@ def load_snapshot_rows(
             o.bookmaker,
             o.home_odds,
             o.draw_odds,
-            o.away_odds
+            o.away_odds,
+            o.event_id,
+            o.event_league_id
         FROM odds o
         JOIN matches m ON o.run_id = m.run_id AND o.match_id = m.match_id
         JOIN runs r ON o.run_id = r.run_id
@@ -400,6 +413,7 @@ def load_snapshot_rows(
 
     conn = sqlite3.connect(path)
     try:
+        init_history_db(conn)
         return pd.read_sql_query(query, conn, params=params)
     finally:
         conn.close()
@@ -444,6 +458,8 @@ def load_snapshot_rows_from_jsonl(
                         "home_team": home_team,
                         "away_team": away_team,
                         "bookmaker": odds.get("bookmaker"),
+                        "event_id": odds.get("event_id"),
+                        "event_league_id": odds.get("event_league_id") or odds.get("league_id"),
                         "home_odds": odds.get("home_odds"),
                         "draw_odds": odds.get("draw_odds"),
                         "away_odds": odds.get("away_odds"),
