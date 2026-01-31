@@ -84,16 +84,20 @@ with st.sidebar:
 
     st.subheader("Live Updates")
     refresh_seconds = st.number_input("Auto refresh (seconds)", min_value=0, value=0, step=5)
+    refresh_clicked = st.button("Refresh now")
     if refresh_seconds > 0:
         if hasattr(st, "autorefresh"):
             st.autorefresh(interval=int(refresh_seconds * 1000), key="auto_refresh")
         else:
-            st.info("Upgrade Streamlit for auto-refresh support; use the Refresh button.")
-    if st.button("Refresh now"):
+            st.info("Upgrade Streamlit for auto-refresh support; use Refresh now.")
+    force_refresh = refresh_clicked or refresh_seconds > 0
+    if force_refresh:
         st.cache_data.clear()
-        rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
-        if rerun:
-            rerun()
+        st.session_state["last_refresh_ts"] = datetime.utcnow().isoformat()
+        if refresh_clicked:
+            rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+            if rerun:
+                rerun()
 
     st.subheader("Date Filters")
     run_range = st.date_input(
@@ -433,6 +437,25 @@ if rows.empty:
     st.warning("No odds history found for the selected range.")
     st.stop()
 
+st.subheader("Snapshot Summary")
+last_updated = pd.to_datetime(rows["last_updated"], errors="coerce", utc=True)
+latest_ts = last_updated.max() if not last_updated.empty else None
+latest_label = latest_ts.strftime("%Y-%m-%d %H:%M UTC") if pd.notna(latest_ts) else "Unknown"
+snapshot_age = None
+if pd.notna(latest_ts):
+    snapshot_age = (datetime.now(timezone.utc) - latest_ts).total_seconds() / 60.0
+
+summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+summary_col1.metric("Rows", f"{len(rows):,}")
+summary_col2.metric("Matches", f"{rows['match_id'].nunique():,}")
+summary_col3.metric("Bookmakers", f"{rows['bookmaker'].nunique():,}")
+summary_col4.metric("Latest snapshot", latest_label)
+if snapshot_age is not None:
+    st.caption(f"Snapshot age: {snapshot_age:.1f} min")
+last_refresh_ts = st.session_state.get("last_refresh_ts")
+if last_refresh_ts:
+    st.caption(f"Last refresh: {last_refresh_ts} UTC")
+
 available_leagues = sorted([l for l in rows["league"].dropna().unique() if str(l).strip()])
 available_bookies = sorted([b for b in rows["bookmaker"].dropna().unique() if str(b).strip()])
 
@@ -441,18 +464,23 @@ with st.sidebar:
     selected_leagues = st.multiselect("Leagues", available_leagues, default=available_leagues)
     selected_bookies = st.multiselect("Bookmakers", available_bookies, default=available_bookies)
 
-st.subheader("Target Growth Calculator")
-growth_col1, growth_col2, growth_col3, growth_col4 = st.columns(4)
-with growth_col1:
-    target_start = st.number_input("Starting bankroll", min_value=1.0, value=200.0, step=10.0, key="target_start")
-with growth_col2:
-    target_goal = st.number_input("Target bankroll", min_value=10.0, value=100000.0, step=1000.0, key="target_goal")
-with growth_col3:
-    target_days = st.number_input("Days to target", min_value=1, value=365, step=1, key="target_days")
-with growth_col4:
-    target_exposure = st.slider(
-        "Avg daily exposure %", min_value=0.1, max_value=1.0, value=0.7, step=0.05, key="target_exposure"
-    )
+st.divider()
+with st.expander("Target Growth Calculator", expanded=True):
+    growth_col1, growth_col2, growth_col3, growth_col4 = st.columns(4)
+    with growth_col1:
+        target_start = st.number_input(
+            "Starting bankroll", min_value=1.0, value=200.0, step=10.0, key="target_start"
+        )
+    with growth_col2:
+        target_goal = st.number_input(
+            "Target bankroll", min_value=10.0, value=100000.0, step=1000.0, key="target_goal"
+        )
+    with growth_col3:
+        target_days = st.number_input("Days to target", min_value=1, value=365, step=1, key="target_days")
+    with growth_col4:
+        target_exposure = st.slider(
+            "Avg daily exposure %", min_value=0.1, max_value=1.0, value=0.7, step=0.05, key="target_exposure"
+        )
 
 if target_start > 0 and target_goal > 0 and target_days > 0:
     required_daily_growth = (target_goal / target_start) ** (1 / target_days) - 1
@@ -479,6 +507,20 @@ if strategy.startswith("Arbitrage"):
     effective_slippage = max(0.0, min(0.2, effective_slippage))
     arbs_adj = add_slippage_adjustment(arbs, slippage_pct=effective_slippage)
 
+    if not arbs_adj.empty:
+        now_utc = datetime.now(timezone.utc)
+        arbs_adj["run_time"] = pd.to_datetime(arbs_adj["run_time"], errors="coerce", utc=True)
+        arbs_adj["match_start"] = pd.to_datetime(arbs_adj["match_start"], errors="coerce", utc=True)
+        arbs_adj["snapshot_age_min"] = (now_utc - arbs_adj["run_time"]).dt.total_seconds() / 60.0
+        arbs_adj["kickoff_minutes"] = (arbs_adj["match_start"] - now_utc).dt.total_seconds() / 60.0
+
+    arbs_filtered = arbs_adj
+    if not arbs_adj.empty:
+        if max_snapshot_age_minutes > 0:
+            arbs_filtered = arbs_filtered[arbs_filtered["snapshot_age_min"] <= float(max_snapshot_age_minutes)]
+        if min_minutes_to_kickoff > 0:
+            arbs_filtered = arbs_filtered[arbs_filtered["kickoff_minutes"] >= float(min_minutes_to_kickoff)]
+
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Matches", f"{summary['matches']:,}")
     col2.metric("Arb Opportunities (raw)", f"{summary['arbs']:,}")
@@ -488,31 +530,22 @@ if strategy.startswith("Arbitrage"):
     adj_count = int(arbs_adj["match_id"].nunique()) if not arbs_adj.empty else 0
     adj_avg = float(arbs_adj["arb_roi_adj"].mean()) if not arbs_adj.empty else 0.0
     adj_max = float(arbs_adj["arb_roi_adj"].max()) if not arbs_adj.empty else 0.0
+    filt_count = int(arbs_filtered["match_id"].nunique()) if not arbs_filtered.empty else 0
     col5, col6, col7, col8 = st.columns(4)
     col5.metric("Arbs after slippage", f"{adj_count:,}")
     col6.metric("Avg ROI (adj)", f"{adj_avg*100:.2f}%")
     col7.metric("Max ROI (adj)", f"{adj_max*100:.2f}%")
-    col8.metric("Slippage buffer", f"{effective_slippage*100:.2f}%")
+    col8.metric("Arbs after age/lag", f"{filt_count:,}")
 
     if arbs.empty:
         st.warning("No arbitrage opportunities found for this slice.")
     else:
-        now_utc = datetime.now(timezone.utc)
-        arbs_adj["run_time"] = pd.to_datetime(arbs_adj["run_time"], errors="coerce", utc=True)
-        arbs_adj["match_start"] = pd.to_datetime(arbs_adj["match_start"], errors="coerce", utc=True)
-        arbs_adj["snapshot_age_min"] = (now_utc - arbs_adj["run_time"]).dt.total_seconds() / 60.0
-        arbs_adj["kickoff_minutes"] = (arbs_adj["match_start"] - now_utc).dt.total_seconds() / 60.0
-
-        if max_snapshot_age_minutes > 0:
-            arbs_adj = arbs_adj[arbs_adj["snapshot_age_min"] <= float(max_snapshot_age_minutes)]
-        if min_minutes_to_kickoff > 0:
-            arbs_adj = arbs_adj[arbs_adj["kickoff_minutes"] >= float(min_minutes_to_kickoff)]
-
-        if arbs_adj.empty:
+        if arbs_filtered.empty:
             st.warning("No arbitrage opportunities remain after slippage + lag filters.")
-        arbs_adj["run_date"] = pd.to_datetime(arbs_adj["run_time"], errors="coerce").dt.date
+            st.stop()
+        arbs_filtered["run_date"] = pd.to_datetime(arbs_filtered["run_time"], errors="coerce").dt.date
         daily = (
-            arbs_adj.groupby("run_date", dropna=True)
+            arbs_filtered.groupby("run_date", dropna=True)
             .agg(count=("match_id", "count"), avg_roi=("arb_roi_adj", "mean"))
             .reset_index()
         )
@@ -527,11 +560,11 @@ if strategy.startswith("Arbitrage"):
 
         chart_col3, chart_col4 = st.columns(2)
         with chart_col3:
-            fig = px.histogram(arbs_adj, x="arb_roi_adj", nbins=30, title="ROI Distribution (Adj)")
+            fig = px.histogram(arbs_filtered, x="arb_roi_adj", nbins=30, title="ROI Distribution (Adj)")
             st.plotly_chart(fig, use_container_width=True)
         with chart_col4:
             top_leagues = (
-                arbs_adj.groupby("league")["match_id"].count().sort_values(ascending=False).head(12).reset_index()
+                arbs_filtered.groupby("league")["match_id"].count().sort_values(ascending=False).head(12).reset_index()
             )
             fig = px.bar(top_leagues, x="league", y="match_id", title="Top Leagues by Arb Count")
             st.plotly_chart(fig, use_container_width=True)
@@ -553,7 +586,7 @@ if strategy.startswith("Arbitrage"):
             "best_away_bookie",
             "arb_roi_adj",
         ]
-        table = arbs_adj[display_cols].copy()
+        table = arbs_filtered[display_cols].copy()
         table["arb_roi_adj_pct"] = table["arb_roi_adj"] * 100
         st.dataframe(table.head(300), use_container_width=True)
 
@@ -566,7 +599,7 @@ if strategy.startswith("Arbitrage"):
             "all legs are filled at the adjusted prices."
         )
         daily_sim, picks_sim = simulate_daily_compounding(
-            arbs_adj,
+            arbs_filtered,
             initial_bankroll=initial_bankroll,
             reserve_pct=reserve_pct,
             max_daily_exposure_pct=max_daily_exposure_pct,
