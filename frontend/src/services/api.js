@@ -6,7 +6,11 @@
 // API Configuration
 const CLOUDFLARE_API_URL = import.meta.env.VITE_CLOUDFLARE_API_URL || 'https://oddswize-api.kwamenahb.workers.dev';
 const CLOUDFLARE_WS_URL = import.meta.env.VITE_CLOUDFLARE_WS_URL;
-const STATIC_DATA_URL = '/data/odds_data.json';
+const STATIC_DATA_URL = import.meta.env.VITE_STATIC_DATA_URL || '/data/odds_data.json';
+const PREFER_STATIC_DATA = String(import.meta.env.VITE_PREFER_STATIC || '')
+  .trim()
+  .toLowerCase();
+const SHOULD_PREFER_STATIC = ['1', 'true', 'yes', 'on'].includes(PREFER_STATIC_DATA);
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS) || 10000;
 
 const ODDS_CACHE_KEY = 'oddswize_odds_cache_v2';
@@ -442,6 +446,24 @@ export const clearOddsCacheMemory = () => {
  * Get all matches with odds comparison
  */
 export const getMatches = async (limit = 100, offset = 0, minBookmakers = 1, options = {}) => {
+  if (SHOULD_PREFER_STATIC) {
+    const staticData = await fetchStaticData();
+    if (staticData && Array.isArray(staticData.matches)) {
+      const filtered = staticData.matches.filter(
+        match => match.odds && Array.isArray(match.odds) && match.odds.length >= minBookmakers
+      );
+      return {
+        matches: filtered.slice(offset, offset + limit),
+        total: filtered.length,
+        meta: {
+          last_updated: staticData.last_updated || new Date().toISOString(),
+          total_matches: filtered.length,
+        },
+        cache: { source: 'static', stale: false },
+      };
+    }
+  }
+
   try {
     // Try Cloudflare API first (with local cache + ETag support)
     const oddsResponse = await fetchOddsData(options);
@@ -513,6 +535,34 @@ export const getMatches = async (limit = 100, offset = 0, minBookmakers = 1, opt
  * Get matches grouped by league
  */
 export const getMatchesByLeague = async (options = {}) => {
+  if (SHOULD_PREFER_STATIC) {
+    const staticData = await fetchStaticData();
+    if (staticData && staticData.matches) {
+      const leagueMap = {};
+      for (const match of staticData.matches) {
+        const league = match.league || 'Unknown';
+        if (!leagueMap[league]) {
+          leagueMap[league] = [];
+        }
+        leagueMap[league].push(match);
+      }
+
+      const leagues = Object.entries(leagueMap).map(([league, matches]) => ({
+        league,
+        matches,
+      }));
+
+      return {
+        leagues,
+        meta: {
+          last_updated: staticData.last_updated,
+          total_matches: staticData.matches.length,
+        },
+        cache: { source: 'static', stale: false },
+      };
+    }
+  }
+
   try {
     const oddsResponse = await fetchOddsData(options);
     const data = oddsResponse.data;
@@ -563,6 +613,13 @@ export const getMatchesByLeague = async (options = {}) => {
  * Get arbitrage opportunities
  */
 export const getArbitrage = async (bankroll = 100) => {
+  if (SHOULD_PREFER_STATIC) {
+    const staticData = await fetchStaticData();
+    if (staticData && staticData.arbitrage) {
+      return staticData.arbitrage;
+    }
+  }
+
   try {
     const data = await fetchApi('/api/arbitrage');
 
@@ -638,6 +695,19 @@ export const getMatch = async (matchId) => {
  * Get last update time
  */
 export const getLastUpdate = async (options = {}) => {
+  if (SHOULD_PREFER_STATIC) {
+    const staticData = await fetchStaticData();
+    if (staticData) {
+      return {
+        lastUpdated: staticData.last_updated,
+        nextUpdate: staticData.next_update,
+        cacheTtl: staticData?.meta?.cache_ttl,
+        totalMatches: staticData?.stats?.matched_events || staticData?.matches?.length || 0,
+        cache: { source: 'static', stale: false },
+      };
+    }
+  }
+
   try {
     const oddsResponse = await fetchOddsData(options);
     const data = oddsResponse.data;
