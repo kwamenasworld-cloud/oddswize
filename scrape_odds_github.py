@@ -542,6 +542,7 @@ def fetch_1xbet_games(session, champ_id, champ_name):
             matches.append({
                 'bookmaker': '1xBet Ghana',
                 'event_id': str(event_id),
+                'league_id': game.get("LI") or champ_id,
                 'home_team': home,
                 'away_team': away,
                 'home_odds': home_odds,
@@ -1591,6 +1592,7 @@ def serialize_matched_events(matched: List[List[Dict]], limit: int = 2000) -> Li
                 {
                     'bookmaker': m['bookmaker'],
                     'event_id': m.get('event_id') or m.get('match_id'),
+                    'event_league_id': m.get('league_id'),
                     'home_odds': m.get('home_odds'),
                     'draw_odds': m.get('draw_odds'),
                     'away_odds': m.get('away_odds'),

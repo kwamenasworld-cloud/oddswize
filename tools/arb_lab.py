@@ -143,6 +143,7 @@ def rows_from_odds_payload(payload: Dict) -> pd.DataFrame:
                     "away_team": match.get("away_team"),
                     "bookmaker": odds.get("bookmaker"),
                     "event_id": odds.get("event_id"),
+                    "event_league_id": odds.get("event_league_id") or odds.get("league_id"),
                     "home_odds": odds.get("home_odds"),
                     "draw_odds": odds.get("draw_odds"),
                     "away_odds": odds.get("away_odds"),
@@ -169,6 +170,7 @@ def rows_from_odds_payload(payload: Dict) -> pd.DataFrame:
                     "away_team": match.get("away_team"),
                     "bookmaker": odds.get("bookmaker"),
                     "event_id": odds.get("event_id"),
+                    "event_league_id": odds.get("event_league_id") or odds.get("league_id"),
                     "home_odds": odds.get("home_odds"),
                     "draw_odds": odds.get("draw_odds"),
                     "away_odds": odds.get("away_odds"),
@@ -541,6 +543,7 @@ def _best_by_outcome(
     odds_label: str,
     bookie_label: str,
     event_label: Optional[str] = None,
+    extra_labels: Optional[dict] = None,
 ) -> pd.DataFrame:
     keys = ["run_id", "match_id"]
     eligible = df[df[outcome_col].notna() & (df[outcome_col] > 0)].copy()
@@ -548,12 +551,16 @@ def _best_by_outcome(
         return pd.DataFrame(columns=keys + [bookie_label, odds_label])
     idx = eligible.groupby(keys)[outcome_col].idxmax()
     cols = ["bookmaker", outcome_col]
-    if "event_id" in eligible.columns:
-        cols.append("event_id")
-    best = eligible.loc[idx, keys + cols]
     rename_map = {"bookmaker": bookie_label, outcome_col: odds_label}
-    if event_label:
+    if event_label and "event_id" in eligible.columns:
+        cols.append("event_id")
         rename_map["event_id"] = event_label
+    if extra_labels:
+        for src, dest in extra_labels.items():
+            if src in eligible.columns and dest:
+                cols.append(src)
+                rename_map[src] = dest
+    best = eligible.loc[idx, keys + cols]
     return best.rename(columns=rename_map)
 
 
@@ -585,13 +592,28 @@ def build_best_lines(
     match_info["match_start"] = pd.to_datetime(match_info["start_time"], unit="s", errors="coerce")
 
     best_home = _best_by_outcome(
-        df, "home_odds", "best_home_odds", "best_home_bookie", "best_home_event_id"
+        df,
+        "home_odds",
+        "best_home_odds",
+        "best_home_bookie",
+        "best_home_event_id",
+        extra_labels={"event_league_id": "best_home_league_id"},
     )
     best_draw = _best_by_outcome(
-        df, "draw_odds", "best_draw_odds", "best_draw_bookie", "best_draw_event_id"
+        df,
+        "draw_odds",
+        "best_draw_odds",
+        "best_draw_bookie",
+        "best_draw_event_id",
+        extra_labels={"event_league_id": "best_draw_league_id"},
     )
     best_away = _best_by_outcome(
-        df, "away_odds", "best_away_odds", "best_away_bookie", "best_away_event_id"
+        df,
+        "away_odds",
+        "best_away_odds",
+        "best_away_bookie",
+        "best_away_event_id",
+        extra_labels={"event_league_id": "best_away_league_id"},
     )
 
     merged = match_info.merge(best_home, on=keys, how="left")
@@ -635,13 +657,28 @@ def compute_arbitrage_opportunities(
     match_info["match_start"] = pd.to_datetime(match_info["start_time"], unit="s", errors="coerce")
 
     best_home = _best_by_outcome(
-        df, "home_odds", "best_home_odds", "best_home_bookie", "best_home_event_id"
+        df,
+        "home_odds",
+        "best_home_odds",
+        "best_home_bookie",
+        "best_home_event_id",
+        extra_labels={"event_league_id": "best_home_league_id"},
     )
     best_draw = _best_by_outcome(
-        df, "draw_odds", "best_draw_odds", "best_draw_bookie", "best_draw_event_id"
+        df,
+        "draw_odds",
+        "best_draw_odds",
+        "best_draw_bookie",
+        "best_draw_event_id",
+        extra_labels={"event_league_id": "best_draw_league_id"},
     )
     best_away = _best_by_outcome(
-        df, "away_odds", "best_away_odds", "best_away_bookie", "best_away_event_id"
+        df,
+        "away_odds",
+        "best_away_odds",
+        "best_away_bookie",
+        "best_away_event_id",
+        extra_labels={"event_league_id": "best_away_league_id"},
     )
 
     merged = match_info.merge(best_home, on=keys, how="left")

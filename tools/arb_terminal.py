@@ -73,6 +73,9 @@ BOOKMAKER_EVENT_TEMPLATES = {
     "SportyBet Ghana": "https://www.sportybet.com/gh/sport/football/fixtures/{event_id_url}",
     "Betway Ghana": "https://www.betway.com.gh/sport/soccer/event/{event_id}",
     "22Bet Ghana": "https://22bet.com.gh/line/event/{event_id}",
+    "1xBet Ghana": "https://1xbet.com.gh/en/line/football/{league_id}/{event_id}",
+    "SoccaBet Ghana": "https://www.soccabet.com/bet/event/{event_id}",
+    "Betfox Ghana": "https://www.betfox.com.gh/sportsbook/#/event/{event_id}",
 }
 BOOKMAKER_EVENT_TEMPLATES.update(
     json.loads(os.getenv("BOOKMAKER_EVENT_TEMPLATES", "{}") or "{}")
@@ -95,9 +98,18 @@ def _slugify_simple(value: object) -> str:
     return text.strip("-")
 
 
-def _build_bookie_event_url(bookmaker: object, event_id: object, home: object, away: object, league: object) -> str:
+def _build_bookie_event_url(
+    bookmaker: object,
+    event_id: object,
+    home: object,
+    away: object,
+    league: object,
+    event_league_id: object = None,
+) -> str:
     template = BOOKMAKER_EVENT_TEMPLATES.get(str(bookmaker or ""))
     if not template or not event_id:
+        return ""
+    if "{league_id}" in template and not event_league_id:
         return ""
     event_id_str = str(event_id)
     values = {
@@ -106,6 +118,7 @@ def _build_bookie_event_url(bookmaker: object, event_id: object, home: object, a
         "home": str(home or ""),
         "away": str(away or ""),
         "league": str(league or ""),
+        "league_id": str(event_league_id or ""),
         "home_slug": _slugify_simple(home),
         "away_slug": _slugify_simple(away),
         "league_slug": _slugify_simple(league),
@@ -1125,7 +1138,14 @@ if strategy.startswith("Arbitrage"):
         ]
         event_cols = [
             col
-            for col in ("best_home_event_id", "best_draw_event_id", "best_away_event_id")
+            for col in (
+                "best_home_event_id",
+                "best_draw_event_id",
+                "best_away_event_id",
+                "best_home_league_id",
+                "best_draw_league_id",
+                "best_away_league_id",
+            )
             if col in arbs_filtered.columns
         ]
         table = arbs_filtered[display_cols + event_cols].copy()
@@ -1150,6 +1170,7 @@ if strategy.startswith("Arbitrage"):
                     row.get("home_team"),
                     row.get("away_team"),
                     row.get("league"),
+                    row.get("best_home_league_id"),
                 )
                 or _build_search_url(
                     row.get("best_home_bookie"),
@@ -1166,6 +1187,7 @@ if strategy.startswith("Arbitrage"):
                     row.get("home_team"),
                     row.get("away_team"),
                     row.get("league"),
+                    row.get("best_draw_league_id"),
                 )
                 or _build_search_url(
                     row.get("best_draw_bookie"),
@@ -1182,6 +1204,7 @@ if strategy.startswith("Arbitrage"):
                     row.get("home_team"),
                     row.get("away_team"),
                     row.get("league"),
+                    row.get("best_away_league_id"),
                 )
                 or _build_search_url(
                     row.get("best_away_bookie"),
@@ -1231,6 +1254,11 @@ if strategy.startswith("Arbitrage"):
         allocator_event_cols = [
             col
             for col in ("best_home_event_id", "best_draw_event_id", "best_away_event_id")
+            if col in arbs_filtered.columns
+        ]
+        allocator_event_cols += [
+            col
+            for col in ("best_home_league_id", "best_draw_league_id", "best_away_league_id")
             if col in arbs_filtered.columns
         ]
         allocator_table = arbs_filtered[allocator_base_cols + allocator_event_cols].copy()
@@ -1317,6 +1345,7 @@ if strategy.startswith("Arbitrage"):
                 selected_row.get("home_team"),
                 selected_row.get("away_team"),
                 selected_row.get("league"),
+                selected_row.get("best_home_league_id"),
             ) or _build_search_url(
                 selected_row.get("best_home_bookie"),
                 selected_row.get("home_team"),
@@ -1329,6 +1358,7 @@ if strategy.startswith("Arbitrage"):
                 selected_row.get("home_team"),
                 selected_row.get("away_team"),
                 selected_row.get("league"),
+                selected_row.get("best_draw_league_id"),
             ) or _build_search_url(
                 selected_row.get("best_draw_bookie"),
                 selected_row.get("home_team"),
@@ -1341,6 +1371,7 @@ if strategy.startswith("Arbitrage"):
                 selected_row.get("home_team"),
                 selected_row.get("away_team"),
                 selected_row.get("league"),
+                selected_row.get("best_away_league_id"),
             ) or _build_search_url(
                 selected_row.get("best_away_bookie"),
                 selected_row.get("home_team"),
