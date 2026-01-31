@@ -456,7 +456,81 @@ def _prepare_odds_frame(rows: pd.DataFrame) -> pd.DataFrame:
     df[odds_cols] = df[odds_cols].replace({0: np.nan})
     df["run_time"] = pd.to_datetime(df["last_updated"], errors="coerce")
     df["match_start"] = pd.to_datetime(df["start_time"], unit="s", errors="coerce")
+    df["implied_sum"] = (
+        1 / df["home_odds"] + 1 / df["draw_odds"] + 1 / df["away_odds"]
+    )
+    df = _dedupe_bookmaker_lines(df)
+    df = _align_home_away_to_consensus(df)
     return df
+
+
+def _dedupe_bookmaker_lines(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty or "bookmaker" not in df.columns:
+        return df
+    group_cols = []
+    if "run_id" in df.columns:
+        group_cols.append("run_id")
+    if "match_id" in df.columns and df["match_id"].notna().any():
+        group_cols.extend(["match_id", "bookmaker"])
+    else:
+        fallback_cols = [col for col in ("league", "home_team", "away_team", "start_time") if col in df.columns]
+        if fallback_cols:
+            group_cols.extend(["bookmaker"] + fallback_cols)
+    if not group_cols:
+        return df
+    return (
+        df.sort_values("implied_sum", na_position="last")
+        .drop_duplicates(subset=group_cols, keep="first")
+        .reset_index(drop=True)
+    )
+
+
+def _align_home_away_to_consensus(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+    group_cols = []
+    if "run_id" in df.columns:
+        group_cols.append("run_id")
+    if "match_id" in df.columns and df["match_id"].notna().any():
+        group_cols.append("match_id")
+    else:
+        fallback_cols = [col for col in ("league", "home_team", "away_team", "start_time") if col in df.columns]
+        if fallback_cols:
+            group_cols.extend(fallback_cols)
+    if not group_cols:
+        return df
+
+    medians = (
+        df.groupby(group_cols, as_index=False)
+        .agg(med_home=("home_odds", "median"), med_away=("away_odds", "median"))
+    )
+    df = df.merge(medians, on=group_cols, how="left")
+
+    valid = (
+        df["home_odds"].notna()
+        & df["away_odds"].notna()
+        & (df["home_odds"] > 0)
+        & (df["away_odds"] > 0)
+        & df["med_home"].notna()
+        & df["med_away"].notna()
+        & (df["med_home"] > 0)
+        & (df["med_away"] > 0)
+    )
+    dist_as_is = (
+        np.log(df["home_odds"] / df["med_home"]).abs()
+        + np.log(df["away_odds"] / df["med_away"]).abs()
+    )
+    dist_swapped = (
+        np.log(df["away_odds"] / df["med_home"]).abs()
+        + np.log(df["home_odds"] / df["med_away"]).abs()
+    )
+    swap_mask = valid & (dist_swapped + 1e-9 < dist_as_is)
+    if swap_mask.any():
+        df.loc[swap_mask, ["home_odds", "away_odds"]] = df.loc[
+            swap_mask, ["away_odds", "home_odds"]
+        ].to_numpy()
+
+    return df.drop(columns=["med_home", "med_away"])
 
 
 def _best_by_outcome(df: pd.DataFrame, outcome_col: str, odds_label: str, bookie_label: str) -> pd.DataFrame:
