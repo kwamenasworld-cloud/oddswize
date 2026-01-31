@@ -1087,11 +1087,15 @@ if strategy.startswith("Arbitrage"):
                     rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
                     if rerun:
                         rerun()
+                        st.stop()
             st.warning(
                 "No arbitrage opportunities remain after slippage + age/lag filters "
                 f"(max snapshot age {max_snapshot_age_minutes} min, min kickoff {min_minutes_to_kickoff} min)."
             )
-            st.stop()
+            if arbs_adj.empty:
+                st.stop()
+            st.info("Showing opportunities without age/lag filters so rows are visible.")
+            arbs_filtered = arbs_adj.copy()
         st.session_state["auto_relax_done"] = False
         arbs_filtered["run_date"] = pd.to_datetime(arbs_filtered["run_time"], errors="coerce").dt.date
         daily = (
