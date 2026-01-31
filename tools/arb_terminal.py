@@ -55,6 +55,16 @@ st.caption(
 today = datetime.utcnow().date()
 default_start = today - timedelta(days=14)
 
+
+def _apply_widget_overrides():
+    for key in ("max_snapshot_age_minutes", "min_minutes_to_kickoff"):
+        override_key = f"override_{key}"
+        if override_key in st.session_state:
+            st.session_state[key] = st.session_state.pop(override_key)
+
+
+_apply_widget_overrides()
+
 with st.sidebar:
     st.subheader("Data Source")
     db_path = st.text_input("History DB path", value=resolve_db_path())
@@ -481,7 +491,7 @@ if snapshot_age is not None:
             "Increase the limit or refresh data to see opportunities."
         )
         if st.button("Set max snapshot age to latest", key="set_max_snapshot_age"):
-            st.session_state["max_snapshot_age_minutes"] = int(math.ceil(snapshot_age))
+            st.session_state["override_max_snapshot_age_minutes"] = int(math.ceil(snapshot_age))
             rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
             if rerun:
                 rerun()
@@ -585,13 +595,13 @@ if strategy.startswith("Arbitrage"):
                     min_age = float(arbs_adj["snapshot_age_min"].min())
                     if min_age > max_age_value:
                         new_age = int(math.ceil(min_age))
-                        st.session_state["max_snapshot_age_minutes"] = new_age
+                        st.session_state["override_max_snapshot_age_minutes"] = new_age
                         adjustments.append(f"max snapshot age → {new_age} min")
                 if min_kickoff_value > 0:
                     max_kickoff = float(arbs_adj["kickoff_minutes"].max())
                     if max_kickoff < min_kickoff_value:
                         new_kickoff = max(0, int(math.floor(max_kickoff)))
-                        st.session_state["min_minutes_to_kickoff"] = new_kickoff
+                        st.session_state["override_min_minutes_to_kickoff"] = new_kickoff
                         adjustments.append(f"min kickoff → {new_kickoff} min")
                 if adjustments:
                     st.session_state["auto_relax_done"] = True
