@@ -1799,16 +1799,23 @@ async function listHistoryOdds(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleHistory(request: Request, env: Env, path: string): Promise<Response> {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders(env) });
+  try {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders(env) });
+    }
+    if (path === '/api/history/runs' && request.method === 'GET') {
+      return listHistoryRuns(request, env);
+    }
+    if (path === '/api/history/odds' && request.method === 'GET') {
+      return listHistoryOdds(request, env);
+    }
+    return errorResponse('Not found', 404, env);
+  } catch (error) {
+    console.error('History API error:', error);
+    const details =
+      error instanceof Error ? error.stack || error.message : String(error);
+    return errorResponse(`History API error: ${details}`, 500, env);
   }
-  if (path === '/api/history/runs' && request.method === 'GET') {
-    return listHistoryRuns(request, env);
-  }
-  if (path === '/api/history/odds' && request.method === 'GET') {
-    return listHistoryOdds(request, env);
-  }
-  return errorResponse('Not found', 404, env);
 }
 
 /**
