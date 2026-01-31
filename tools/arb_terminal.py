@@ -545,6 +545,7 @@ with st.sidebar:
     )
     auto_relax_filters = st.checkbox("Auto relax filters if empty", value=True)
     show_quick_links = st.checkbox("Show quick links in tables", value=True)
+    allow_search_links = st.checkbox("Include search links (fallback)", value=False)
     st.subheader("CLV Filters")
     use_clv_filter = st.checkbox("Only show picks with positive historical CLV", value=False)
     clv_min_pos_rate = st.slider(
@@ -1157,17 +1158,7 @@ if strategy.startswith("Arbitrage"):
         link_cols = []
         column_config = None
         if show_quick_links:
-            table["match_search"] = table.apply(
-                lambda row: _build_search_url(
-                    row.get("home_team"),
-                    "vs",
-                    row.get("away_team"),
-                    row.get("league"),
-                    "odds",
-                ),
-                axis=1,
-            )
-            table["home_search"] = table.apply(
+            table["home_link"] = table.apply(
                 lambda row: _build_bookie_event_url(
                     row.get("best_home_bookie"),
                     row.get("best_home_event_id"),
@@ -1178,7 +1169,7 @@ if strategy.startswith("Arbitrage"):
                 ),
                 axis=1,
             )
-            table["draw_search"] = table.apply(
+            table["draw_link"] = table.apply(
                 lambda row: _build_bookie_event_url(
                     row.get("best_draw_bookie"),
                     row.get("best_draw_event_id"),
@@ -1189,7 +1180,7 @@ if strategy.startswith("Arbitrage"):
                 ),
                 axis=1,
             )
-            table["away_search"] = table.apply(
+            table["away_link"] = table.apply(
                 lambda row: _build_bookie_event_url(
                     row.get("best_away_bookie"),
                     row.get("best_away_event_id"),
@@ -1200,16 +1191,43 @@ if strategy.startswith("Arbitrage"):
                 ),
                 axis=1,
             )
-            link_cols = ["match_search", "home_search", "draw_search", "away_search"]
+            link_cols = ["home_link", "draw_link", "away_link"]
+            if allow_search_links:
+                table["match_search"] = table.apply(
+                    lambda row: _build_search_url(
+                        row.get("home_team"),
+                        "vs",
+                        row.get("away_team"),
+                        row.get("league"),
+                        "odds",
+                    ),
+                    axis=1,
+                )
+                link_cols = ["match_search"] + link_cols
             if hasattr(st, "column_config"):
                 column_config = {
-                    "match_search": st.column_config.LinkColumn("Match search", display_text="Open"),
-                    "home_search": st.column_config.LinkColumn("Home bookie", display_text="Open"),
-                    "draw_search": st.column_config.LinkColumn("Draw bookie", display_text="Open"),
-                    "away_search": st.column_config.LinkColumn("Away bookie", display_text="Open"),
+                    "home_link": st.column_config.LinkColumn("Home bookie", display_text="Open"),
+                    "draw_link": st.column_config.LinkColumn("Draw bookie", display_text="Open"),
+                    "away_link": st.column_config.LinkColumn("Away bookie", display_text="Open"),
                 }
+                if allow_search_links:
+                    column_config["match_search"] = st.column_config.LinkColumn("Match search", display_text="Open")
 
-        display_table = table[display_cols + link_cols].copy()
+            if not table.empty:
+                home_cov = (table["home_link"] != "").mean()
+                draw_cov = (table["draw_link"] != "").mean()
+                away_cov = (table["away_link"] != "").mean()
+                st.caption(
+                    "Direct link coverage — "
+                    f"Home {home_cov*100:.0f}%, Draw {draw_cov*100:.0f}%, Away {away_cov*100:.0f}%."
+                )
+                if min(home_cov, draw_cov, away_cov) < 0.25:
+                    st.warning(
+                        "Direct links are missing for most rows. "
+                        "This usually means the current data source lacks event IDs."
+                    )
+
+        display_table = table[link_cols + display_cols].copy() if link_cols else table[display_cols].copy()
         if column_config:
             st.dataframe(display_table.head(300), use_container_width=True, column_config=column_config)
         else:
