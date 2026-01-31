@@ -9,6 +9,7 @@ export interface Env {
   API_SECRET: string;
   TURNSTILE_SECRET?: string;
   HISTORY_API_KEY?: string;
+  ODDS_SNAPSHOT_URL?: string;
 }
 
 // Match data types

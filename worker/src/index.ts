@@ -19,6 +19,8 @@ import { OddsStream } from './oddsStream';
 // Cache TTL in seconds
 const CACHE_TTL = 900; // 15 minutes (matches scraper schedule)
 const FAST_CACHE_TTL_SECONDS = 600; // Overlay updates expire quickly
+const DEFAULT_ODDS_SNAPSHOT_URL = 'https://raw.githubusercontent.com/kwamenasworld-cloud/oddswize/data/odds_data.json';
+const GITHUB_REFRESH_THRESHOLD_SECONDS = 180;
 
 // Ghana bookmakers
 const GHANA_BOOKMAKERS = [
@@ -157,6 +159,104 @@ function buildMatchKey(match: Match): string {
   const away = slugify(match.away_team);
   const start = match.start_time || 0;
   return `${home}-vs-${away}-${start}`;
+}
+
+function parseLastUpdated(meta?: { last_updated?: string }): number | null {
+  if (!meta?.last_updated) return null;
+  const parsed = Date.parse(meta.last_updated);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function coerceNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function coerceStartTime(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.floor(value);
+  }
+  if (typeof value === 'string' && value) {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) {
+      return Math.floor(parsed / 1000);
+    }
+  }
+  return 0;
+}
+
+function buildOddsResponseFromSnapshot(payload: any): OddsResponse | null {
+  if (!payload || !Array.isArray(payload.matches)) return null;
+  const lastUpdated = payload.last_updated || new Date().toISOString();
+  const leagueMap = new Map<string, LeagueGroup>();
+  const bookmakerSet = new Set<string>();
+
+  for (const match of payload.matches || []) {
+    if (!match) continue;
+    const league = match.league || 'Unknown';
+    const home = match.home_team || '';
+    const away = match.away_team || '';
+    const startTime = coerceStartTime(match.start_time || match.kickoff);
+    const oddsLines: BookmakerOdds[] = [];
+    for (const line of match.odds || []) {
+      if (!line) continue;
+      const bookie = line.bookmaker || '';
+      if (bookie) bookmakerSet.add(bookie);
+      oddsLines.push({
+        bookmaker: bookie,
+        home_odds: coerceNumber(line.home_odds),
+        draw_odds: coerceNumber(line.draw_odds),
+        away_odds: coerceNumber(line.away_odds),
+        url: line.url,
+        last_updated: line.last_updated,
+      });
+    }
+
+    const normalized: Match = {
+      id: match.match_id || match.id || '',
+      home_team: home,
+      away_team: away,
+      league,
+      start_time: startTime,
+      odds: oddsLines,
+      is_live: match.is_live ?? false,
+    };
+    if (!normalized.id) {
+      normalized.id = buildMatchKey(normalized);
+    }
+
+    const group = leagueMap.get(league) || { league, matches: [] };
+    group.matches.push(normalized);
+    leagueMap.set(league, group);
+  }
+
+  const leagueGroups = Array.from(leagueMap.values());
+  const totalMatches = leagueGroups.reduce((sum, lg) => sum + (lg.matches?.length || 0), 0);
+  return {
+    success: true,
+    data: leagueGroups,
+    meta: {
+      total_matches: totalMatches,
+      total_bookmakers: bookmakerSet.size || GHANA_BOOKMAKERS.length,
+      last_updated: lastUpdated,
+      cache_ttl: CACHE_TTL,
+    },
+  };
+}
+
+async function refreshOddsFromGithub(env: Env): Promise<OddsResponse | null> {
+  const url = (env.ODDS_SNAPSHOT_URL || DEFAULT_ODDS_SNAPSHOT_URL).trim();
+  if (!url) return null;
+  try {
+    const resp = await fetch(url, { cf: { cacheTtl: 0, cacheEverything: false } });
+    if (!resp.ok) return null;
+    const payload = await resp.json<any>();
+    return buildOddsResponseFromSnapshot(payload);
+  } catch (error) {
+    console.warn('Failed to refresh odds from snapshot URL:', error);
+    return null;
+  }
 }
 
 async function ensureHistorySchema(env: Env): Promise<void> {
@@ -912,6 +1012,27 @@ async function getOddsData(env: Env): Promise<OddsResponse> {
           cache_ttl: CACHE_TTL,
         },
       };
+    }
+
+    const lastUpdatedMs = parseLastUpdated(baseResponse.meta);
+    const ageSeconds = lastUpdatedMs ? (Date.now() - lastUpdatedMs) / 1000 : Number.POSITIVE_INFINITY;
+    if (ageSeconds > GITHUB_REFRESH_THRESHOLD_SECONDS) {
+      const refreshed = await refreshOddsFromGithub(env);
+      if (refreshed) {
+        baseResponse = {
+          ...refreshed,
+          data: attachLeagueKeys(refreshed.data || []),
+        };
+        try {
+          await env.ODDS_CACHE.put('all_odds', JSON.stringify(baseResponse), {
+            expirationTtl: CACHE_TTL,
+          });
+          await env.ODDS_CACHE.put('last_odds', JSON.stringify(baseResponse));
+          await storeOddsHistory(env, baseResponse, baseResponse.meta.last_updated);
+        } catch (error) {
+          console.warn('Failed to persist refreshed odds:', error);
+        }
+      }
     }
 
     const fastCached = await env.ODDS_CACHE.get('fast_odds', 'json');
