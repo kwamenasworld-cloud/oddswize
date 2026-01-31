@@ -73,7 +73,7 @@ BOOKMAKER_EVENT_TEMPLATES = {
     "SportyBet Ghana": "https://www.sportybet.com/gh/sport/football/fixtures/{event_id_url}",
     "Betway Ghana": "https://www.betway.com.gh/sport/soccer/event/{event_id}",
     "22Bet Ghana": "https://22bet.com.gh/line/event/{event_id}",
-    "1xBet Ghana": "https://1xbet.com.gh/en/line/football/{league_id}/{event_id}",
+    "1xBet Ghana": "https://1xbet.com.gh/en/line/football?eventId={event_id}",
     "SoccaBet Ghana": "https://www.soccabet.com/bet/event/{event_id}",
     "Betfox Ghana": "https://www.betfox.com.gh/sportsbook/#/event/{event_id}",
 }
