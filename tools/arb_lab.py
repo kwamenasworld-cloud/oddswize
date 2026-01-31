@@ -99,25 +99,79 @@ def init_history_db(conn: sqlite3.Connection) -> None:
 def rows_from_odds_payload(payload: Dict) -> pd.DataFrame:
     if not payload:
         return pd.DataFrame()
-    last_updated = payload.get("last_updated") or datetime.now(timezone.utc).isoformat()
+
+    def _coerce_start_time(value: Optional[object]) -> int:
+        if value is None:
+            return 0
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                return 0
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return int(parsed.timestamp())
+        return 0
+
+    meta = payload.get("meta") or {}
+    last_updated = (
+        payload.get("last_updated")
+        or meta.get("last_updated")
+        or datetime.now(timezone.utc).isoformat()
+    )
     run_id = payload.get("run_id") or last_updated
     rows = []
-    for match in payload.get("matches", []) or []:
-        match_id = match.get("match_id") or _build_fixture_id(match)
-        for odds in match.get("odds", []) or []:
-            rows.append({
-                "run_id": run_id,
-                "last_updated": last_updated,
-                "match_id": match_id,
-                "league": match.get("league"),
-                "start_time": match.get("start_time"),
+
+    if payload.get("matches"):
+        for match in payload.get("matches", []) or []:
+            start_time = _coerce_start_time(match.get("start_time") or match.get("kickoff"))
+            match_id = match.get("match_id") or match.get("id") or _build_fixture_id({
                 "home_team": match.get("home_team"),
                 "away_team": match.get("away_team"),
-                "bookmaker": odds.get("bookmaker"),
-                "home_odds": odds.get("home_odds"),
-                "draw_odds": odds.get("draw_odds"),
-                "away_odds": odds.get("away_odds"),
+                "start_time": start_time,
             })
+            for odds in match.get("odds", []) or []:
+                rows.append({
+                    "run_id": run_id,
+                    "last_updated": last_updated,
+                    "match_id": match_id,
+                    "league": match.get("league"),
+                    "start_time": start_time,
+                    "home_team": match.get("home_team"),
+                    "away_team": match.get("away_team"),
+                    "bookmaker": odds.get("bookmaker"),
+                    "home_odds": odds.get("home_odds"),
+                    "draw_odds": odds.get("draw_odds"),
+                    "away_odds": odds.get("away_odds"),
+                })
+        return pd.DataFrame(rows)
+
+    for league in payload.get("data", []) or []:
+        league_name = league.get("league") or league.get("name") or ""
+        for match in league.get("matches", []) or []:
+            start_time = _coerce_start_time(match.get("start_time") or match.get("kickoff"))
+            match_id = match.get("match_id") or match.get("id") or _build_fixture_id({
+                "home_team": match.get("home_team"),
+                "away_team": match.get("away_team"),
+                "start_time": start_time,
+            })
+            for odds in match.get("odds", []) or []:
+                rows.append({
+                    "run_id": run_id,
+                    "last_updated": last_updated,
+                    "match_id": match_id,
+                    "league": match.get("league") or league_name,
+                    "start_time": start_time,
+                    "home_team": match.get("home_team"),
+                    "away_team": match.get("away_team"),
+                    "bookmaker": odds.get("bookmaker"),
+                    "home_odds": odds.get("home_odds"),
+                    "draw_odds": odds.get("draw_odds"),
+                    "away_odds": odds.get("away_odds"),
+                })
+
     return pd.DataFrame(rows)
 
 

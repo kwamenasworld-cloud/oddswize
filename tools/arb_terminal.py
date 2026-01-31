@@ -64,10 +64,11 @@ with st.sidebar:
     st.subheader("Remote Snapshot")
     default_remote_url = os.getenv(
         "REMOTE_ODDS_URL",
-        "https://raw.githubusercontent.com/kwamenasworld-cloud/oddswize/data/odds_data.json",
+        "https://oddswize-api.kwamenahb.workers.dev/api/odds",
     )
     use_remote = st.checkbox("Use remote odds snapshot", value=False)
     remote_url = st.text_input("Remote odds_data.json URL", value=default_remote_url)
+    st.caption("Tip: use the Worker /api/odds endpoint for the freshest snapshot.")
     remote_timeout = st.number_input("Remote timeout (seconds)", min_value=5, value=15, step=5)
     persist_remote = st.checkbox("Append remote snapshot locally", value=False)
     persist_db = st.checkbox("Write to history DB", value=True, disabled=not persist_remote)
