@@ -18,7 +18,7 @@ jobs:
     permissions:
       contents: write
     env:
-      ODDS_FAST: 1
+      ODDS_FAST: 0
       SCRAPE_REPEAT: 14
       SCRAPE_INTERVAL_SECONDS: 240
 
