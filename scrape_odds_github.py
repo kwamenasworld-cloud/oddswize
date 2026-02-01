@@ -831,6 +831,7 @@ def scrape_soccabet() -> List[Dict]:
                     continue
 
                 tourn_name = tournament.get('name', 'Unknown')
+                tournament_id = tournament.get('id', tourn_id)
                 league = f"{cat_name}. {tourn_name}"
                 raw_matches = tournament.get('matches', tournament.get('events', []))
 
@@ -907,6 +908,7 @@ def scrape_soccabet() -> List[Dict]:
                         matches.append({
                             'bookmaker': 'SoccaBet Ghana',
                             'event_id': match_id_str,
+                            'league_id': str(tournament_id) if tournament_id is not None else None,
                             'home_team': home_team,
                             'away_team': away_team,
                             'home_odds': home_odds,
