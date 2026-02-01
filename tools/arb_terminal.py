@@ -700,6 +700,13 @@ with st.sidebar:
         value=0.0,
         step=0.0025,
     )
+    max_roi_adj = st.slider(
+        "Maximum arb ROI (after slippage)",
+        min_value=0.05,
+        max_value=1.0,
+        value=0.5,
+        step=0.05,
+    )
     min_edge = st.slider(
         "Minimum consensus edge",
         min_value=-0.1,
@@ -1107,7 +1114,10 @@ if strategy.startswith("Arbitrage"):
     arbs_adj = add_slippage_adjustment(arbs, slippage_pct=effective_slippage)
     if not arbs_adj.empty:
         min_roi_adj_value = float(min_roi_adj or 0.0)
+        max_roi_adj_value = float(max_roi_adj or 0.0)
         arbs_adj = arbs_adj[arbs_adj["arb_roi_adj"] >= min_roi_adj_value]
+        if max_roi_adj_value > 0:
+            arbs_adj = arbs_adj[arbs_adj["arb_roi_adj"] <= max_roi_adj_value]
 
     if not arbs_adj.empty:
         now_utc = datetime.now(timezone.utc)
