@@ -21,6 +21,8 @@ jobs:
       ODDS_FAST: 0
       SCRAPE_REPEAT: 14
       SCRAPE_INTERVAL_SECONDS: 240
+      REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 0
+      ALLOW_SINGLE_BOOKIE_MAJORS: 1
 
     steps:
       - name: Checkout repository
