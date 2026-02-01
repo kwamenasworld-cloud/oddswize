@@ -24,7 +24,7 @@ from tools.arb_lab import (
 )
 
 
-DEFAULT_REMOTE_URL = "https://raw.githubusercontent.com/kwamenasworld-cloud/oddswize/data/odds_data.json"
+DEFAULT_REMOTE_URL = "https://raw.githubusercontent.com/kwamenasworld-cloud/oddswize/data-arb/odds_data.json"
 
 
 def fetch_payload(url: str, timeout: int) -> dict:

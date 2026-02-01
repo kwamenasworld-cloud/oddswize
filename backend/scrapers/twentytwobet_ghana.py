@@ -226,6 +226,7 @@ def _parse_events(data: Dict, seen_ids: Set[int]) -> List[Dict]:
         match = {
             "bookmaker": "22Bet Ghana",
             "event_id": event_id,
+            "league_id": event.get("leagueId"),
             "home_team": home,
             "away_team": away,
             "teams": f"{home} vs {away}",

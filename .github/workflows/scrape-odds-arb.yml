@@ -1,4 +1,4 @@
-name: Scrape Odds Data (Top Leagues)
+name: Scrape Odds Data (Arbitrage Coverage)
 
 on:
   # Run hourly; the job itself loops every 4 minutes.
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 70
     concurrency:
-      group: odds-scrape-top
+      group: odds-scrape-arb
       cancel-in-progress: false
     permissions:
       contents: write
@@ -21,7 +21,7 @@ jobs:
       ODDS_FAST: 0
       SCRAPE_REPEAT: 14
       SCRAPE_INTERVAL_SECONDS: 240
-      REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 1
+      REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 0
       ALLOW_SINGLE_BOOKIE_MAJORS: 0
 
     steps:
@@ -45,12 +45,12 @@ jobs:
 
       - name: Prepare data worktree
         run: |
-          git fetch origin data || true
-          git worktree add -B data /tmp/odds-data origin/data || git worktree add -B data /tmp/odds-data
+          git fetch origin data-arb || true
+          git worktree add -B data-arb /tmp/odds-data-arb origin/data-arb || git worktree add -B data-arb /tmp/odds-data-arb
 
       - name: Run odds scraper loop
         env:
-          # Cloudflare worker env for odds upload
+          # Cloudflare worker env for odds upload (skipped via --no-push)
           CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
           D1_CANONICAL_INGEST: ${{ secrets.D1_CANONICAL_INGEST }}
@@ -69,7 +69,7 @@ jobs:
             # Remove any stale snapshot so a failed scrape cannot be re-published
             rm -f odds_data.json
             # Run scraper with virtual display (don't abort whole job on a single failure)
-            if ! python scrape_odds_github.py; then
+            if ! python scrape_odds_github.py --no-push; then
               echo "Scrape failed; skipping this cycle."
               continue
             fi
@@ -79,11 +79,11 @@ jobs:
               continue
             fi
 
-            git -C /tmp/odds-data rm -rf . || true
-            cp odds_data.json /tmp/odds-data/odds_data.json
-            git -C /tmp/odds-data add odds_data.json
-            git -C /tmp/odds-data -c user.name="oddswize-bot" -c user.email="actions@github.com" commit -m "Update odds data" || true
-            git -C /tmp/odds-data push -f origin data
+            git -C /tmp/odds-data-arb rm -rf . || true
+            cp odds_data.json /tmp/odds-data-arb/odds_data.json
+            git -C /tmp/odds-data-arb add odds_data.json
+            git -C /tmp/odds-data-arb -c user.name="oddswize-bot" -c user.email="actions@github.com" commit -m "Update arb odds data" || true
+            git -C /tmp/odds-data-arb push -f origin data-arb
 
             if [ "$i" -lt "$repeat" ]; then
               end_ts=$(date +%s)
@@ -100,6 +100,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: odds-data-top-${{ github.run_number }}
+          name: odds-data-arb-${{ github.run_number }}
           path: odds_data.json
           retention-days: 1

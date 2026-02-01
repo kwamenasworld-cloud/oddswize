@@ -72,7 +72,7 @@ SEARCH_BASE_URL = os.getenv("SEARCH_BASE_URL", "https://www.google.com/search?q=
 BOOKMAKER_EVENT_TEMPLATES = {
     "SportyBet Ghana": "https://www.sportybet.com/gh/sport/football/{league_path}/{home_vs_away}/{event_id_url}",
     "Betway Ghana": "https://www.betway.com.gh/sport/soccer/event/{event_id}",
-    "22Bet Ghana": "https://22bet.com.gh/line/event/{event_id}",
+    "22Bet Ghana": "https://22bet.com.gh/prematch/football/{league_id}-{league_slug}/{event_id}-{home_slug}-{away_slug}",
     "1xBet Ghana": "https://1xbet.com.gh/en/line/football/{league_id}-{league_slug}/{event_id}-{home_slug}-{away_slug}",
     "SoccaBet Ghana": "https://www.soccabet.com/sports/match?id={event_id}&t={league_id}&cs=77",
     "Betfox Ghana": "https://www.betfox.com.gh/sportsbook/#/event/{event_id}",
@@ -345,6 +345,13 @@ def _compute_clv_league_stats(clv: pd.DataFrame) -> pd.DataFrame:
     return stats
 
 
+def _ensure_table_columns(conn: sqlite3.Connection, table: str, columns: dict) -> None:
+    existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    for name, ddl in columns.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
+
+
 def _init_research_db(path: str) -> None:
     if not path:
         return
@@ -370,24 +377,70 @@ def _init_research_db(path: str) -> None:
                 expected_roi REAL,
                 expected_profit REAL,
                 source_run_time TEXT,
-                notes TEXT
+                notes TEXT,
+                status TEXT,
+                settled_at TEXT,
+                outcome_result TEXT,
+                realized_profit REAL,
+                realized_roi REAL,
+                cash_return REAL
             )
             """
         )
+        _ensure_table_columns(
+            conn,
+            "research_picks",
+            {
+                "status": "TEXT",
+                "settled_at": "TEXT",
+                "outcome_result": "TEXT",
+                "realized_profit": "REAL",
+                "realized_roi": "REAL",
+                "cash_return": "REAL",
+            },
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cash_ledger (
+                entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT,
+                change REAL,
+                balance REAL,
+                reason TEXT,
+                pick_id INTEGER,
+                note TEXT
+            )
+            """
+        )
+        _ensure_table_columns(
+            conn,
+            "cash_ledger",
+            {
+                "created_at": "TEXT",
+                "change": "REAL",
+                "balance": "REAL",
+                "reason": "TEXT",
+                "pick_id": "INTEGER",
+                "note": "TEXT",
+            },
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_research_created ON research_picks(created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_research_start ON research_picks(start_time)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_cash_ledger_created ON cash_ledger(created_at)")
         conn.commit()
     finally:
         conn.close()
 
 
-def _append_research_pick(path: str, record: dict) -> None:
+def _append_research_pick(path: str, record: dict) -> Optional[int]:
     if not path:
-        return
+        return None
     _init_research_db(path)
+    record = dict(record or {})
+    record.setdefault("status", "open")
     conn = sqlite3.connect(path)
     try:
-        conn.execute(
+        cur = conn.execute(
             """
             INSERT INTO research_picks (
                 created_at,
@@ -405,8 +458,14 @@ def _append_research_pick(path: str, record: dict) -> None:
                 expected_roi,
                 expected_profit,
                 source_run_time,
-                notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                notes,
+                status,
+                settled_at,
+                outcome_result,
+                realized_profit,
+                realized_roi,
+                cash_return
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 record.get("created_at"),
@@ -425,9 +484,16 @@ def _append_research_pick(path: str, record: dict) -> None:
                 record.get("expected_profit"),
                 record.get("source_run_time"),
                 record.get("notes"),
+                record.get("status"),
+                record.get("settled_at"),
+                record.get("outcome_result"),
+                record.get("realized_profit"),
+                record.get("realized_roi"),
+                record.get("cash_return"),
             ),
         )
         conn.commit()
+        return cur.lastrowid
     finally:
         conn.close()
 
@@ -445,6 +511,15 @@ def _load_research_picks(path: str, start_date=None, end_date=None) -> pd.DataFr
         return df
     df["created_at"] = pd.to_datetime(df["created_at"], errors="coerce")
     df["start_time"] = pd.to_numeric(df["start_time"], errors="coerce")
+    if "status" not in df.columns:
+        df["status"] = "open"
+    df["status"] = df["status"].fillna("open")
+    if "realized_profit" not in df.columns:
+        df["realized_profit"] = np.nan
+    if "realized_roi" not in df.columns:
+        df["realized_roi"] = np.nan
+    if "cash_return" not in df.columns:
+        df["cash_return"] = np.nan
     df["match_date"] = pd.to_datetime(df["start_time"], unit="s", errors="coerce").dt.date
     df["created_date"] = df["created_at"].dt.date
     use_date = df["match_date"].fillna(df["created_date"])
@@ -453,6 +528,117 @@ def _load_research_picks(path: str, start_date=None, end_date=None) -> pd.DataFr
     if end_date:
         df = df[use_date <= end_date]
     return df
+
+
+def _append_cash_entry(
+    path: str,
+    change: float,
+    reason: str,
+    pick_id: Optional[int] = None,
+    note: Optional[str] = None,
+) -> Optional[float]:
+    if not path:
+        return None
+    _init_research_db(path)
+    conn = sqlite3.connect(path)
+    try:
+        cur = conn.execute(
+            "SELECT balance FROM cash_ledger ORDER BY created_at DESC, entry_id DESC LIMIT 1"
+        )
+        row = cur.fetchone()
+        last_balance = float(row[0]) if row and row[0] is not None else 0.0
+        new_balance = last_balance + float(change)
+        conn.execute(
+            """
+            INSERT INTO cash_ledger (created_at, change, balance, reason, pick_id, note)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                datetime.now(timezone.utc).isoformat(),
+                float(change),
+                float(new_balance),
+                reason,
+                pick_id,
+                note,
+            ),
+        )
+        conn.commit()
+        return new_balance
+    finally:
+        conn.close()
+
+
+def _set_cash_balance(path: str, new_balance: float, note: Optional[str] = None) -> Optional[float]:
+    current_balance = 0.0
+    if path:
+        _init_research_db(path)
+        conn = sqlite3.connect(path)
+        try:
+            cur = conn.execute(
+                "SELECT balance FROM cash_ledger ORDER BY created_at DESC, entry_id DESC LIMIT 1"
+            )
+            row = cur.fetchone()
+            if row and row[0] is not None:
+                current_balance = float(row[0])
+        finally:
+            conn.close()
+    change = float(new_balance) - float(current_balance)
+    if abs(change) < 1e-9:
+        return float(current_balance)
+    return _append_cash_entry(path, change, "balance_set", note=note)
+
+
+def _load_cash_ledger(path: str) -> pd.DataFrame:
+    if not path:
+        return pd.DataFrame()
+    _init_research_db(path)
+    conn = sqlite3.connect(path)
+    try:
+        df = pd.read_sql_query(
+            "SELECT * FROM cash_ledger ORDER BY created_at DESC, entry_id DESC", conn
+        )
+    finally:
+        conn.close()
+    if df.empty:
+        return df
+    df["created_at"] = pd.to_datetime(df["created_at"], errors="coerce")
+    df["change"] = pd.to_numeric(df["change"], errors="coerce")
+    df["balance"] = pd.to_numeric(df["balance"], errors="coerce")
+    return df
+
+
+def _settle_research_pick(
+    path: str,
+    pick_id: int,
+    outcome_result: str,
+    realized_profit: float,
+    realized_roi: float,
+    cash_return: float,
+) -> None:
+    if not path:
+        return
+    _init_research_db(path)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+            UPDATE research_picks
+            SET status = ?, settled_at = ?, outcome_result = ?, realized_profit = ?, realized_roi = ?, cash_return = ?
+            WHERE pick_id = ?
+            """,
+            (
+                "settled",
+                datetime.now(timezone.utc).isoformat(),
+                outcome_result,
+                float(realized_profit),
+                float(realized_roi),
+                float(cash_return),
+                int(pick_id),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def _evaluate_research_picks(picks: pd.DataFrame, results: pd.DataFrame, tolerance_hours: float) -> pd.DataFrame:
@@ -464,23 +650,31 @@ def _evaluate_research_picks(picks: pd.DataFrame, results: pd.DataFrame, toleran
     df["expected_roi"] = pd.to_numeric(df["expected_roi"], errors="coerce")
     df["expected_profit"] = pd.to_numeric(df["expected_profit"], errors="coerce")
     df["expected_profit"] = df["expected_profit"].fillna(df["expected_roi"] * df["stake"])
-    df["realized_profit"] = np.nan
-    df["realized_roi"] = np.nan
+    if "realized_profit" not in df.columns:
+        df["realized_profit"] = np.nan
+    if "realized_roi" not in df.columns:
+        df["realized_roi"] = np.nan
+    if "status" not in df.columns:
+        df["status"] = "open"
+    df["status"] = df["status"].fillna("open")
     df["result_outcome"] = None
     df["result_outcome_adj"] = None
     df["result_event_date"] = None
     df["result_home_score"] = None
     df["result_away_score"] = None
+    settled_mask = df["status"].str.lower() == "settled"
 
     arb_mask = df["strategy"].str.contains("arb", case=False, na=False)
-    df.loc[arb_mask, "realized_profit"] = df.loc[arb_mask, "expected_profit"]
-    df.loc[arb_mask, "realized_roi"] = df.loc[arb_mask, "expected_roi"]
+    arb_unset = arb_mask & ~settled_mask & df["realized_profit"].isna()
+    df.loc[arb_unset, "realized_profit"] = df.loc[arb_unset, "expected_profit"]
+    df.loc[arb_unset, "realized_roi"] = df.loc[arb_unset, "expected_roi"]
 
     if results is None or results.empty:
         return df
 
     candidates = df[
         (~arb_mask)
+        & (~settled_mask)
         & df["home_team"].notna()
         & df["away_team"].notna()
         & df["outcome"].notna()
@@ -546,12 +740,12 @@ with st.sidebar:
     st.subheader("Remote Snapshot")
     default_remote_url = os.getenv(
         "REMOTE_ODDS_URL",
-        "https://oddswize-api.kwamenahb.workers.dev/api/odds",
+        "https://raw.githubusercontent.com/kwamenasworld-cloud/oddswize/data-arb/odds_data.json",
     )
     default_use_remote = os.getenv("DEFAULT_USE_REMOTE", "1").strip().lower() in ("1", "true", "yes", "on")
     use_remote = st.checkbox("Use remote odds snapshot", value=default_use_remote)
     remote_url = st.text_input("Remote odds_data.json URL", value=default_remote_url)
-    st.caption("Tip: use the Worker /api/odds endpoint for the freshest snapshot.")
+    st.caption("Tip: the arb snapshot is on the data-arb branch; the Worker /api/odds feed is top-league focused.")
     remote_timeout = st.number_input("Remote timeout (seconds)", min_value=5, value=30, step=5)
     persist_remote = st.checkbox("Append remote snapshot locally", value=False)
     persist_db = st.checkbox("Write to history DB", value=True, disabled=not persist_remote)
@@ -1491,7 +1685,7 @@ if strategy.startswith("Arbitrage"):
                 f"away:{selected_row.get('best_away_bookie')}"
             )
             expected_roi = float(selected_row.get("arb_roi_adj") or 0.0)
-            _append_research_pick(
+            pick_id = _append_research_pick(
                 research_db_path,
                 {
                     "created_at": datetime.now(timezone.utc).isoformat(),
@@ -1511,8 +1705,17 @@ if strategy.startswith("Arbitrage"):
                     "expected_profit": float(profit),
                     "source_run_time": selected_row.get("run_time"),
                     "notes": log_note.strip(),
+                    "status": "open",
                 },
             )
+            if pick_id is not None and float(stake_total) > 0:
+                _append_cash_entry(
+                    research_db_path,
+                    -float(stake_total),
+                    "stake_locked",
+                    pick_id=int(pick_id),
+                    note="arb",
+                )
             st.success("Arb pick logged to research database.")
 
         st.subheader("Daily Compounding Simulator (Arb)")
@@ -1766,7 +1969,7 @@ elif strategy.startswith("Consensus"):
     picked_row = log_candidates[log_candidates["pick_label"] == pick_label].iloc[0]
     note = st.text_input("Research note (optional)", value="", key="consensus_log_note")
     if st.button("Log consensus pick", key="log_consensus_pick"):
-        _append_research_pick(
+        pick_id = _append_research_pick(
             research_db_path,
             {
                 "created_at": datetime.now(timezone.utc).isoformat(),
@@ -1786,8 +1989,17 @@ elif strategy.startswith("Consensus"):
                 "expected_profit": float(picked_row.get("expected_profit") or 0.0),
                 "source_run_time": picked_row.get("run_time"),
                 "notes": note.strip(),
+                "status": "open",
             },
         )
+        if pick_id is not None and float(stake_per_pick) > 0:
+            _append_cash_entry(
+                research_db_path,
+                -float(stake_per_pick),
+                "stake_locked",
+                pick_id=int(pick_id),
+                note="consensus",
+            )
         st.success("Consensus pick logged to research database.")
 
     st.subheader("Results Backtest (Consensus Edge)")
@@ -2137,6 +2349,36 @@ st.markdown("---")
 st.subheader("Research Log")
 log_start = match_start if match_filter_on else run_start
 log_end = match_end if match_filter_on else run_end
+cash_ledger = _load_cash_ledger(research_db_path)
+cash_balance = float(cash_ledger.iloc[0]["balance"]) if not cash_ledger.empty else 0.0
+cash_updated = cash_ledger.iloc[0]["created_at"] if not cash_ledger.empty else None
+cash_col1, cash_col2, cash_col3 = st.columns(3)
+cash_col1.metric("Liquid Cash", f"{cash_balance:,.2f}")
+cash_col2.metric("Cash Entries", f"{len(cash_ledger):,}")
+cash_col3.metric(
+    "Last Update",
+    cash_updated.strftime("%Y-%m-%d %H:%M")
+    if cash_updated is not None and not pd.isna(cash_updated)
+    else "—",
+)
+balance_input = st.number_input(
+    "Set liquid cash balance",
+    min_value=0.0,
+    value=float(cash_balance),
+    step=10.0,
+    key="liquid_cash_balance",
+)
+if st.button("Update liquid cash", key="update_liquid_cash"):
+    new_balance = _set_cash_balance(research_db_path, float(balance_input))
+    st.success(f"Liquid cash updated: {new_balance:,.2f}")
+    rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+    if rerun:
+        rerun()
+with st.expander("Cash ledger (latest 200)", expanded=False):
+    if cash_ledger.empty:
+        st.info("No cash entries yet.")
+    else:
+        st.dataframe(cash_ledger.head(200), use_container_width=True, hide_index=True)
 research_picks = _load_research_picks(research_db_path, log_start, log_end)
 if research_picks.empty:
     st.info("No research picks logged yet.")
@@ -2153,6 +2395,7 @@ else:
 
     evaluated = _evaluate_research_picks(research_picks, results_rows, results_tolerance_hours)
     settled = evaluated[evaluated["realized_profit"].notna()].copy()
+    open_picks = evaluated[evaluated["status"].str.lower().fillna("open") != "settled"].copy()
 
     total_picks = len(evaluated)
     settled_picks = len(settled)
@@ -2170,6 +2413,92 @@ else:
 
     st.metric("Total Realized Profit", f"{total_realized_profit:,.2f}")
 
+    if not open_picks.empty:
+        st.subheader("Settle Pick")
+        open_picks["pick_label"] = (
+            "[" + open_picks["pick_id"].astype(str) + "] "
+            + open_picks["home_team"].fillna("")
+            + " vs "
+            + open_picks["away_team"].fillna("")
+            + " - "
+            + open_picks["strategy"].fillna("")
+        )
+        pick_label = st.selectbox(
+            "Open pick",
+            open_picks["pick_label"].tolist(),
+            key="settle_pick_select",
+        )
+        selected_pick = open_picks[open_picks["pick_label"] == pick_label].iloc[0]
+        stake = float(selected_pick.get("stake") or 0.0)
+        odds = selected_pick.get("odds")
+        expected_profit = float(selected_pick.get("expected_profit") or 0.0)
+        strategy_name = str(selected_pick.get("strategy") or "")
+        default_outcome = "arb" if "arb" in strategy_name.lower() else "win"
+        outcome_options = ("win", "loss", "push", "void", "arb", "custom")
+        outcome_result = st.selectbox(
+            "Outcome",
+            outcome_options,
+            index=outcome_options.index(default_outcome) if default_outcome in outcome_options else 0,
+            key="settle_pick_outcome",
+        )
+
+        if outcome_result == "arb":
+            realized_profit = expected_profit
+        elif outcome_result == "win":
+            if odds and float(odds) > 0:
+                realized_profit = stake * (float(odds) - 1.0)
+            else:
+                realized_profit = expected_profit
+        elif outcome_result == "loss":
+            realized_profit = -stake
+        elif outcome_result in ("push", "void"):
+            realized_profit = 0.0
+        else:
+            realized_profit = expected_profit
+
+        if outcome_result == "custom":
+            realized_profit = st.number_input(
+                "Realized profit",
+                value=float(realized_profit),
+                step=1.0,
+                key=f"settle_profit_{int(selected_pick.get('pick_id') or 0)}",
+            )
+            cash_return = st.number_input(
+                "Cash returned to liquid",
+                min_value=0.0,
+                value=max(0.0, stake + float(realized_profit)),
+                step=1.0,
+                key=f"settle_return_{int(selected_pick.get('pick_id') or 0)}",
+            )
+        else:
+            cash_return = max(0.0, stake + float(realized_profit))
+            settle_col1, settle_col2, settle_col3 = st.columns(3)
+            settle_col1.metric("Stake", f"{stake:,.2f}")
+            settle_col2.metric("Realized profit", f"{float(realized_profit):,.2f}")
+            settle_col3.metric("Cash returned", f"{float(cash_return):,.2f}")
+
+        if st.button("Confirm outcome", key="confirm_pick_outcome"):
+            realized_roi = float(realized_profit) / stake if stake else 0.0
+            _settle_research_pick(
+                research_db_path,
+                int(selected_pick.get("pick_id")),
+                str(outcome_result),
+                float(realized_profit),
+                float(realized_roi),
+                float(cash_return),
+            )
+            _append_cash_entry(
+                research_db_path,
+                float(cash_return),
+                "pick_settled",
+                pick_id=int(selected_pick.get("pick_id")),
+                note=str(outcome_result),
+            )
+            st.success("Pick settled and liquid cash updated.")
+            rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+            if rerun:
+                rerun()
+
     show_cols = [
         "created_at",
         "mode",
@@ -2183,8 +2512,12 @@ else:
         "stake",
         "expected_roi",
         "expected_profit",
+        "status",
+        "settled_at",
+        "outcome_result",
         "realized_roi",
         "realized_profit",
+        "cash_return",
         "result_outcome_adj",
         "result_event_date",
         "notes",
