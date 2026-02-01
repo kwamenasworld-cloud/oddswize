@@ -19,6 +19,8 @@ try:
     import numpy as np
     import pandas as pd
     import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
     import streamlit as st
 except ImportError as exc:
     raise SystemExit(
@@ -66,6 +68,20 @@ def _apply_widget_overrides():
 
 
 _apply_widget_overrides()
+
+
+def _apply_chart_style(fig, height: int = 320, title: Optional[str] = None) -> None:
+    if title:
+        fig.update_layout(title=title)
+    fig.update_layout(
+        template="plotly_white",
+        height=height,
+        margin=dict(l=40, r=20, t=50, b=40),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(0,0,0,0.08)", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(0,0,0,0.08)", zeroline=False)
 
 
 SEARCH_BASE_URL = os.getenv("SEARCH_BASE_URL", "https://www.google.com/search?q=")
@@ -1394,24 +1410,132 @@ if strategy.startswith("Arbitrage"):
             .reset_index()
         )
 
-        chart_col1, chart_col2 = st.columns(2)
-        with chart_col1:
-            fig = px.bar(daily, x="run_date", y="count", title="Arbitrage Count by Run Date")
-            st.plotly_chart(fig, use_container_width=True)
-        with chart_col2:
-            fig = px.line(daily, x="run_date", y="avg_roi", title="Average ROI by Run Date")
-            st.plotly_chart(fig, use_container_width=True)
+        st.subheader("Arb Control Center")
+        st.caption("Readable signals for opportunity flow, ROI shape, and execution readiness.")
 
-        chart_col3, chart_col4 = st.columns(2)
-        with chart_col3:
-            fig = px.histogram(arbs_filtered, x="arb_roi_adj", nbins=30, title="ROI Distribution (Adj)")
-            st.plotly_chart(fig, use_container_width=True)
-        with chart_col4:
+        row1_col1, row1_col2 = st.columns(2)
+        with row1_col1:
+            if daily.empty:
+                st.info("Not enough data to plot opportunity flow yet.")
+            else:
+                fig = make_subplots(specs=[[{"secondary_y": True}]])
+                fig.add_trace(
+                    go.Bar(
+                        x=daily["run_date"],
+                        y=daily["count"],
+                        name="Opportunities",
+                        marker_color="#2563eb",
+                    ),
+                    secondary_y=False,
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=daily["run_date"],
+                        y=daily["avg_roi"] * 100,
+                        name="Avg ROI (%)",
+                        mode="lines+markers",
+                        line=dict(color="#f97316", width=3),
+                    ),
+                    secondary_y=True,
+                )
+                fig.update_yaxes(title_text="Opportunities", secondary_y=False)
+                fig.update_yaxes(title_text="Avg ROI (%)", secondary_y=True)
+                _apply_chart_style(fig, title="Opportunity Flow (Count + Avg ROI)", height=320)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        with row1_col2:
+            roi_series = arbs_filtered["arb_roi_adj"].dropna()
+            if roi_series.empty:
+                st.info("Not enough data to plot ROI distribution.")
+            else:
+                roi_pct = roi_series * 100
+                fig = go.Figure(
+                    data=[
+                        go.Histogram(
+                            x=roi_pct,
+                            nbinsx=min(35, max(10, int(len(roi_pct) ** 0.5))),
+                            histnorm="percent",
+                            marker_color="#0ea5e9",
+                        )
+                    ]
+                )
+                q50 = float(roi_pct.quantile(0.5))
+                q75 = float(roi_pct.quantile(0.75))
+                q90 = float(roi_pct.quantile(0.9))
+                for value, label, color in (
+                    (q50, "Median", "#16a34a"),
+                    (q75, "75th", "#f59e0b"),
+                    (q90, "90th", "#ef4444"),
+                ):
+                    fig.add_vline(x=value, line_dash="dot", line_color=color)
+                    fig.add_annotation(x=value, y=1.02, yref="paper", text=label, showarrow=False, font=dict(color=color))
+                fig.update_xaxes(title_text="ROI (%)")
+                fig.update_yaxes(title_text="Share of opportunities (%)")
+                _apply_chart_style(fig, title="ROI Shape (Adj, %)", height=320)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        row2_col1, row2_col2 = st.columns(2)
+        with row2_col1:
             top_leagues = (
-                arbs_filtered.groupby("league")["match_id"].count().sort_values(ascending=False).head(12).reset_index()
+                arbs_filtered.groupby("league")["match_id"]
+                .count()
+                .sort_values(ascending=True)
+                .tail(12)
+                .reset_index()
+                .rename(columns={"match_id": "arb_count"})
             )
-            fig = px.bar(top_leagues, x="league", y="match_id", title="Top Leagues by Arb Count")
-            st.plotly_chart(fig, use_container_width=True)
+            if top_leagues.empty:
+                st.info("No league distribution available.")
+            else:
+                fig = px.bar(
+                    top_leagues,
+                    x="arb_count",
+                    y="league",
+                    orientation="h",
+                    text="arb_count",
+                    title="Top Leagues by Arb Count",
+                    color_discrete_sequence=["#6366f1"],
+                )
+                fig.update_traces(textposition="outside", cliponaxis=False)
+                fig.update_xaxes(title_text="Arb count")
+                fig.update_yaxes(title_text="")
+                _apply_chart_style(fig, height=320)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        with row2_col2:
+            if "bookie_count" in arbs_filtered.columns and arbs_filtered["bookie_count"].notna().any():
+                coverage = (
+                    arbs_filtered.groupby("bookie_count")["match_id"]
+                    .count()
+                    .reset_index()
+                    .rename(columns={"match_id": "count"})
+                )
+                fig = px.bar(
+                    coverage,
+                    x="bookie_count",
+                    y="count",
+                    title="Bookmaker Coverage (per match)",
+                    color_discrete_sequence=["#14b8a6"],
+                )
+                fig.update_xaxes(title_text="Bookmakers per match")
+                fig.update_yaxes(title_text="Matches")
+                _apply_chart_style(fig, height=320)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            else:
+                age_series = arbs_filtered["snapshot_age_min"].dropna()
+                if age_series.empty:
+                    st.info("No execution freshness data available.")
+                else:
+                    fig = px.histogram(
+                        age_series,
+                        nbins=25,
+                        title="Snapshot Age (minutes)",
+                        color_discrete_sequence=["#0f172a"],
+                    )
+                    fig.update_xaxes(title_text="Minutes since snapshot")
+                    fig.update_yaxes(title_text="Count")
+                    _apply_chart_style(fig, height=320)
+                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
         if show_quick_links:
             event_lookup = _build_event_lookup(rows)
