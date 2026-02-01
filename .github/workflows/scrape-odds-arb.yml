@@ -81,7 +81,13 @@ jobs:
 
             git -C /tmp/odds-data-arb rm -rf . || true
             cp odds_data.json /tmp/odds-data-arb/odds_data.json
+            if [ -f odds_heartbeat.json ]; then
+              cp odds_heartbeat.json /tmp/odds-data-arb/odds_heartbeat.json
+            fi
             git -C /tmp/odds-data-arb add odds_data.json
+            if [ -f /tmp/odds-data-arb/odds_heartbeat.json ]; then
+              git -C /tmp/odds-data-arb add odds_heartbeat.json
+            fi
             git -C /tmp/odds-data-arb -c user.name="oddswize-bot" -c user.email="actions@github.com" commit -m "Update arb odds data" || true
             git -C /tmp/odds-data-arb push -f origin data-arb
 
@@ -101,5 +107,7 @@ jobs:
         if: always()
         with:
           name: odds-data-arb-${{ github.run_number }}
-          path: odds_data.json
+          path: |
+            odds_data.json
+            odds_heartbeat.json
           retention-days: 1

@@ -97,6 +97,10 @@ BOOKMAKER_EVENT_TEMPLATES.update(
     json.loads(os.getenv("BOOKMAKER_EVENT_TEMPLATES", "{}") or "{}")
 )
 DEFAULT_RESEARCH_DB_PATH = os.getenv("RESEARCH_DB_PATH", os.path.join("data", "research.db"))
+DEFAULT_HEARTBEAT_PATH = os.getenv(
+    "ODDS_HEARTBEAT_PATH", os.path.join("data", "odds_heartbeat.json")
+)
+HEARTBEAT_STALE_MINUTES = float(os.getenv("HEARTBEAT_STALE_MINUTES", "12"))
 CLV_TIME_BINS = [-float("inf"), 2, 6, 12, 24, 48, float("inf")]
 CLV_TIME_LABELS = ["<2h", "2-6h", "6-12h", "12-24h", "24-48h", "48h+"]
 TWENTYTWOBET_API_URL = os.getenv("TWENTYTWOBET_API_URL", "https://platform.22bet.com.gh/api").rstrip("/")
@@ -305,30 +309,6 @@ def _apply_event_lookup(arbs_df: pd.DataFrame, lookup: dict) -> pd.DataFrame:
     return updated
 
 
-def _compute_liquidity_score(
-    bookie_count: Optional[float],
-    snapshot_age_min: Optional[float],
-    kickoff_minutes: Optional[float],
-    target_bookies: float,
-    max_age_min: float,
-    target_kickoff_min: float,
-) -> float:
-    if target_bookies <= 0:
-        target_bookies = 1.0
-    if max_age_min <= 0:
-        max_age_min = 1.0
-    if target_kickoff_min <= 0:
-        target_kickoff_min = 1.0
-    bookie_val = float(bookie_count) if bookie_count is not None else 1.0
-    age_val = float(snapshot_age_min) if snapshot_age_min is not None else 0.0
-    kickoff_val = float(kickoff_minutes) if kickoff_minutes is not None else target_kickoff_min
-
-    bookie_score = min(1.0, max(0.0, bookie_val / target_bookies))
-    age_score = max(0.0, 1.0 - (age_val / max_age_min))
-    kickoff_score = min(1.0, max(0.0, kickoff_val / target_kickoff_min))
-    return max(0.0, min(1.0, bookie_score * age_score * kickoff_score))
-
-
 def _filter_low_liquidity_local_leagues(
     rows: pd.DataFrame,
     keywords: Iterable[str],
@@ -492,6 +472,16 @@ def _init_research_db(path: str) -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bookie_wallets (
+                bookmaker TEXT PRIMARY KEY,
+                balance REAL,
+                updated_at TEXT,
+                note TEXT
+            )
+            """
+        )
         _ensure_table_columns(
             conn,
             "cash_ledger",
@@ -501,6 +491,16 @@ def _init_research_db(path: str) -> None:
                 "balance": "REAL",
                 "reason": "TEXT",
                 "pick_id": "INTEGER",
+                "note": "TEXT",
+            },
+        )
+        _ensure_table_columns(
+            conn,
+            "bookie_wallets",
+            {
+                "bookmaker": "TEXT",
+                "balance": "REAL",
+                "updated_at": "TEXT",
                 "note": "TEXT",
             },
         )
@@ -685,6 +685,55 @@ def _load_cash_ledger(path: str) -> pd.DataFrame:
     df["change"] = pd.to_numeric(df["change"], errors="coerce")
     df["balance"] = pd.to_numeric(df["balance"], errors="coerce")
     return df
+
+
+def _load_bookie_wallets(path: str) -> pd.DataFrame:
+    if not path:
+        return pd.DataFrame()
+    _init_research_db(path)
+    conn = sqlite3.connect(path)
+    try:
+        df = pd.read_sql_query(
+            "SELECT * FROM bookie_wallets ORDER BY bookmaker", conn
+        )
+    finally:
+        conn.close()
+    if df.empty:
+        return df
+    df["balance"] = pd.to_numeric(df["balance"], errors="coerce")
+    df["updated_at"] = pd.to_datetime(df["updated_at"], errors="coerce")
+    df["bookmaker"] = df["bookmaker"].astype(str)
+    return df
+
+
+def _upsert_bookie_wallet(path: str, bookmaker: str, balance: float, note: Optional[str] = None) -> None:
+    if not path:
+        return
+    bookie = (bookmaker or "").strip()
+    if not bookie:
+        return
+    _init_research_db(path)
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO bookie_wallets (bookmaker, balance, updated_at, note)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(bookmaker) DO UPDATE SET
+                balance = excluded.balance,
+                updated_at = excluded.updated_at,
+                note = excluded.note
+            """,
+            (
+                bookie,
+                float(balance),
+                datetime.now(timezone.utc).isoformat(),
+                note,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def _settle_research_pick(
@@ -872,6 +921,12 @@ with st.sidebar:
         value=(default_start, today + timedelta(days=7)),
         disabled=not match_filter_on,
     )
+    log_range = st.date_input(
+        "Research log date range",
+        value=(default_start, today),
+        help="Used for returns and research log tables.",
+        key="log_range",
+    )
 
     st.subheader("Strategy")
     strategy = st.selectbox(
@@ -940,29 +995,6 @@ with st.sidebar:
         value=3,
         step=1,
         disabled=not filter_local_leagues,
-    )
-    st.subheader("Liquidity Weighting")
-    use_liquidity_weight = st.checkbox("Liquidity-weighted staking", value=True)
-    liq_target_bookies = st.number_input(
-        "Target bookies for full weight",
-        min_value=1,
-        value=6,
-        step=1,
-        disabled=not use_liquidity_weight,
-    )
-    liq_max_age = st.number_input(
-        "Max snapshot age for full weight (min)",
-        min_value=1,
-        value=10,
-        step=1,
-        disabled=not use_liquidity_weight,
-    )
-    liq_target_kickoff = st.number_input(
-        "Minutes to kickoff for full weight",
-        min_value=1,
-        value=60,
-        step=5,
-        disabled=not use_liquidity_weight,
     )
     st.subheader("Research Log")
     research_db_path = st.text_input("Research DB path", value=DEFAULT_RESEARCH_DB_PATH)
@@ -1042,6 +1074,52 @@ def _filter_rows(rows, run_start_value, run_end_value, match_start_value, match_
             )
             filtered = filtered[start_time <= end_epoch]
     return filtered
+
+
+def _heartbeat_url_from_snapshot_url(url: str) -> str:
+    if not url:
+        return ""
+    if "odds_data.json" in url:
+        return url.replace("odds_data.json", "odds_heartbeat.json")
+    return ""
+
+
+def _parse_heartbeat_timestamp(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        ts = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts
+
+
+@st.cache_data(show_spinner=False)
+def _load_remote_heartbeat(url: str, timeout_seconds: int):
+    if not url:
+        raise ValueError("Heartbeat URL missing")
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "OddsWizeTerminal/1.0 (+https://oddswize.com)",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout_seconds) as handle:
+        payload = json.load(handle)
+    return payload
+
+
+def _load_local_heartbeat(path: str) -> Optional[dict]:
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        return None
 
 
 @st.cache_data(show_spinner=False)
@@ -1189,6 +1267,7 @@ def _load_rows_cached(
 
 run_start, run_end = _unpack_range(run_range)
 match_start, match_end = _unpack_range(match_range) if match_filter_on else (None, None)
+log_start, log_end = _unpack_range(log_range)
 
 append_snapshot_now = False
 payload_snapshot = None
@@ -1319,6 +1398,40 @@ if snapshot_age is not None:
             rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
             if rerun:
                 rerun()
+
+heartbeat_payload = None
+heartbeat_source = None
+heartbeat_url = _heartbeat_url_from_snapshot_url(remote_url)
+if heartbeat_url:
+    try:
+        heartbeat_payload = _load_remote_heartbeat(heartbeat_url, int(remote_timeout))
+        heartbeat_source = heartbeat_url
+    except Exception:
+        heartbeat_payload = None
+if heartbeat_payload is None:
+    heartbeat_payload = _load_local_heartbeat(DEFAULT_HEARTBEAT_PATH)
+    if heartbeat_payload is not None:
+        heartbeat_source = DEFAULT_HEARTBEAT_PATH
+
+if heartbeat_payload:
+    heartbeat_ts = _parse_heartbeat_timestamp(
+        heartbeat_payload.get("last_updated") or heartbeat_payload.get("created_at")
+    )
+    if heartbeat_ts:
+        hb_age = (datetime.now(timezone.utc) - heartbeat_ts).total_seconds() / 60.0
+        hb_label = heartbeat_ts.strftime("%Y-%m-%d %H:%M UTC")
+        st.caption(f"Scraper heartbeat: {hb_label} (age {hb_age:.1f} min)")
+        if HEARTBEAT_STALE_MINUTES > 0 and hb_age > HEARTBEAT_STALE_MINUTES:
+            st.warning(
+                f"Heartbeat is older than {HEARTBEAT_STALE_MINUTES:.0f} min. "
+                "The 4-minute scraper loop may be stalled."
+            )
+    else:
+        st.caption("Scraper heartbeat: unreadable timestamp.")
+    if heartbeat_source:
+        st.caption(f"Heartbeat source: {heartbeat_source}")
+else:
+    st.caption("Scraper heartbeat: unavailable.")
 last_refresh_ts = st.session_state.get("last_refresh_ts")
 if last_refresh_ts:
     st.caption(f"Last refresh: {last_refresh_ts} UTC")
@@ -1472,7 +1585,7 @@ if strategy.startswith("Arbitrage"):
 
         returns_col, cash_col = st.columns(2)
         with returns_col:
-            picks_for_returns = _load_research_picks(research_db_path, run_start, run_end)
+            picks_for_returns = _load_research_picks(research_db_path, log_start, log_end)
             if picks_for_returns.empty or picks_for_returns["realized_profit"].dropna().empty:
                 st.info("Settle logged bets to see your returns curve.")
             else:
@@ -1715,25 +1828,7 @@ if strategy.startswith("Arbitrage"):
         stake_total = st.number_input(
             "Total stake to allocate", min_value=1.0, value=100.0, step=10.0, key="stake_allocator_total"
         )
-        liquidity_score = None
         effective_stake = float(stake_total)
-        if use_liquidity_weight:
-            liquidity_score = _compute_liquidity_score(
-                selected_row.get("bookie_count"),
-                selected_row.get("snapshot_age_min"),
-                selected_row.get("kickoff_minutes"),
-                float(liq_target_bookies),
-                float(liq_max_age),
-                float(liq_target_kickoff),
-            )
-            if liquidity_score <= 0:
-                st.warning(
-                    "Liquidity score is 0 (stale snapshot or low coverage). "
-                    "Using full stake for the allocator so values aren't zero."
-                )
-                effective_stake = float(stake_total)
-            else:
-                effective_stake = float(stake_total) * float(liquidity_score)
         odds_home = float(selected_row["home_odds_adj"])
         odds_draw = float(selected_row["draw_odds_adj"])
         odds_away = float(selected_row["away_odds_adj"])
@@ -1753,10 +1848,6 @@ if strategy.startswith("Arbitrage"):
         st.caption(
             f"Payout per outcome: {payout:,.2f} - ROI: {roi_value:.2f}%"
         )
-        if use_liquidity_weight:
-            liq_cols = st.columns(2)
-            liq_cols[0].metric("Liquidity score", f"{float(liquidity_score or 0.0):.2f}")
-            liq_cols[1].metric("Liquidity-weighted stake", f"{effective_stake:,.2f}")
         if show_quick_links:
             match_link = _build_search_url(
                 selected_row.get("home_team"),
@@ -2467,9 +2558,55 @@ elif strategy.startswith("Liquidity"):
     st.dataframe(filtered[display_cols].head(300), use_container_width=True)
 
 st.markdown("---")
+st.subheader("Bookie Wallets")
+wallets = _load_bookie_wallets(research_db_path)
+if wallets.empty:
+    base_rows = [{"bookmaker": b, "balance": 0.0, "note": ""} for b in available_bookies]
+    wallets = pd.DataFrame(base_rows, columns=["bookmaker", "balance", "note"])
+else:
+    wallets["bookmaker"] = wallets["bookmaker"].astype(str)
+    existing = set(wallets["bookmaker"].dropna())
+    missing = [b for b in available_bookies if b not in existing]
+    if missing:
+        add_rows = pd.DataFrame(
+            [{"bookmaker": b, "balance": 0.0, "note": ""} for b in missing]
+        )
+        wallets = pd.concat([wallets, add_rows], ignore_index=True)
+wallets = wallets[["bookmaker", "balance", "note"]] if not wallets.empty else wallets
+wallets = wallets.copy()
+wallets["balance"] = pd.to_numeric(wallets.get("balance"), errors="coerce").fillna(0.0)
+wallets_editor = st.data_editor(
+    wallets,
+    use_container_width=True,
+    num_rows="dynamic",
+    column_config={
+        "bookmaker": st.column_config.TextColumn("Bookmaker"),
+        "balance": st.column_config.NumberColumn("Balance", format="%.2f"),
+        "note": st.column_config.TextColumn("Note"),
+    },
+)
+total_wallet_balance = (
+    float(wallets_editor["balance"].sum()) if "balance" in wallets_editor else 0.0
+)
+st.metric("Total across bookie wallets", f"{total_wallet_balance:,.2f}")
+if st.button("Save wallet balances", key="save_wallets"):
+    edited = wallets_editor.copy()
+    edited["bookmaker"] = edited["bookmaker"].astype(str).str.strip()
+    edited = edited[edited["bookmaker"] != ""]
+    edited["balance"] = pd.to_numeric(edited["balance"], errors="coerce").fillna(0.0)
+    for row in edited.itertuples(index=False):
+        _upsert_bookie_wallet(
+            research_db_path,
+            row.bookmaker,
+            float(row.balance),
+            getattr(row, "note", None),
+        )
+    st.success("Bookie wallet balances updated.")
+    rerun = getattr(st, "rerun", None) or getattr(st, "experimental_rerun", None)
+    if rerun:
+        rerun()
+
 st.subheader("Research Log")
-log_start = match_start if match_filter_on else run_start
-log_end = match_end if match_filter_on else run_end
 cash_ledger = _load_cash_ledger(research_db_path)
 cash_balance = float(cash_ledger.iloc[0]["balance"]) if not cash_ledger.empty else 0.0
 cash_updated = cash_ledger.iloc[0]["created_at"] if not cash_ledger.empty else None

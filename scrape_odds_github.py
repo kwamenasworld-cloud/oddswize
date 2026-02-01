@@ -1951,6 +1951,20 @@ def main():
     with open('odds_data.json', 'w') as f:
         json.dump(output, f, indent=2)
     print(f"\nSaved to odds_data.json")
+    heartbeat = {
+        "last_updated": output.get("last_updated"),
+        "run_id": output.get("last_updated"),
+        "matched_events": len(matched),
+        "total_scraped": total,
+        "bookmakers": list(all_matches.keys()),
+        "created_at": datetime.now().isoformat(),
+    }
+    try:
+        with open("odds_heartbeat.json", "w", encoding="utf-8") as f:
+            json.dump(heartbeat, f, indent=2)
+        print("Saved to odds_heartbeat.json")
+    except Exception as e:
+        print(f"[WARN] Failed to write odds_heartbeat.json: {e}")
     try:
         save_history_snapshot(output, all_matches)
         print(f"[HISTORY] Appended snapshot to {resolve_history_path(HISTORY_MATCHED_FILE)}")

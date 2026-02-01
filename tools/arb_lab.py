@@ -407,6 +407,7 @@ def load_snapshot_rows(
     """
     if clauses:
         query += " WHERE " + " AND ".join(clauses)
+    query += " ORDER BY r.last_updated DESC, m.start_time DESC"
     if limit:
         query += " LIMIT ?"
         params.append(int(limit))
