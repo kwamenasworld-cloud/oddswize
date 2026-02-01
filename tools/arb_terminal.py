@@ -99,6 +99,8 @@ BOOKMAKER_EVENT_TEMPLATES.update(
 DEFAULT_RESEARCH_DB_PATH = os.getenv("RESEARCH_DB_PATH", os.path.join("data", "research.db"))
 CLV_TIME_BINS = [-float("inf"), 2, 6, 12, 24, 48, float("inf")]
 CLV_TIME_LABELS = ["<2h", "2-6h", "6-12h", "12-24h", "24-48h", "48h+"]
+TWENTYTWOBET_API_URL = os.getenv("TWENTYTWOBET_API_URL", "https://platform.22bet.com.gh/api").rstrip("/")
+_TWENTYTWOBET_LEAGUE_CACHE: Optional[dict] = None
 
 
 def _build_search_url(*parts: object) -> str:
@@ -130,6 +132,65 @@ def _sportybet_league_path(value: object) -> str:
     return "/".join([seg for seg in segments if seg])
 
 
+def _fetch_22bet_league_map() -> dict:
+    global _TWENTYTWOBET_LEAGUE_CACHE
+    if isinstance(_TWENTYTWOBET_LEAGUE_CACHE, dict):
+        return _TWENTYTWOBET_LEAGUE_CACHE
+    league_map: dict = {}
+    try:
+        for page in range(1, 6):
+            params = urllib.parse.urlencode(
+                {"lang": "en", "sportId_eq": 1, "limit": 500, "page": page}
+            )
+            url = f"{TWENTYTWOBET_API_URL}/league/list?{params}"
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    ),
+                    "Accept": "application/json",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=10) as handle:
+                payload = json.load(handle)
+            items = payload.get("data", {}).get("leagues", [])
+            if not items:
+                break
+            for league in items:
+                name = (league.get("name") or "").strip()
+                league_id = league.get("id")
+                if not name or not league_id:
+                    continue
+                key = _slugify_simple(name)
+                if key and key not in league_map:
+                    league_map[key] = str(league_id)
+            if len(items) < 500:
+                break
+    except Exception:
+        league_map = {}
+    _TWENTYTWOBET_LEAGUE_CACHE = league_map
+    return league_map
+
+
+def _resolve_22bet_league_id(league: object) -> Optional[str]:
+    league_key = _slugify_simple(league)
+    if not league_key:
+        return None
+    league_map = _fetch_22bet_league_map()
+    if league_key in league_map:
+        return league_map[league_key]
+    candidates = []
+    for key, value in league_map.items():
+        if league_key in key or key in league_key:
+            candidates.append((abs(len(key) - len(league_key)), len(key), key, value))
+    if not candidates:
+        return None
+    candidates.sort()
+    return candidates[0][3]
+
+
 def _build_bookie_event_url(
     bookmaker: object,
     event_id: object,
@@ -153,7 +214,10 @@ def _build_bookie_event_url(
             f"{league_path}/{home_seg}_vs_{away_seg}/{urllib.parse.quote(event_id_str, safe=':')}"
         )
     if "{league_id}" in template and not event_league_id:
-        return ""
+        if str(bookmaker or "") == "22Bet Ghana":
+            event_league_id = _resolve_22bet_league_id(league)
+        if not event_league_id:
+            return ""
     event_id_str = str(event_id)
     values = {
         "event_id": event_id_str,
@@ -1403,139 +1467,65 @@ if strategy.startswith("Arbitrage"):
             st.info("Showing opportunities without age/lag filters so rows are visible.")
             arbs_filtered = arbs_adj.copy()
         st.session_state["auto_relax_done"] = False
-        arbs_filtered["run_date"] = pd.to_datetime(arbs_filtered["run_time"], errors="coerce").dt.date
-        daily = (
-            arbs_filtered.groupby("run_date", dropna=True)
-            .agg(count=("match_id", "count"), avg_roi=("arb_roi_adj", "mean"))
-            .reset_index()
-        )
+        st.subheader("Returns & Cash Control")
+        st.caption("Simple line charts based on your logged bets and liquid cash.")
 
-        st.subheader("Arb Control Center")
-        st.caption("Readable signals for opportunity flow, ROI shape, and execution readiness.")
-
-        row1_col1, row1_col2 = st.columns(2)
-        with row1_col1:
-            if daily.empty:
-                st.info("Not enough data to plot opportunity flow yet.")
+        returns_col, cash_col = st.columns(2)
+        with returns_col:
+            picks_for_returns = _load_research_picks(research_db_path, run_start, run_end)
+            if picks_for_returns.empty or picks_for_returns["realized_profit"].dropna().empty:
+                st.info("Settle logged bets to see your returns curve.")
             else:
-                fig = make_subplots(specs=[[{"secondary_y": True}]])
-                fig.add_trace(
-                    go.Bar(
-                        x=daily["run_date"],
-                        y=daily["count"],
-                        name="Opportunities",
-                        marker_color="#2563eb",
-                    ),
-                    secondary_y=False,
-                )
-                fig.add_trace(
-                    go.Scatter(
-                        x=daily["run_date"],
-                        y=daily["avg_roi"] * 100,
-                        name="Avg ROI (%)",
-                        mode="lines+markers",
-                        line=dict(color="#f97316", width=3),
-                    ),
-                    secondary_y=True,
-                )
-                fig.update_yaxes(title_text="Opportunities", secondary_y=False)
-                fig.update_yaxes(title_text="Avg ROI (%)", secondary_y=True)
-                _apply_chart_style(fig, title="Opportunity Flow (Count + Avg ROI)", height=320)
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
-        with row1_col2:
-            roi_series = arbs_filtered["arb_roi_adj"].dropna()
-            if roi_series.empty:
-                st.info("Not enough data to plot ROI distribution.")
-            else:
-                roi_pct = roi_series * 100
-                fig = go.Figure(
-                    data=[
-                        go.Histogram(
-                            x=roi_pct,
-                            nbinsx=min(35, max(10, int(len(roi_pct) ** 0.5))),
-                            histnorm="percent",
-                            marker_color="#0ea5e9",
-                        )
-                    ]
-                )
-                q50 = float(roi_pct.quantile(0.5))
-                q75 = float(roi_pct.quantile(0.75))
-                q90 = float(roi_pct.quantile(0.9))
-                for value, label, color in (
-                    (q50, "Median", "#16a34a"),
-                    (q75, "75th", "#f59e0b"),
-                    (q90, "90th", "#ef4444"),
-                ):
-                    fig.add_vline(x=value, line_dash="dot", line_color=color)
-                    fig.add_annotation(x=value, y=1.02, yref="paper", text=label, showarrow=False, font=dict(color=color))
-                fig.update_xaxes(title_text="ROI (%)")
-                fig.update_yaxes(title_text="Share of opportunities (%)")
-                _apply_chart_style(fig, title="ROI Shape (Adj, %)", height=320)
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
-        row2_col1, row2_col2 = st.columns(2)
-        with row2_col1:
-            top_leagues = (
-                arbs_filtered.groupby("league")["match_id"]
-                .count()
-                .sort_values(ascending=True)
-                .tail(12)
-                .reset_index()
-                .rename(columns={"match_id": "arb_count"})
-            )
-            if top_leagues.empty:
-                st.info("No league distribution available.")
-            else:
-                fig = px.bar(
-                    top_leagues,
-                    x="arb_count",
-                    y="league",
-                    orientation="h",
-                    text="arb_count",
-                    title="Top Leagues by Arb Count",
-                    color_discrete_sequence=["#6366f1"],
-                )
-                fig.update_traces(textposition="outside", cliponaxis=False)
-                fig.update_xaxes(title_text="Arb count")
-                fig.update_yaxes(title_text="")
-                _apply_chart_style(fig, height=320)
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
-        with row2_col2:
-            if "bookie_count" in arbs_filtered.columns and arbs_filtered["bookie_count"].notna().any():
-                coverage = (
-                    arbs_filtered.groupby("bookie_count")["match_id"]
-                    .count()
+                settled = picks_for_returns.copy()
+                settled["settled_at"] = pd.to_datetime(settled.get("settled_at"), errors="coerce")
+                settled["settled_at"] = settled["settled_at"].fillna(settled["created_at"])
+                settled = settled[settled["realized_profit"].notna()]
+                settled["settled_date"] = settled["settled_at"].dt.date
+                daily_returns = (
+                    settled.groupby("settled_date", dropna=True)["realized_profit"]
+                    .sum()
                     .reset_index()
-                    .rename(columns={"match_id": "count"})
+                    .sort_values("settled_date")
                 )
-                fig = px.bar(
-                    coverage,
-                    x="bookie_count",
-                    y="count",
-                    title="Bookmaker Coverage (per match)",
-                    color_discrete_sequence=["#14b8a6"],
+                daily_returns["cum_profit"] = daily_returns["realized_profit"].cumsum()
+                fig = px.line(
+                    daily_returns,
+                    x="settled_date",
+                    y="cum_profit",
+                    markers=True,
+                    title="Cumulative Returns (Settled Bets)",
+                    color_discrete_sequence=["#2563eb"],
                 )
-                fig.update_xaxes(title_text="Bookmakers per match")
-                fig.update_yaxes(title_text="Matches")
+                fig.update_xaxes(title_text="Date")
+                fig.update_yaxes(title_text="Profit")
                 _apply_chart_style(fig, height=320)
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+        with cash_col:
+            cash_ledger_chart = _load_cash_ledger(research_db_path)
+            if cash_ledger_chart.empty:
+                st.info("Update liquid cash or settle a bet to see holdings.")
             else:
-                age_series = arbs_filtered["snapshot_age_min"].dropna()
-                if age_series.empty:
-                    st.info("No execution freshness data available.")
-                else:
-                    fig = px.histogram(
-                        age_series,
-                        nbins=25,
-                        title="Snapshot Age (minutes)",
-                        color_discrete_sequence=["#0f172a"],
-                    )
-                    fig.update_xaxes(title_text="Minutes since snapshot")
-                    fig.update_yaxes(title_text="Count")
-                    _apply_chart_style(fig, height=320)
-                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                ledger = cash_ledger_chart.sort_values("created_at")
+                ledger["date"] = ledger["created_at"].dt.date
+                daily_balance = (
+                    ledger.groupby("date", dropna=True)["balance"]
+                    .last()
+                    .reset_index()
+                    .sort_values("date")
+                )
+                fig = px.line(
+                    daily_balance,
+                    x="date",
+                    y="balance",
+                    markers=True,
+                    title="Liquid Cash Balance",
+                    color_discrete_sequence=["#0f172a"],
+                )
+                fig.update_xaxes(title_text="Date")
+                fig.update_yaxes(title_text="Cash on hand")
+                _apply_chart_style(fig, height=320)
+                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
         if show_quick_links:
             event_lookup = _build_event_lookup(rows)
