@@ -396,7 +396,9 @@ def parse_sportybet_tournaments(tournaments, matches, seen_ids, major_ids):
             sport = event.get('sport', {})
             category = sport.get('category', {})
             tourn = category.get('tournament', {})
-            league = tourn.get('name', tournament_name)
+            category_name = category.get('name', '')
+            tourn_name = tourn.get('name', tournament_name)
+            league = f"{category_name}. {tourn_name}" if category_name else tourn_name
 
             start_time = event.get('estimateStartTime', 0)
             if start_time > 1000000000000:

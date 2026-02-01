@@ -70,7 +70,7 @@ _apply_widget_overrides()
 
 SEARCH_BASE_URL = os.getenv("SEARCH_BASE_URL", "https://www.google.com/search?q=")
 BOOKMAKER_EVENT_TEMPLATES = {
-    "SportyBet Ghana": "https://www.sportybet.com/gh/sport/football/fixtures/{event_id_url}",
+    "SportyBet Ghana": "https://www.sportybet.com/gh/sport/football/{league_path}/{home_vs_away}/{event_id_url}",
     "Betway Ghana": "https://www.betway.com.gh/sport/soccer/event/{event_id}",
     "22Bet Ghana": "https://22bet.com.gh/line/event/{event_id}",
     "1xBet Ghana": "https://1xbet.com.gh/en/line/football?eventId={event_id}",
@@ -98,6 +98,22 @@ def _slugify_simple(value: object) -> str:
     return text.strip("-")
 
 
+def _sportybet_segment(value: object) -> str:
+    text = str(value or "").strip()
+    text = re.sub(r"[^A-Za-z0-9]+", "_", text)
+    text = re.sub(r"_+", "_", text)
+    return text.strip("_")
+
+
+def _sportybet_league_path(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    parts = [p.strip() for p in raw.replace("/", ".").split(".") if p.strip()]
+    segments = [_sportybet_segment(p) for p in parts if p]
+    return "/".join([seg for seg in segments if seg])
+
+
 def _build_bookie_event_url(
     bookmaker: object,
     event_id: object,
@@ -109,12 +125,25 @@ def _build_bookie_event_url(
     template = BOOKMAKER_EVENT_TEMPLATES.get(str(bookmaker or ""))
     if not template or not event_id:
         return ""
+    if str(bookmaker or "") == "SportyBet Ghana":
+        league_path = _sportybet_league_path(league)
+        home_seg = _sportybet_segment(home)
+        away_seg = _sportybet_segment(away)
+        if not league_path or not home_seg or not away_seg:
+            return ""
+        event_id_str = str(event_id)
+        return (
+            "https://www.sportybet.com/gh/sport/football/"
+            f"{league_path}/{home_seg}_vs_{away_seg}/{urllib.parse.quote(event_id_str, safe=':')}"
+        )
     if "{league_id}" in template and not event_league_id:
         return ""
     event_id_str = str(event_id)
     values = {
         "event_id": event_id_str,
         "event_id_url": urllib.parse.quote(event_id_str, safe=""),
+        "league_path": _sportybet_league_path(league),
+        "home_vs_away": f"{_sportybet_segment(home)}_vs_{_sportybet_segment(away)}",
         "home": str(home or ""),
         "away": str(away or ""),
         "league": str(league or ""),
