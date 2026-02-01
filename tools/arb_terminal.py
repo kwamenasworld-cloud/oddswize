@@ -1726,7 +1726,14 @@ if strategy.startswith("Arbitrage"):
                 float(liq_max_age),
                 float(liq_target_kickoff),
             )
-            effective_stake = float(stake_total) * float(liquidity_score)
+            if liquidity_score <= 0:
+                st.warning(
+                    "Liquidity score is 0 (stale snapshot or low coverage). "
+                    "Using full stake for the allocator so values aren't zero."
+                )
+                effective_stake = float(stake_total)
+            else:
+                effective_stake = float(stake_total) * float(liquidity_score)
         odds_home = float(selected_row["home_odds_adj"])
         odds_draw = float(selected_row["draw_odds_adj"])
         odds_away = float(selected_row["away_odds_adj"])
