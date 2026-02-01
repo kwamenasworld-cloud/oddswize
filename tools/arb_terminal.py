@@ -1105,6 +1105,9 @@ if strategy.startswith("Arbitrage"):
     effective_slippage = slippage_pct + (float(execution_lag_seconds) / 60.0) * float(slippage_per_min_pct)
     effective_slippage = max(0.0, min(0.2, effective_slippage))
     arbs_adj = add_slippage_adjustment(arbs, slippage_pct=effective_slippage)
+    if not arbs_adj.empty:
+        min_roi_adj_value = float(min_roi_adj or 0.0)
+        arbs_adj = arbs_adj[arbs_adj["arb_roi_adj"] >= min_roi_adj_value]
 
     if not arbs_adj.empty:
         now_utc = datetime.now(timezone.utc)
