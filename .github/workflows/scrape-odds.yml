@@ -10,7 +10,7 @@ on:
 
 jobs:
   scrape:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, windows]
     timeout-minutes: 15
     concurrency:
       group: odds-scrape-top-${{ github.ref }}
@@ -43,14 +43,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           python -m playwright install chromium
-          # Install Xvfb for running non-headless browsers
-          sudo apt-get update
-          sudo apt-get install -y xvfb
 
       - name: Prepare data worktree
+        shell: pwsh
         run: |
-          git fetch origin data || true
-          git worktree add -B data /tmp/odds-data origin/data || git worktree add -B data /tmp/odds-data
+          $worktreePath = Join-Path $env:TEMP "odds-data"
+          try { git fetch origin data | Out-Null } catch {}
+          if (Test-Path $worktreePath) {
+            try { git worktree remove -f $worktreePath | Out-Null } catch {}
+            Remove-Item -Recurse -Force $worktreePath -ErrorAction SilentlyContinue
+          }
+          git worktree add -B data $worktreePath origin/data
+          if ($LASTEXITCODE -ne 0) {
+            git worktree add -B data $worktreePath
+          }
+          "WORKTREE_PATH=$worktreePath" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Run odds scraper loop
         env:
@@ -60,59 +67,80 @@ jobs:
           D1_CANONICAL_INGEST: ${{ secrets.D1_CANONICAL_INGEST }}
           ODDSAPI_KEY: ${{ secrets.ODDSAPI_KEY }}
           WORKER_API_SECRET: ${{ secrets.WORKER_API_SECRET }}
-          DISPLAY: ':99'
+        shell: pwsh
         run: |
-          set -u
-          # Start Xvfb (virtual display) in background
-          Xvfb :99 -screen 0 1920x1080x24 &
-          sleep 2
+          $repeat = if ($env:SCRAPE_REPEAT) { [int]$env:SCRAPE_REPEAT } else { 1 }
+          $interval = if ($env:SCRAPE_INTERVAL_SECONDS) { [int]$env:SCRAPE_INTERVAL_SECONDS } else { 240 }
+          $success = 0
 
-          repeat="${SCRAPE_REPEAT:-1}"
-          interval="${SCRAPE_INTERVAL_SECONDS:-240}"
-          success=0
-          for i in $(seq 1 "$repeat"); do
-            start_ts=$(date +%s)
-            echo "Scrape cycle $i/$repeat"
-            # Remove any stale snapshot so a failed scrape cannot be re-published
-            rm -f odds_data.json
-            # Run scraper with virtual display (don't abort whole job on a single failure)
-            if ! python scrape_odds_github.py; then
-              echo "Scrape failed; skipping this cycle."
+          for ($i = 1; $i -le $repeat; $i++) {
+            $start = Get-Date
+            Write-Host "Scrape cycle $i/$repeat"
+            Remove-Item -ErrorAction SilentlyContinue odds_data.json
+
+            & python scrape_odds_github.py
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "Scrape failed; skipping this cycle."
               continue
-            fi
+            }
 
-            if ! python -c $'import json\nfrom datetime import datetime, timezone\nfrom pathlib import Path\npath = Path(\"odds_data.json\")\nif not path.exists():\n    raise SystemExit(\"odds_data.json missing after scrape\")\npayload = json.loads(path.read_text(encoding=\"utf-8\"))\nlast_updated = payload.get(\"last_updated\")\nif not last_updated:\n    raise SystemExit(\"odds_data.json missing last_updated\")\ntry:\n    ts = datetime.fromisoformat(last_updated.replace(\"Z\", \"+00:00\"))\nexcept Exception as exc:\n    raise SystemExit(f\"Invalid last_updated format: {last_updated}\") from exc\nif ts.tzinfo is None:\n    ts = ts.replace(tzinfo=timezone.utc)\nage_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0\nprint(f\"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)\")\nif age_min > 20:\n    raise SystemExit(f\"Snapshot too old: {age_min:.1f} min\")'; then
-              echo "Snapshot validation failed; skipping this cycle."
+            $py = @'
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+path = Path("odds_data.json")
+if not path.exists():
+    raise SystemExit("odds_data.json missing after scrape")
+payload = json.loads(path.read_text(encoding="utf-8"))
+last_updated = payload.get("last_updated")
+if not last_updated:
+    raise SystemExit("odds_data.json missing last_updated")
+try:
+    ts = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
+except Exception as exc:
+    raise SystemExit(f"Invalid last_updated format: {last_updated}") from exc
+if ts.tzinfo is None:
+    ts = ts.replace(tzinfo=timezone.utc)
+age_min = (datetime.now(timezone.utc) - ts).total_seconds() / 60.0
+print(f"Snapshot last_updated: {last_updated} (age {age_min:.1f} min)")
+if age_min > 20:
+    raise SystemExit(f"Snapshot too old: {age_min:.1f} min")
+'@
+            python -c $py
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "Snapshot validation failed; skipping this cycle."
               continue
-            fi
-            success=1
+            }
+            $success = 1
 
-            git -C /tmp/odds-data rm -rf . || true
-            cp odds_data.json /tmp/odds-data/odds_data.json
-            if [ -f odds_heartbeat.json ]; then
-              cp odds_heartbeat.json /tmp/odds-data/odds_heartbeat.json
-            fi
-            git -C /tmp/odds-data add odds_data.json
-            if [ -f /tmp/odds-data/odds_heartbeat.json ]; then
-              git -C /tmp/odds-data add odds_heartbeat.json
-            fi
-            git -C /tmp/odds-data -c user.name="oddswize-bot" -c user.email="actions@github.com" commit -m "Update odds data" || true
-            git -C /tmp/odds-data push -f origin data
+            $worktree = if ($env:WORKTREE_PATH) { $env:WORKTREE_PATH } else { Join-Path $env:TEMP "odds-data" }
+            git -C $worktree reset --hard | Out-Null
+            git -C $worktree clean -fdx | Out-Null
+            Copy-Item odds_data.json (Join-Path $worktree "odds_data.json") -Force
+            if (Test-Path odds_heartbeat.json) {
+              Copy-Item odds_heartbeat.json (Join-Path $worktree "odds_heartbeat.json") -Force
+            }
+            git -C $worktree add odds_data.json
+            if (Test-Path (Join-Path $worktree "odds_heartbeat.json")) {
+              git -C $worktree add odds_heartbeat.json
+            }
+            git -C $worktree -c user.name="oddswize-bot" -c user.email="actions@github.com" commit -m "Update odds data" | Out-Null
+            git -C $worktree push -f origin data
 
-            if [ "$i" -lt "$repeat" ]; then
-              end_ts=$(date +%s)
-              elapsed=$((end_ts - start_ts))
-              sleep_for=$((interval - elapsed))
-              if [ "$sleep_for" -gt 0 ]; then
-                echo "Sleeping ${sleep_for}s before next cycle"
-                sleep "$sleep_for"
-              fi
-            fi
-          done
-          if [ "$success" -eq 0 ]; then
-            echo "No successful scrape cycles; failing job."
+            if ($i -lt $repeat) {
+              $elapsed = (Get-Date) - $start
+              $sleepFor = $interval - [int]$elapsed.TotalSeconds
+              if ($sleepFor -gt 0) {
+                Write-Host "Sleeping $sleepFor s before next cycle"
+                Start-Sleep -Seconds $sleepFor
+              }
+            }
+          }
+
+          if ($success -eq 0) {
+            Write-Error "No successful scrape cycles; failing job."
             exit 1
-          fi
+          }
 
       - name: Upload results as artifact
         uses: actions/upload-artifact@v4
