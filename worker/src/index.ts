@@ -326,6 +326,13 @@ function authorizeHistoryRead(request: Request, env: Env): boolean {
   return true;
 }
 
+function authorizeProxy(request: Request, env: Env): boolean {
+  if (!env.API_SECRET) return false;
+  const token = resolveHistoryApiKey(request, env);
+  if (!token) return false;
+  return token === env.API_SECRET;
+}
+
 function buildMatchSignature(match: Match): string {
   const base = [
     match.home_team || '',
@@ -1446,6 +1453,33 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         200,
         env
       );
+    }
+
+    // GET /api/proxy/betway - Proxy Betway API for scrapers
+    if (path === '/api/proxy/betway' && request.method === 'GET') {
+      if (!authorizeProxy(request, env)) {
+        return errorResponse('Unauthorized', 401, env);
+      }
+      const skip = Math.max(0, parseInt(url.searchParams.get('skip') || '0', 10) || 0);
+      const take = Math.max(1, Math.min(parseInt(url.searchParams.get('take') || '1000', 10) || 1000, 5000));
+      const betwayUrl =
+        'https://www.betway.com.gh/sportsapi/br/v1/BetBook/Upcoming/' +
+        `?countryCode=GH&sportId=soccer&cultureCode=en-US&marketTypes=%5BWin%2FDraw%2FWin%5D&isEsport=false&Skip=${skip}&Take=${take}`;
+      const resp = await fetch(betwayUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; OddsWize/1.0)',
+          'Referer': 'https://www.betway.com.gh/sport/soccer/upcoming',
+          'Accept': 'application/json',
+        },
+      });
+      const body = await resp.text();
+      return new Response(body, {
+        status: resp.status,
+        headers: {
+          ...corsHeaders(env),
+          'Content-Type': 'application/json',
+        },
+      });
     }
 
     // GET /api/odds - Get all odds data

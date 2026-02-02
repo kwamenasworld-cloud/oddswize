@@ -241,6 +241,8 @@ ALLOW_SINGLE_BOOKIE_MAJORS = env_bool("ALLOW_SINGLE_BOOKIE_MAJORS")
 MATCH_TIME_TOLERANCE_SECONDS = env_int("MATCH_TIME_TOLERANCE_SECONDS", 6 * 3600)
 CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
+BETWAY_PROXY_URL = os.getenv('BETWAY_PROXY_URL') or CLOUDFLARE_WORKER_URL
+WORKER_API_SECRET = os.getenv('WORKER_API_SECRET', '')
 D1_CANONICAL_INGEST = os.getenv('D1_CANONICAL_INGEST')  # optional override; defaults to CLOUDFLARE_WORKER_URL/api/canonical/ingest
 FAST_MODE = env_bool("ODDS_FAST")
 ODDSAPI_KEY = os.getenv("ODDSAPI_KEY", "")
@@ -991,6 +993,19 @@ BETWAY_API = "https://www.betway.com.gh/sportsapi/br/v1/BetBook/Upcoming/"
 def fetch_betway_page(session, headers, skip, page_size):
     """Fetch a single page from Betway."""
     try:
+        if BETWAY_PROXY_URL:
+            proxy_headers = {
+                "Accept": "application/json",
+            }
+            token = WORKER_API_SECRET or CLOUDFLARE_API_KEY
+            if token:
+                proxy_headers["Authorization"] = f"Bearer {token}"
+            proxy_url = (
+                f"{BETWAY_PROXY_URL.rstrip('/')}/api/proxy/betway"
+                f"?skip={skip}&take={page_size}"
+            )
+            resp = session.get(proxy_url, headers=proxy_headers, timeout=20)
+            return resp.json()
         url = (
             f"{BETWAY_API}?countryCode=GH"
             f"&sportId=soccer"
@@ -1870,6 +1885,7 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
         for match in matches:
             home = normalize_name(match['home_team'])
             away = normalize_name(match['away_team'])
+            league_norm = normalize_league(match.get('league', ''))
 
             # Debug logging for specific matches
             if any(team in home.lower() or team in away.lower() for team in debug_teams):
@@ -1886,11 +1902,11 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
                 continue
 
             # Try exact match first
-            key = f"{home}|{away}"
+            key = f"{home}|{away}|{league_norm}"
             if key in groups:
                 groups[key].append(match)
                 continue
-            reverse_key = f"{away}|{home}"
+            reverse_key = f"{away}|{home}|{league_norm}"
             if reverse_key in groups:
                 groups[reverse_key].append(match)
                 continue
@@ -1898,10 +1914,12 @@ def match_events(all_matches: Dict[str, List[Dict]]) -> List[List[Dict]]:
             # Fuzzy matching
             matched = False
             for existing_key in list(groups.keys()):
-                eh, ea = existing_key.split('|')
+                eh, ea, el = existing_key.split('|')
                 existing_group = groups.get(existing_key) or []
                 existing_time = existing_group[0].get('start_time') if existing_group else 0
                 if not is_start_time_close(match.get('start_time'), existing_time):
+                    continue
+                if league_norm and el and league_norm != el:
                     continue
                 home_sim = SequenceMatcher(None, home, eh).ratio()
                 away_sim = SequenceMatcher(None, away, ea).ratio()
