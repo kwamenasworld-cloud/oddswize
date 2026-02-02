@@ -7,6 +7,7 @@ Uses parallel requests, connection pooling, and aggressive batching.
 """
 
 import json
+import math
 import os
 import re
 import time
@@ -14,11 +15,12 @@ import unicodedata
 import requests
 import cloudscraper
 import asyncio
+import threading
 import argparse
 import sqlite3
 from collections import Counter
 from datetime import datetime
-from typing import Dict, List, Set, Optional
+from typing import Callable, Dict, Iterable, List, Optional, Set
 from difflib import SequenceMatcher
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -44,6 +46,172 @@ def env_bool(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in ("1", "true", "yes", "on")
 
 
+def load_env_file(path: str = ".env") -> None:
+    """Load key=value pairs from a local .env file if present."""
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except Exception:
+        return
+
+
+load_env_file()
+
+def round_position_to_increment(
+    value: float,
+    increment: float,
+    mode: str = "nearest",
+    tie_break: str = "toward_zero",
+) -> float:
+    """
+    Round a position size to a multiple of increment.
+    mode: nearest|floor|ceil|toward_zero|away_from_zero
+    tie_break: toward_zero|away_from_zero|floor|ceil (used when mode=nearest and equidistant)
+    """
+    if increment <= 0:
+        raise ValueError("increment must be > 0")
+
+    scaled = value / increment
+    if mode == "floor":
+        return math.floor(scaled) * increment
+    if mode == "ceil":
+        return math.ceil(scaled) * increment
+    if mode == "toward_zero":
+        return math.trunc(scaled) * increment
+    if mode == "away_from_zero":
+        return (math.ceil(scaled) if scaled > 0 else math.floor(scaled)) * increment
+    if mode != "nearest":
+        raise ValueError(f"unsupported mode: {mode}")
+
+    lower = math.floor(scaled) * increment
+    upper = math.ceil(scaled) * increment
+    lower_dist = abs(value - lower)
+    upper_dist = abs(upper - value)
+    if lower_dist < upper_dist:
+        return lower
+    if upper_dist < lower_dist:
+        return upper
+
+    if tie_break == "toward_zero":
+        return lower if abs(lower) <= abs(upper) else upper
+    if tie_break == "away_from_zero":
+        return lower if abs(lower) >= abs(upper) else upper
+    if tie_break == "floor":
+        return lower
+    if tie_break == "ceil":
+        return upper
+    raise ValueError(f"unsupported tie_break: {tie_break}")
+
+
+def compute_delta_neutral_hedge(
+    primary_qty: float,
+    primary_price: float,
+    secondary_price: float,
+    primary_delta: float = 1.0,
+    secondary_delta: float = 1.0,
+) -> float:
+    """
+    Compute the opposing secondary quantity that neutralizes delta/notional.
+    Returns a signed quantity (negative means opposite direction to primary).
+    """
+    if secondary_price == 0 or secondary_delta == 0:
+        raise ValueError("secondary_price and secondary_delta must be non-zero")
+    return -primary_qty * (primary_price * primary_delta) / (secondary_price * secondary_delta)
+
+
+def choose_clean_position(
+    raw_position: float,
+    increments: Iterable[float],
+    primary_price: float,
+    secondary_price: float,
+    primary_delta: float = 1.0,
+    secondary_delta: float = 1.0,
+    min_size: Optional[float] = None,
+    max_size: Optional[float] = None,
+    rounding_mode: str = "nearest",
+    tie_break: str = "toward_zero",
+    loss_fn: Optional[Callable[[float, float, float], float]] = None,
+) -> Dict[str, float]:
+    """
+    Pick a rounded position size that minimizes spread loss, then recompute a delta-neutral hedge.
+
+    loss_fn signature: (raw_position, candidate_position, unit_edge) -> loss
+    unit_edge defaults to abs(primary_price - secondary_price) when loss_fn is None.
+    min_size/max_size apply to absolute size.
+    """
+    increments = [inc for inc in increments if inc and inc > 0]
+    if not increments:
+        raise ValueError("increments must contain at least one positive value")
+
+    unit_edge = abs(primary_price - secondary_price)
+    if loss_fn is None:
+        def loss_fn(raw_pos: float, cand_pos: float, edge: float) -> float:
+            return abs(raw_pos - cand_pos) * abs(edge)
+
+    candidates = {}
+    for inc in increments:
+        cand = round_position_to_increment(
+            raw_position,
+            inc,
+            mode=rounding_mode,
+            tie_break=tie_break,
+        )
+        if min_size is not None and abs(cand) < min_size:
+            continue
+        if max_size is not None and abs(cand) > max_size:
+            continue
+        candidates[cand] = inc
+
+    if not candidates:
+        raise ValueError("no candidates remain after applying min_size/max_size")
+
+    best_pos = None
+    best_inc = None
+    best_loss = None
+    for cand, inc in candidates.items():
+        loss = loss_fn(raw_position, cand, unit_edge)
+        if best_loss is None or loss < best_loss:
+            best_loss = loss
+            best_pos = cand
+            best_inc = inc
+        elif loss == best_loss and best_pos is not None:
+            # Tie-break: prefer closer to raw_position, then smaller increment.
+            if abs(cand - raw_position) < abs(best_pos - raw_position):
+                best_loss = loss
+                best_pos = cand
+                best_inc = inc
+            elif abs(cand - raw_position) == abs(best_pos - raw_position) and inc < (best_inc or inc):
+                best_loss = loss
+                best_pos = cand
+                best_inc = inc
+
+    hedge_qty = compute_delta_neutral_hedge(
+        primary_qty=best_pos,
+        primary_price=primary_price,
+        secondary_price=secondary_price,
+        primary_delta=primary_delta,
+        secondary_delta=secondary_delta,
+    )
+
+    return {
+        "rounded_position": float(best_pos),
+        "increment_used": float(best_inc),
+        "spread_loss": float(best_loss),
+        "unit_edge": float(unit_edge),
+        "hedge_qty": float(hedge_qty),
+    }
+
+
 # Configuration - AGGRESSIVE MODE
 EXPECTED_BOOKMAKERS = [
     'Betway Ghana',
@@ -52,9 +220,13 @@ EXPECTED_BOOKMAKERS = [
     '22Bet Ghana',
     'SoccaBet Ghana',
     'Betfox Ghana',
+    'Pinnacle',
+    'Betfair Exchange',
 ]
 OPTIONAL_BOOKMAKERS = [
     'Betfox Ghana',
+    'Pinnacle',
+    'Betfair Exchange',
 ]
 REQUIRED_COVERAGE_BOOKMAKERS = [
     b for b in EXPECTED_BOOKMAKERS if b not in OPTIONAL_BOOKMAKERS
@@ -71,6 +243,47 @@ CLOUDFLARE_WORKER_URL = os.getenv('CLOUDFLARE_WORKER_URL', '')
 CLOUDFLARE_API_KEY = os.getenv('CLOUDFLARE_API_KEY', '')
 D1_CANONICAL_INGEST = os.getenv('D1_CANONICAL_INGEST')  # optional override; defaults to CLOUDFLARE_WORKER_URL/api/canonical/ingest
 FAST_MODE = env_bool("ODDS_FAST")
+ODDSAPI_KEY = os.getenv("ODDSAPI_KEY", "")
+ODDSAPI_BASE_URL = os.getenv("ODDSAPI_BASE_URL", "https://api.the-odds-api.com/v4")
+ODDSAPI_REGIONS = os.getenv("ODDSAPI_REGIONS", "eu,uk,us,au")
+ODDSAPI_MARKETS = os.getenv("ODDSAPI_MARKETS", "h2h")
+ODDSAPI_BOOKMAKERS = os.getenv(
+    "ODDSAPI_BOOKMAKERS",
+    "pinnacle,betfair_ex_eu,betfair_ex_uk,betfair_ex_au",
+)
+ODDSAPI_SOCCER_KEYS = os.getenv("ODDSAPI_SOCCER_KEYS", "")
+ODDSAPI_SOCCER_LIMIT = env_int("ODDSAPI_SOCCER_LIMIT", 12)
+_ODDSAPI_SOCCER_KEYS: Optional[List[str]] = None
+_ODDSAPI_ODDS_CACHE: Dict[tuple, List[Dict]] = {}
+_ODDSAPI_SPORTS_LOCK = threading.Lock()
+
+
+def _get_oddsapi_soccer_keys(session: requests.Session) -> List[str]:
+    global _ODDSAPI_SOCCER_KEYS
+    if _ODDSAPI_SOCCER_KEYS is not None:
+        return _ODDSAPI_SOCCER_KEYS
+    with _ODDSAPI_SPORTS_LOCK:
+        if _ODDSAPI_SOCCER_KEYS is not None:
+            return _ODDSAPI_SOCCER_KEYS
+        if ODDSAPI_SOCCER_KEYS:
+            keys = [k.strip() for k in ODDSAPI_SOCCER_KEYS.split(",") if k.strip()]
+            _ODDSAPI_SOCCER_KEYS = keys
+            return _ODDSAPI_SOCCER_KEYS
+        for attempt in range(2):
+            sports = _fetch_oddsapi_sports(session)
+            if sports:
+                keys = [
+                    s.get("key") for s in sports
+                    if s.get("key", "").startswith("soccer_") and s.get("active")
+                ]
+                if ODDSAPI_SOCCER_LIMIT and ODDSAPI_SOCCER_LIMIT > 0:
+                    keys = keys[: int(ODDSAPI_SOCCER_LIMIT)]
+                _ODDSAPI_SOCCER_KEYS = keys
+                break
+            time.sleep(2)
+        if _ODDSAPI_SOCCER_KEYS is None:
+            _ODDSAPI_SOCCER_KEYS = []
+    return _ODDSAPI_SOCCER_KEYS
 MAX_MATCHES = env_int("MAX_MATCHES", 2600)  # Increased depth to avoid dropping major leagues
 MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS", 220)  # Broader championship coverage
 TIMEOUT = env_int("TIMEOUT", 10)
@@ -133,6 +346,161 @@ def slugify_simple(value: str) -> str:
     value = (value or '').strip().lower()
     value = re.sub(r'[^a-z0-9]+', '-', value)
     return value.strip('-')
+
+
+def _parse_iso_datetime(value: str) -> Optional[int]:
+    if not value:
+        return None
+    try:
+        normalized = value.replace("Z", "+00:00")
+        return int(datetime.fromisoformat(normalized).timestamp())
+    except Exception:
+        return None
+
+
+def _fetch_oddsapi_sports(session: requests.Session) -> List[Dict]:
+    if not ODDSAPI_KEY:
+        return []
+    try:
+        resp = session.get(
+            f"{ODDSAPI_BASE_URL}/sports",
+            params={"apiKey": ODDSAPI_KEY},
+            timeout=15,
+        )
+        if resp.status_code != 200:
+            print(f"  [OddsAPI] /sports error {resp.status_code}: {resp.text[:200]}")
+            return []
+        return resp.json() or []
+    except Exception:
+        return []
+
+
+def _fetch_oddsapi_odds(
+    session: requests.Session,
+    sport_key: str,
+    regions: str,
+    markets: str,
+    bookmakers: str,
+) -> List[Dict]:
+    if not ODDSAPI_KEY:
+        return []
+    cache_key = (sport_key, regions, markets, bookmakers)
+    if cache_key in _ODDSAPI_ODDS_CACHE:
+        return _ODDSAPI_ODDS_CACHE[cache_key]
+    params = {
+        "apiKey": ODDSAPI_KEY,
+        "regions": regions,
+        "markets": markets,
+        "bookmakers": bookmakers,
+        "oddsFormat": "decimal",
+    }
+    try:
+        for attempt in range(2):
+            resp = session.get(
+                f"{ODDSAPI_BASE_URL}/sports/{sport_key}/odds",
+                params=params,
+                timeout=25,
+            )
+            if resp.status_code == 200:
+                payload = resp.json() or []
+                _ODDSAPI_ODDS_CACHE[cache_key] = payload
+                return payload
+            if resp.status_code == 429 and attempt == 0:
+                time.sleep(2)
+                continue
+            print(f"  [OddsAPI] /odds {sport_key} error {resp.status_code}: {resp.text[:200]}")
+            _ODDSAPI_ODDS_CACHE[cache_key] = []
+            return []
+    except Exception:
+        return []
+
+
+def scrape_oddsapi_benchmarks(allowed_keys: Optional[Set[str]] = None) -> List[Dict]:
+    """
+    Pull Pinnacle/Betfair Exchange soccer odds via The Odds API.
+    Requires ODDSAPI_KEY.
+    """
+    if not ODDSAPI_KEY:
+        print("  [INFO] ODDSAPI_KEY not set; skipping Pinnacle/Betfair benchmarks")
+        return []
+
+    session = requests.Session()
+    regions = ",".join([r.strip() for r in ODDSAPI_REGIONS.split(",") if r.strip()])
+    markets = ",".join([m.strip() for m in ODDSAPI_MARKETS.split(",") if m.strip()])
+    bookmakers = ",".join([b.strip() for b in ODDSAPI_BOOKMAKERS.split(",") if b.strip()])
+    if not regions or not markets or not bookmakers:
+        print("  [WARN] ODDSAPI settings missing regions/markets/bookmakers; skipping")
+        return []
+
+    soccer_keys = _get_oddsapi_soccer_keys(session) or []
+    if not soccer_keys:
+        print("  [WARN] No active soccer sports found from OddsAPI")
+        return []
+
+    bookmaker_name_map = {
+        "pinnacle": "Pinnacle",
+        "betfair_ex_eu": "Betfair Exchange",
+        "betfair_ex_uk": "Betfair Exchange",
+        "betfair_ex_au": "Betfair Exchange",
+    }
+
+    results: List[Dict] = []
+    for sport_key in soccer_keys:
+        if "winner" in sport_key:
+            continue
+        odds = _fetch_oddsapi_odds(session, sport_key, regions, markets, bookmakers)
+        for event in odds:
+            home_team = event.get("home_team")
+            away_team = event.get("away_team")
+            start_time = _parse_iso_datetime(event.get("commence_time") or "")
+            if not home_team or not away_team or not start_time:
+                continue
+            for bookie in event.get("bookmakers", []) or []:
+                key = bookie.get("key") or ""
+                if key not in bookmaker_name_map:
+                    continue
+                if allowed_keys is not None and key not in allowed_keys:
+                    continue
+                display_name = bookmaker_name_map[key]
+                markets_list = bookie.get("markets", []) or []
+                h2h = next((m for m in markets_list if m.get("key") == "h2h"), None)
+                if not h2h:
+                    continue
+                home_odds = draw_odds = away_odds = None
+                for outcome in h2h.get("outcomes", []) or []:
+                    name = outcome.get("name")
+                    price = outcome.get("price")
+                    if not name or price is None:
+                        continue
+                    if name == home_team:
+                        home_odds = price
+                    elif name == away_team:
+                        away_odds = price
+                    elif name.lower() == "draw":
+                        draw_odds = price
+
+                if home_odds and away_odds:
+                    results.append({
+                        "home_team": home_team,
+                        "away_team": away_team,
+                        "league": event.get("sport_title") or "Soccer",
+                        "start_time": start_time,
+                        "bookmaker": display_name,
+                        "home_odds": float(home_odds),
+                        "draw_odds": float(draw_odds) if draw_odds else 0.0,
+                        "away_odds": float(away_odds),
+                    })
+
+    print(f"  [OddsAPI] Fetched {len(results)} Pinnacle/Betfair lines")
+    return results
+
+
+def scrape_oddsapi_pinnacle() -> List[Dict]:
+    return scrape_oddsapi_benchmarks(allowed_keys={"pinnacle"})
+
+
+def scrape_oddsapi_betfair_exchange() -> List[Dict]:
+    return scrape_oddsapi_benchmarks(allowed_keys={"betfair_ex_eu", "betfair_ex_uk", "betfair_ex_au"})
 
 def build_fixture_id(match: Dict) -> str:
     home = slugify_simple(match.get('home_team', ''))
@@ -1868,16 +2236,25 @@ def main():
             'SoccaBet Ghana': scrape_soccabet,
             '22Bet Ghana': scrape_22bet_ghana,  # Updated platform API scraper
             'Betfox Ghana': scrape_betfox,  # WORKING - Using V4 API (100+ fixtures from upcoming + live)
+            'Pinnacle': scrape_oddsapi_pinnacle,
+            'Betfair Exchange': scrape_oddsapi_betfair_exchange,
         }
 
         def timed_scraper(name, fn):
+            if name in ("Pinnacle", "Betfair Exchange") and not ODDSAPI_KEY:
+                print(f"  [{name}] skipped (ODDSAPI_KEY not set)")
+                return [], 0.0, "skipped", "ODDSAPI_KEY not set"
             started = time.time()
-            matches = fn()
+            matches = fn() or []
             duration = time.time() - started
+            status = "ok" if matches else "empty"
             print(f"  [{name}] {len(matches)} matches in {duration:.1f}s")
-            return matches
+            return matches, duration, status, None
 
         print("\nRunning ALL scrapers in parallel...")
+        scraper_status: Dict[str, Dict[str, Optional[str]]] = {
+            name: {"status": "pending", "error": None} for name in scrapers.keys()
+        }
         with ThreadPoolExecutor(max_workers=6) as executor:
             future_to_bookie = {
                 executor.submit(timed_scraper, bookie, scraper): bookie
@@ -1886,10 +2263,14 @@ def main():
             for future in as_completed(future_to_bookie):
                 bookie = future_to_bookie[future]
                 try:
-                    matches = future.result()
+                    matches, duration, status, detail = future.result()
+                    scraper_status[bookie]["status"] = status
+                    scraper_status[bookie]["error"] = detail
                     if matches:
                         all_matches[bookie] = matches
                 except Exception as e:
+                    scraper_status[bookie]["status"] = "error"
+                    scraper_status[bookie]["error"] = str(e)
                     print(f"  {bookie} failed: {e}")
 
         elapsed = time.time() - start_time
@@ -1900,6 +2281,22 @@ def main():
         for bookie, matches in all_matches.items():
             print(f"  - {bookie}: {len(matches)} matches")
         print(f"{'=' * 60}")
+
+        missing_expected = [
+            b for b in EXPECTED_BOOKMAKERS
+            if scraper_status.get(b, {}).get("status") in ("empty", "error", "skipped", "pending")
+        ]
+        missing_optional = [
+            b for b in OPTIONAL_BOOKMAKERS
+            if scraper_status.get(b, {}).get("status") in ("empty", "error", "skipped", "pending")
+        ]
+        if missing_expected:
+            print(f"  [WARN] Expected bookmakers missing or empty: {', '.join(missing_expected)}")
+        if missing_optional:
+            print(f"  [INFO] Optional bookmakers missing or empty: {', '.join(missing_optional)}")
+        for bookie, status_info in scraper_status.items():
+            if status_info.get("status") in ("error", "skipped") and status_info.get("error"):
+                print(f"  [INFO] {bookie} status: {status_info['status']} ({status_info['error']})")
 
         if not all_matches:
             print("No matches scraped - exiting")

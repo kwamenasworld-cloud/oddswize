@@ -23,6 +23,7 @@ jobs:
       SCRAPE_INTERVAL_SECONDS: 180
       REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 1
       ALLOW_SINGLE_BOOKIE_MAJORS: 0
+      ODDSAPI_SOCCER_LIMIT: 12
 
     steps:
       - name: Checkout repository
