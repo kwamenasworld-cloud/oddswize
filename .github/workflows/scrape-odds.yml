@@ -24,6 +24,7 @@ jobs:
       REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 1
       ALLOW_SINGLE_BOOKIE_MAJORS: 0
       ODDSAPI_SOCCER_LIMIT: 12
+      ODDSAPI_SOCCER_KEYS: soccer_epl,soccer_spain_la_liga,soccer_italy_serie_a,soccer_germany_bundesliga,soccer_france_ligue_one,soccer_uefa_champs_league,soccer_uefa_europa_conference_league,soccer_portugal_primeira_liga,soccer_mexico_ligamx,soccer_england_efl_cup
 
     steps:
       - name: Checkout repository
