@@ -10,7 +10,7 @@ on:
 
 jobs:
   scrape:
-    runs-on: [self-hosted, windows]
+    runs-on: [self-hosted, Windows, X64, oddswize]
     timeout-minutes: 15
     concurrency:
       group: odds-scrape-arb-${{ github.ref }}
