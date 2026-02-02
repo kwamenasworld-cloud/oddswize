@@ -45,7 +45,7 @@ jobs:
           python -m playwright install chromium
 
       - name: Prepare data worktree
-        shell: pwsh
+        shell: powershell
         run: |
           $worktreePath = Join-Path $env:TEMP "odds-data"
           try { git fetch origin data | Out-Null } catch {}
@@ -67,7 +67,7 @@ jobs:
           D1_CANONICAL_INGEST: ${{ secrets.D1_CANONICAL_INGEST }}
           ODDSAPI_KEY: ${{ secrets.ODDSAPI_KEY }}
           WORKER_API_SECRET: ${{ secrets.WORKER_API_SECRET }}
-        shell: pwsh
+        shell: powershell
         run: |
           $repeat = if ($env:SCRAPE_REPEAT) { [int]$env:SCRAPE_REPEAT } else { 1 }
           $interval = if ($env:SCRAPE_INTERVAL_SECONDS) { [int]$env:SCRAPE_INTERVAL_SECONDS } else { 240 }
