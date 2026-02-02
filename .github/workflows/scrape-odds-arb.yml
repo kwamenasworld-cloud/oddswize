@@ -24,6 +24,9 @@ jobs:
       REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 0
       ALLOW_SINGLE_BOOKIE_MAJORS: 0
       ODDSAPI_SOCCER_LIMIT: 12
+      MAX_MATCHES: 4500
+      MAX_CHAMPIONSHIPS: 360
+      ALLOW_SINGLE_BOOKIE_MAJORS: 1
 
     steps:
       - name: Checkout repository

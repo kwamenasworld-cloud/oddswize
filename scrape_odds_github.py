@@ -284,8 +284,8 @@ def _get_oddsapi_soccer_keys(session: requests.Session) -> List[str]:
         if _ODDSAPI_SOCCER_KEYS is None:
             _ODDSAPI_SOCCER_KEYS = []
     return _ODDSAPI_SOCCER_KEYS
-MAX_MATCHES = env_int("MAX_MATCHES", 2600)  # Increased depth to avoid dropping major leagues
-MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS", 220)  # Broader championship coverage
+MAX_MATCHES = env_int("MAX_MATCHES", 4200)  # Broader coverage for breadth of matches
+MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS", 320)  # Broader championship coverage
 TIMEOUT = env_int("TIMEOUT", 10)
 BATCH_SIZE = env_int("BATCH_SIZE", 200)  # Trim batch size to reduce payload/latency
 PARALLEL_PAGES = env_int("PARALLEL_PAGES", 8)  # Balanced parallelism for I/O
