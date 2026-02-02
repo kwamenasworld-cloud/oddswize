@@ -24,6 +24,10 @@ from typing import Callable, Dict, Iterable, List, Optional, Set
 from difflib import SequenceMatcher
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Free direct scrapers for sharp bookmakers (no OddsAPI key needed)
+from backend.scrapers.pinnacle import scrape_pinnacle
+from backend.scrapers.betfair_exchange import scrape_betfair_exchange
+
 # Optional Postgres ingestion for canonical leagues
 POSTGRES_DSN = os.getenv('POSTGRES_DSN')
 if POSTGRES_DSN:
@@ -286,7 +290,7 @@ def _get_oddsapi_soccer_keys(session: requests.Session) -> List[str]:
         if _ODDSAPI_SOCCER_KEYS is None:
             _ODDSAPI_SOCCER_KEYS = []
     return _ODDSAPI_SOCCER_KEYS
-MAX_MATCHES = env_int("MAX_MATCHES", 4200)  # Broader coverage for breadth of matches
+MAX_MATCHES = env_int("MAX_MATCHES", 12000)  # Broader coverage for breadth of matches
 MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS", 320)  # Broader championship coverage
 TIMEOUT = env_int("TIMEOUT", 10)
 BATCH_SIZE = env_int("BATCH_SIZE", 200)  # Trim batch size to reduce payload/latency
@@ -297,6 +301,7 @@ SPORTYBET_TOURNAMENT_MAX_PAGES = env_int("SPORTYBET_TOURNAMENT_MAX_PAGES", 6)
 SPORTYBET_TOURNAMENT_PAGE_SIZE = env_int("SPORTYBET_TOURNAMENT_PAGE_SIZE", 100)
 BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE", 1200)
 BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP", 20000)
+PINNACLE_MAX_MATCHES = env_int("PINNACLE_MAX_MATCHES", MAX_MATCHES)
 HISTORY_DIR = os.getenv("HISTORY_DIR", "data")
 HISTORY_MATCHED_FILE = os.getenv("HISTORY_MATCHED_FILE", "odds_history.jsonl")
 HISTORY_RAW_FILE = os.getenv("HISTORY_RAW_FILE", "raw_scraped_history.jsonl")
@@ -308,7 +313,7 @@ def apply_fast_mode() -> None:
     global FAST_MODE, MAX_MATCHES, MAX_CHAMPIONSHIPS, TIMEOUT, BATCH_SIZE, PARALLEL_PAGES
     global SPORTYBET_PAGES, SPORTYBET_TOURNAMENT_LOOKUP_PAGES
     global SPORTYBET_TOURNAMENT_MAX_PAGES, SPORTYBET_TOURNAMENT_PAGE_SIZE
-    global BETWAY_PAGE_SIZE, BETWAY_MAX_SKIP
+    global BETWAY_PAGE_SIZE, BETWAY_MAX_SKIP, PINNACLE_MAX_MATCHES
     FAST_MODE = True
     MAX_MATCHES = env_int("MAX_MATCHES_FAST", 1100)
     MAX_CHAMPIONSHIPS = env_int("MAX_CHAMPIONSHIPS_FAST", 60)
@@ -321,6 +326,7 @@ def apply_fast_mode() -> None:
     SPORTYBET_TOURNAMENT_PAGE_SIZE = env_int("SPORTYBET_TOURNAMENT_PAGE_SIZE_FAST", 100)
     BETWAY_PAGE_SIZE = env_int("BETWAY_PAGE_SIZE_FAST", 1200)
     BETWAY_MAX_SKIP = env_int("BETWAY_MAX_SKIP_FAST", 6000)
+    PINNACLE_MAX_MATCHES = env_int("PINNACLE_MAX_MATCHES_FAST", MAX_MATCHES)
 
 
 if FAST_MODE:
@@ -2254,20 +2260,33 @@ def main():
             'SoccaBet Ghana': scrape_soccabet,
             '22Bet Ghana': scrape_22bet_ghana,  # Updated platform API scraper
             'Betfox Ghana': scrape_betfox,  # WORKING - Using V4 API (100+ fixtures from upcoming + live)
-            'Pinnacle': scrape_oddsapi_pinnacle,
-            'Betfair Exchange': scrape_oddsapi_betfair_exchange,
+            'Pinnacle': lambda: scrape_pinnacle(max_matches=PINNACLE_MAX_MATCHES),
+            'Betfair Exchange': scrape_betfair_exchange,
         }
 
-        def timed_scraper(name, fn):
-            if name in ("Pinnacle", "Betfair Exchange") and not ODDSAPI_KEY:
-                print(f"  [{name}] skipped (ODDSAPI_KEY not set)")
-                return [], 0.0, "skipped", "ODDSAPI_KEY not set"
+        def timed_scraper(name, fn, max_retries=2, retry_delay=3):
             started = time.time()
-            matches = fn() or []
+            last_error = None
+            for attempt in range(1, max_retries + 1):
+                try:
+                    matches = fn() or []
+                    if matches:
+                        duration = time.time() - started
+                        print(f"  [{name}] {len(matches)} matches in {duration:.1f}s")
+                        return matches, duration, "ok", None
+                    # Empty result on first attempt - retry in case of transient issue
+                    if attempt < max_retries:
+                        print(f"  [{name}] empty on attempt {attempt}, retrying in {retry_delay}s...")
+                        time.sleep(retry_delay)
+                except Exception as e:
+                    last_error = str(e)
+                    if attempt < max_retries:
+                        print(f"  [{name}] error on attempt {attempt}: {e}, retrying in {retry_delay}s...")
+                        time.sleep(retry_delay)
+                    else:
+                        print(f"  [{name}] failed after {max_retries} attempts: {e}")
             duration = time.time() - started
-            status = "ok" if matches else "empty"
-            print(f"  [{name}] {len(matches)} matches in {duration:.1f}s")
-            return matches, duration, status, None
+            return [], duration, "empty" if not last_error else "error", last_error
 
         print("\nRunning ALL scrapers in parallel...")
         scraper_status: Dict[str, Dict[str, Optional[str]]] = {

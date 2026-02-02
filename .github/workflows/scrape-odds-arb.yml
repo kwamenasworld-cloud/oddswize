@@ -1,9 +1,9 @@
 name: Scrape Odds Data (Arbitrage Coverage)
 
 on:
-  # Run every 5 minutes for fresh snapshots.
+  # Run every 8 minutes with 4-minute in-job cadence.
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/8 * * * *'
 
   # Allow manual trigger
   workflow_dispatch:
@@ -14,13 +14,13 @@ jobs:
     timeout-minutes: 15
     concurrency:
       group: odds-scrape-arb
-      cancel-in-progress: true
+      cancel-in-progress: false
     permissions:
       contents: write
     env:
       ODDS_FAST: 0
-      SCRAPE_REPEAT: 1
-      SCRAPE_INTERVAL_SECONDS: 0
+      SCRAPE_REPEAT: 2
+      SCRAPE_INTERVAL_SECONDS: 240
       REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 0
       ODDSAPI_SOCCER_LIMIT: 12
       ODDSAPI_SOCCER_KEYS: soccer_epl,soccer_spain_la_liga,soccer_italy_serie_a,soccer_germany_bundesliga,soccer_france_ligue_one,soccer_uefa_champs_league,soccer_uefa_europa_conference_league,soccer_portugal_primeira_liga,soccer_mexico_ligamx,soccer_england_efl_cup
@@ -71,6 +71,7 @@ jobs:
 
           repeat="${SCRAPE_REPEAT:-1}"
           interval="${SCRAPE_INTERVAL_SECONDS:-240}"
+          success=0
           for i in $(seq 1 "$repeat"); do
             start_ts=$(date +%s)
             echo "Scrape cycle $i/$repeat"
@@ -86,6 +87,7 @@ jobs:
               echo "Snapshot validation failed; skipping this cycle."
               continue
             fi
+            success=1
 
             git -C /tmp/odds-data-arb rm -rf . || true
             cp odds_data.json /tmp/odds-data-arb/odds_data.json
@@ -109,6 +111,10 @@ jobs:
               fi
             fi
           done
+          if [ "$success" -eq 0 ]; then
+            echo "No successful scrape cycles; failing job."
+            exit 1
+          fi
 
       - name: Upload results as artifact
         uses: actions/upload-artifact@v4
