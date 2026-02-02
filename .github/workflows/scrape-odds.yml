@@ -1,7 +1,7 @@
 name: Scrape Odds Data (Top Leagues)
 
 on:
-  # Run hourly; the job itself loops every 4 minutes.
+  # Run hourly; the job itself loops every 3 minutes.
   schedule:
     - cron: '0 * * * *'
 
@@ -19,8 +19,8 @@ jobs:
       contents: write
     env:
       ODDS_FAST: 0
-      SCRAPE_REPEAT: 14
-      SCRAPE_INTERVAL_SECONDS: 240
+      SCRAPE_REPEAT: 20
+      SCRAPE_INTERVAL_SECONDS: 180
       REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 1
       ALLOW_SINGLE_BOOKIE_MAJORS: 0
 
@@ -54,6 +54,7 @@ jobs:
           CLOUDFLARE_WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
           D1_CANONICAL_INGEST: ${{ secrets.D1_CANONICAL_INGEST }}
+          ODDSAPI_KEY: ${{ secrets.ODDSAPI_KEY }}
           DISPLAY: ':99'
         run: |
           set -u
