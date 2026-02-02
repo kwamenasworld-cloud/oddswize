@@ -1,9 +1,9 @@
 name: Scrape Odds Data (Top Leagues)
 
 on:
-  # Run hourly; the job itself loops every 3 minutes.
+  # Run every 5 minutes for fresh snapshots.
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/5 * * * *'
 
   # Allow manual trigger
   workflow_dispatch:
@@ -11,16 +11,16 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 15
     concurrency:
       group: odds-scrape-top
-      cancel-in-progress: false
+      cancel-in-progress: true
     permissions:
       contents: write
     env:
       ODDS_FAST: 0
-      SCRAPE_REPEAT: 20
-      SCRAPE_INTERVAL_SECONDS: 180
+      SCRAPE_REPEAT: 1
+      SCRAPE_INTERVAL_SECONDS: 0
       REQUIRE_FULL_TOP_LEAGUE_COVERAGE: 1
       ALLOW_SINGLE_BOOKIE_MAJORS: 0
       ODDSAPI_SOCCER_LIMIT: 12
