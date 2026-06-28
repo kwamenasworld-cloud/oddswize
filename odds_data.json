@@ -1,46 +1,46 @@
 {
-  "last_updated": "2026-06-28T20:21:02.392698",
+  "last_updated": "2026-06-28T21:33:26.125829",
   "stats": {
-    "total_scraped": 2374,
-    "matched_events": 467,
+    "total_scraped": 2310,
+    "matched_events": 458,
     "bookmakers": [
-      "Betway Ghana",
       "Betfox Ghana",
+      "Betway Ghana",
       "SoccaBet Ghana",
       "1xBet Ghana",
       "Pinnacle",
       "22Bet Ghana"
     ],
-    "scrape_time_seconds": 28.8559889793396
+    "scrape_time_seconds": 24.31211233139038
   },
   "matches": [
     {
       "home_team": "Arsenal",
       "away_team": "Coventry City",
-      "league": "Premier League (Other)",
+      "league": "England. Premier League",
       "start_time": 1787338800,
       "odds": [
+        {
+          "bookmaker": "Betfox Ghana",
+          "event_id": "151c9a5f-a3ee-456a-b19d-bc4792379ea7",
+          "event_league_id": null,
+          "home_odds": 1.17,
+          "draw_odds": 6.5,
+          "away_odds": 14.0
+        },
         {
           "bookmaker": "Betway Ghana",
           "event_id": "72221154",
           "event_league_id": null,
           "home_odds": 1.17,
           "draw_odds": 6.8,
-          "away_odds": 14
-        },
-        {
-          "bookmaker": "Betfox Ghana",
-          "event_id": "151c9a5f-a3ee-456a-b19d-bc4792379ea7",
-          "event_league_id": null,
-          "home_odds": 1.16,
-          "draw_odds": 6.5,
-          "away_odds": 14.0
+          "away_odds": 13
         },
         {
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3476817",
           "event_league_id": "27632",
-          "home_odds": 1.18,
+          "home_odds": 1.19,
           "draw_odds": 7.2,
           "away_odds": 15.0
         },
@@ -58,24 +58,16 @@
           "event_league_id": 1008013,
           "home_odds": 1.17,
           "draw_odds": 6.8,
-          "away_odds": 15.0
+          "away_odds": 14.0
         }
       ]
     },
     {
       "home_team": "Hull City",
       "away_team": "Manchester United",
-      "league": "Premier League (Other)",
+      "league": "England. Premier League",
       "start_time": 1787398200,
       "odds": [
-        {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221156",
-          "event_league_id": null,
-          "home_odds": 6.2,
-          "draw_odds": 4.4,
-          "away_odds": 1.43
-        },
         {
           "bookmaker": "Betfox Ghana",
           "event_id": "47a56410-3569-4128-babb-0b03cdf3fff2",
@@ -83,6 +75,14 @@
           "home_odds": 5.9,
           "draw_odds": 4.35,
           "away_odds": 1.44
+        },
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221156",
+          "event_league_id": null,
+          "home_odds": 6.2,
+          "draw_odds": 4.4,
+          "away_odds": 1.43
         },
         {
           "bookmaker": "SoccaBet Ghana",
@@ -111,19 +111,11 @@
       ]
     },
     {
-      "home_team": "Everton",
+      "home_team": "Everton FC",
       "away_team": "Crystal Palace",
       "league": "Premier League",
       "start_time": 1787407200,
       "odds": [
-        {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221158",
-          "event_league_id": null,
-          "home_odds": 2.05,
-          "draw_odds": 3.4,
-          "away_odds": 3.3
-        },
         {
           "bookmaker": "Betfox Ghana",
           "event_id": "5c5f4068-d2cc-4c84-bb84-192fd6a71680",
@@ -131,6 +123,14 @@
           "home_odds": 2.05,
           "draw_odds": 3.35,
           "away_odds": 3.25
+        },
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221158",
+          "event_league_id": null,
+          "home_odds": 2.05,
+          "draw_odds": 3.4,
+          "away_odds": 3.3
         },
         {
           "bookmaker": "SoccaBet Ghana",
@@ -165,19 +165,19 @@
       "start_time": 1787407200,
       "odds": [
         {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221160",
-          "event_league_id": null,
-          "home_odds": 2.6,
-          "draw_odds": 3.25,
-          "away_odds": 2.5
-        },
-        {
           "bookmaker": "Betfox Ghana",
           "event_id": "072a7e8b-ff08-4941-86c5-72ab87361ac5",
           "event_league_id": null,
           "home_odds": 2.6,
           "draw_odds": 3.2,
+          "away_odds": 2.5
+        },
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221160",
+          "event_league_id": null,
+          "home_odds": 2.6,
+          "draw_odds": 3.25,
           "away_odds": 2.5
         },
         {
@@ -213,14 +213,6 @@
       "start_time": 1787407200,
       "odds": [
         {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221162",
-          "event_league_id": null,
-          "home_odds": 2.17,
-          "draw_odds": 3.4,
-          "away_odds": 3.05
-        },
-        {
           "bookmaker": "Betfox Ghana",
           "event_id": "07ef24d4-06cd-429a-a236-fb2c9e4153f7",
           "event_league_id": null,
@@ -229,10 +221,18 @@
           "away_odds": 3.0
         },
         {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221162",
+          "event_league_id": null,
+          "home_odds": 2.17,
+          "draw_odds": 3.4,
+          "away_odds": 3.05
+        },
+        {
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3476821",
           "event_league_id": "27632",
-          "home_odds": 2.25,
+          "home_odds": 2.24,
           "draw_odds": 3.5,
           "away_odds": 3.15
         },
@@ -255,19 +255,11 @@
       ]
     },
     {
-      "home_team": "Brentford",
+      "home_team": "Brentford FC",
       "away_team": "Tottenham Hotspur",
       "league": "Premier League",
       "start_time": 1787416200,
       "odds": [
-        {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221164",
-          "event_league_id": null,
-          "home_odds": 2.47,
-          "draw_odds": 3.5,
-          "away_odds": 2.55
-        },
         {
           "bookmaker": "Betfox Ghana",
           "event_id": "af65ef38-edda-4e13-8a84-9b89c2e33083",
@@ -275,6 +267,14 @@
           "home_odds": 2.47,
           "draw_odds": 3.45,
           "away_odds": 2.52
+        },
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221164",
+          "event_league_id": null,
+          "home_odds": 2.47,
+          "draw_odds": 3.5,
+          "away_odds": 2.55
         },
         {
           "bookmaker": "SoccaBet Ghana",
@@ -304,18 +304,10 @@
     },
     {
       "home_team": "Manchester City",
-      "away_team": "Bournemouth",
+      "away_team": "AFC Bournemouth",
       "league": "Premier League",
       "start_time": 1787490000,
       "odds": [
-        {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221168",
-          "event_league_id": null,
-          "home_odds": 1.42,
-          "draw_odds": 4.9,
-          "away_odds": 5.8
-        },
         {
           "bookmaker": "Betfox Ghana",
           "event_id": "ba9bd42a-c036-4363-8221-b2f9b764946c",
@@ -323,6 +315,14 @@
           "home_odds": 1.42,
           "draw_odds": 4.75,
           "away_odds": 5.5
+        },
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221168",
+          "event_league_id": null,
+          "home_odds": 1.42,
+          "draw_odds": 4.9,
+          "away_odds": 5.8
         },
         {
           "bookmaker": "SoccaBet Ghana",
@@ -357,19 +357,19 @@
       "start_time": 1787499000,
       "odds": [
         {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221170",
-          "event_league_id": null,
-          "home_odds": 2.8,
-          "draw_odds": 3.75,
-          "away_odds": 2.17
-        },
-        {
           "bookmaker": "Betfox Ghana",
           "event_id": "62b98ae2-779e-4427-99f4-aa4d7669d07e",
           "event_league_id": null,
           "home_odds": 2.75,
           "draw_odds": 3.7,
+          "away_odds": 2.17
+        },
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221170",
+          "event_league_id": null,
+          "home_odds": 2.8,
+          "draw_odds": 3.75,
           "away_odds": 2.17
         },
         {
@@ -405,20 +405,20 @@
       "start_time": 1787598000,
       "odds": [
         {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221172",
-          "event_league_id": null,
-          "home_odds": 2.95,
-          "draw_odds": 3.55,
-          "away_odds": 2.16
-        },
-        {
           "bookmaker": "Betfox Ghana",
           "event_id": "9e8aeb68-043f-404b-a2d0-0129e8947374",
           "event_league_id": null,
           "home_odds": 2.9,
           "draw_odds": 3.5,
           "away_odds": 2.15
+        },
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221172",
+          "event_league_id": null,
+          "home_odds": 2.95,
+          "draw_odds": 3.55,
+          "away_odds": 2.16
         },
         {
           "bookmaker": "SoccaBet Ghana",
@@ -456,41 +456,41 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "732180888",
           "event_league_id": 2708736,
-          "home_odds": 1.244,
-          "draw_odds": 9.15,
-          "away_odds": 6.97
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732428515",
-          "event_league_id": 2708736,
-          "home_odds": 1.476,
-          "draw_odds": 7.03,
-          "away_odds": 4.06
+          "home_odds": 1.254,
+          "draw_odds": 8.95,
+          "away_odds": 6.8
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "732441055",
           "event_league_id": 2708736,
-          "home_odds": 1.217,
-          "draw_odds": 9.6,
-          "away_odds": 7.7
+          "home_odds": 1.222,
+          "draw_odds": 9.5,
+          "away_odds": 7.6
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "732430387",
           "event_league_id": 2708736,
-          "home_odds": 1.118,
-          "draw_odds": 12.5,
-          "away_odds": 12.2
+          "home_odds": 1.12,
+          "draw_odds": 12.4,
+          "away_odds": 12.1
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732428515",
+          "event_league_id": 2708736,
+          "home_odds": 1.472,
+          "draw_odds": 7.05,
+          "away_odds": 4.085
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "732193632",
           "event_league_id": 2708736,
-          "home_odds": 1.331,
-          "draw_odds": 6.56,
-          "away_odds": 6.36
+          "home_odds": 1.336,
+          "draw_odds": 6.51,
+          "away_odds": 6.29
         }
       ]
     },
@@ -2104,25 +2104,25 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3411530",
           "event_league_id": "31751",
-          "home_odds": 2.38,
-          "draw_odds": 3.55,
-          "away_odds": 2.51
+          "home_odds": 2.37,
+          "draw_odds": 3.45,
+          "away_odds": 2.6
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "732287716",
           "event_league_id": 2373449,
-          "home_odds": 2.375,
-          "draw_odds": 3.5,
-          "away_odds": 2.46
+          "home_odds": 2.3,
+          "draw_odds": 3.48,
+          "away_odds": 2.56
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10666623,
           "event_league_id": 1066104,
-          "home_odds": 2.33,
-          "draw_odds": 3.44,
-          "away_odds": 2.42
+          "home_odds": 2.26,
+          "draw_odds": 3.42,
+          "away_odds": 2.51
         }
       ]
     },
@@ -2136,25 +2136,25 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3411531",
           "event_league_id": "31751",
-          "home_odds": 1.7,
-          "draw_odds": 3.85,
-          "away_odds": 4.0
+          "home_odds": 1.62,
+          "draw_odds": 4.0,
+          "away_odds": 4.3
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "732287709",
           "event_league_id": 2373449,
-          "home_odds": 1.63,
-          "draw_odds": 4.05,
-          "away_odds": 4.16
+          "home_odds": 1.58,
+          "draw_odds": 4.15,
+          "away_odds": 4.395
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10666619,
           "event_league_id": 1066104,
-          "home_odds": 1.6,
-          "draw_odds": 3.98,
-          "away_odds": 4.1
+          "home_odds": 1.55,
+          "draw_odds": 4.1,
+          "away_odds": 4.3
         }
       ]
     },
@@ -2168,25 +2168,25 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3411532",
           "event_league_id": "31751",
-          "home_odds": 1.59,
-          "draw_odds": 4.3,
-          "away_odds": 4.2
+          "home_odds": 1.62,
+          "draw_odds": 4.2,
+          "away_odds": 4.1
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "732287722",
           "event_league_id": 2373449,
-          "home_odds": 1.55,
-          "draw_odds": 4.4,
-          "away_odds": 4.355
+          "home_odds": 1.61,
+          "draw_odds": 4.3,
+          "away_odds": 4.035
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10666628,
           "event_league_id": 1066104,
-          "home_odds": 1.52,
-          "draw_odds": 4.3,
-          "away_odds": 4.3
+          "home_odds": 1.58,
+          "draw_odds": 4.2,
+          "away_odds": 3.96
         }
       ]
     },
@@ -2200,25 +2200,25 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3411533",
           "event_league_id": "31751",
-          "home_odds": 2.45,
+          "home_odds": 2.51,
           "draw_odds": 3.65,
-          "away_odds": 2.39
+          "away_odds": 2.34
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "732287713",
           "event_league_id": 2373449,
           "home_odds": 2.47,
-          "draw_odds": 3.68,
-          "away_odds": 2.29
+          "draw_odds": 3.76,
+          "away_odds": 2.26
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10666618,
           "event_league_id": 1066104,
           "home_odds": 2.43,
-          "draw_odds": 3.62,
-          "away_odds": 2.25
+          "draw_odds": 3.69,
+          "away_odds": 2.22
         }
       ]
     },
@@ -3034,7 +3034,7 @@
           "event_league_id": null,
           "home_odds": 1.7,
           "draw_odds": 4.1,
-          "away_odds": 3.85
+          "away_odds": 3.9
         },
         {
           "bookmaker": "22Bet Ghana",
@@ -3056,9 +3056,9 @@
           "bookmaker": "Betway Ghana",
           "event_id": "72275114",
           "event_league_id": null,
-          "home_odds": 2.15,
+          "home_odds": 2.13,
           "draw_odds": 3.35,
-          "away_odds": 3.05
+          "away_odds": 3.1
         },
         {
           "bookmaker": "22Bet Ghana",
@@ -3104,9 +3104,9 @@
           "bookmaker": "Betway Ghana",
           "event_id": "72338588",
           "event_league_id": null,
-          "home_odds": 1.76,
-          "draw_odds": 3.6,
-          "away_odds": 4.1
+          "home_odds": 1.73,
+          "draw_odds": 3.65,
+          "away_odds": 4.2
         },
         {
           "bookmaker": "22Bet Ghana",
@@ -3128,17 +3128,17 @@
           "bookmaker": "Betway Ghana",
           "event_id": "72363580",
           "event_league_id": null,
-          "home_odds": 6.2,
-          "draw_odds": 4.7,
-          "away_odds": 1.39
+          "home_odds": 6.4,
+          "draw_odds": 4.5,
+          "away_odds": 1.41
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10663242,
           "event_league_id": 1008374,
           "home_odds": 6.2,
-          "draw_odds": 4.6,
-          "away_odds": 1.39
+          "draw_odds": 4.4,
+          "away_odds": 1.4
         }
       ]
     },
@@ -3619,6 +3619,78 @@
           "home_odds": 2.8,
           "draw_odds": 3.65,
           "away_odds": 2.27
+        }
+      ]
+    },
+    {
+      "home_team": "Preston North End",
+      "away_team": "Huddersfield Town",
+      "league": "EFL Cup",
+      "start_time": 1786204800,
+      "odds": [
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72348778",
+          "event_league_id": null,
+          "home_odds": 1.91,
+          "draw_odds": 3.5,
+          "away_odds": 3.4
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10648788,
+          "event_league_id": 1008017,
+          "home_odds": 1.96,
+          "draw_odds": 3.65,
+          "away_odds": 3.55
+        }
+      ]
+    },
+    {
+      "home_team": "Queens Park Rangers",
+      "away_team": "Millwall FC",
+      "league": "EFL Cup",
+      "start_time": 1786204800,
+      "odds": [
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72348782",
+          "event_league_id": null,
+          "home_odds": 2.8,
+          "draw_odds": 3.55,
+          "away_odds": 2.17
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10648789,
+          "event_league_id": 1008017,
+          "home_odds": 2.85,
+          "draw_odds": 3.65,
+          "away_odds": 2.23
+        }
+      ]
+    },
+    {
+      "home_team": "Cheltenham Town",
+      "away_team": "Charlton Athletic",
+      "league": "EFL Cup",
+      "start_time": 1786204800,
+      "odds": [
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72348784",
+          "event_league_id": null,
+          "home_odds": 5.6,
+          "draw_odds": 4.1,
+          "away_odds": 1.47
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10648793,
+          "event_league_id": 1008017,
+          "home_odds": 6.0,
+          "draw_odds": 4.3,
+          "away_odds": 1.5
         }
       ]
     },
@@ -5447,50 +5519,74 @@
       ]
     },
     {
-      "home_team": "Colegiales",
-      "away_team": "Gimnasia y Tiro",
+      "home_team": "Defensores de Belgrano",
+      "away_team": "Deportivo Moron",
       "league": "Argentina Primera B Nacional",
-      "start_time": 1783188000,
+      "start_time": 1783189800,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731791421",
+          "event_id": "731787536",
           "event_league_id": 2922491,
-          "home_odds": 1.87,
-          "draw_odds": 2.9,
-          "away_odds": 4.55
+          "home_odds": 2.54,
+          "draw_odds": 2.71,
+          "away_odds": 2.875
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10646460,
+          "event_id": 10646457,
           "event_league_id": 1100109,
-          "home_odds": 1.84,
-          "draw_odds": 2.85,
-          "away_odds": 4.5
+          "home_odds": 2.5,
+          "draw_odds": 2.66,
+          "away_odds": 2.82
         }
       ]
     },
     {
-      "home_team": "Chaco For Ever",
-      "away_team": "Acassuso",
+      "home_team": "Club Almirante Brown",
+      "away_team": "CA Los Andes",
       "league": "Argentina Primera B Nacional",
-      "start_time": 1783278000,
+      "start_time": 1783189800,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731793841",
+          "event_id": "731788175",
           "event_league_id": 2922491,
-          "home_odds": 1.85,
-          "draw_odds": 2.95,
-          "away_odds": 4.55
+          "home_odds": 2.44,
+          "draw_odds": 2.7,
+          "away_odds": 3.13
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10647339,
+          "event_id": 10646454,
           "event_league_id": 1100109,
-          "home_odds": 1.82,
-          "draw_odds": 2.9,
-          "away_odds": 4.5
+          "home_odds": 2.4,
+          "draw_odds": 2.65,
+          "away_odds": 3.07
+        }
+      ]
+    },
+    {
+      "home_team": "Estudiantes de Buenos Aires",
+      "away_team": "Racing De Cordoba",
+      "league": "Argentina Primera B Nacional",
+      "start_time": 1783274400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731827903",
+          "event_league_id": 2922491,
+          "home_odds": 2.14,
+          "draw_odds": 2.75,
+          "away_odds": 3.725
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10647338,
+          "event_league_id": 1100109,
+          "home_odds": 2.1,
+          "draw_odds": 2.7,
+          "away_odds": 3.66
         }
       ]
     },
@@ -5519,50 +5615,26 @@
       ]
     },
     {
-      "home_team": "Club Atletico Mitre",
-      "away_team": "All Boys",
+      "home_team": "Ciudad de Bolivar",
+      "away_team": "Godoy Cruz Antonio Tomba",
       "league": "Argentina Primera B Nacional",
-      "start_time": 1783278000,
+      "start_time": 1783189800,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732075712",
+          "event_id": "731813205",
           "event_league_id": 2922491,
-          "home_odds": 2.24,
-          "draw_odds": 2.71,
-          "away_odds": 3.52
+          "home_odds": 2.82,
+          "draw_odds": 2.75,
+          "away_odds": 2.55
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10647335,
+          "event_id": 10646465,
           "event_league_id": 1100109,
-          "home_odds": 2.2,
-          "draw_odds": 2.66,
-          "away_odds": 3.46
-        }
-      ]
-    },
-    {
-      "home_team": "Deportivo Madryn",
-      "away_team": "Club Atletico Colon",
-      "league": "Argentina Primera B Nacional",
-      "start_time": 1783274400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732075706",
-          "event_league_id": 2922491,
-          "home_odds": 2.44,
-          "draw_odds": 2.86,
-          "away_odds": 2.94
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10647334,
-          "event_league_id": 1100109,
-          "home_odds": 2.4,
-          "draw_odds": 2.81,
-          "away_odds": 2.89
+          "home_odds": 2.77,
+          "draw_odds": 2.7,
+          "away_odds": 2.5
         }
       ]
     },
@@ -5591,50 +5663,50 @@
       ]
     },
     {
-      "home_team": "Ciudad de Bolivar",
-      "away_team": "Godoy Cruz Antonio Tomba",
+      "home_team": "Ferro Carril Oeste",
+      "away_team": "CA San Telmo",
       "league": "Argentina Primera B Nacional",
-      "start_time": 1783189800,
+      "start_time": 1783276200,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731813205",
+          "event_id": "731792575",
           "event_league_id": 2922491,
-          "home_odds": 2.82,
-          "draw_odds": 2.75,
-          "away_odds": 2.55
+          "home_odds": 1.51,
+          "draw_odds": 3.48,
+          "away_odds": 6.67
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10646465,
+          "event_id": 10647336,
           "event_league_id": 1100109,
-          "home_odds": 2.77,
-          "draw_odds": 2.7,
-          "away_odds": 2.5
+          "home_odds": 1.48,
+          "draw_odds": 3.42,
+          "away_odds": 6.6
         }
       ]
     },
     {
-      "home_team": "San Martin de San Juan",
-      "away_team": "Chacarita Juniors",
+      "home_team": "Club Atletico Mitre",
+      "away_team": "All Boys",
       "league": "Argentina Primera B Nacional",
       "start_time": 1783278000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731787545",
+          "event_id": "732075712",
           "event_league_id": 2922491,
-          "home_odds": 1.64,
-          "draw_odds": 3.22,
-          "away_odds": 5.6
+          "home_odds": 2.24,
+          "draw_odds": 2.71,
+          "away_odds": 3.52
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10647352,
+          "event_id": 10647335,
           "event_league_id": 1100109,
-          "home_odds": 1.61,
-          "draw_odds": 3.16,
-          "away_odds": 5.5
+          "home_odds": 2.2,
+          "draw_odds": 2.66,
+          "away_odds": 3.46
         }
       ]
     },
@@ -5687,54 +5759,6 @@
       ]
     },
     {
-      "home_team": "Nueva Chicago",
-      "away_team": "Club Atletico Guemes",
-      "league": "Argentina Primera B Nacional",
-      "start_time": 1783189800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731787539",
-          "event_league_id": 2922491,
-          "home_odds": 1.972,
-          "draw_odds": 3.04,
-          "away_odds": 3.8
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10646461,
-          "event_league_id": 1100109,
-          "home_odds": 1.94,
-          "draw_odds": 2.99,
-          "away_odds": 3.73
-        }
-      ]
-    },
-    {
-      "home_team": "Ferro Carril Oeste",
-      "away_team": "CA San Telmo",
-      "league": "Argentina Primera B Nacional",
-      "start_time": 1783276200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731792575",
-          "event_league_id": 2922491,
-          "home_odds": 1.51,
-          "draw_odds": 3.48,
-          "away_odds": 6.67
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10647336,
-          "event_league_id": 1100109,
-          "home_odds": 1.48,
-          "draw_odds": 3.42,
-          "away_odds": 6.6
-        }
-      ]
-    },
-    {
       "home_team": "Club Atletico Patronato",
       "away_team": "Club Atletico San Mart\u00edn de Tucuman",
       "league": "Argentina Primera B Nacional",
@@ -5759,74 +5783,122 @@
       ]
     },
     {
-      "home_team": "Estudiantes de Buenos Aires",
-      "away_team": "Racing De Cordoba",
+      "home_team": "San Martin de San Juan",
+      "away_team": "Chacarita Juniors",
+      "league": "Argentina Primera B Nacional",
+      "start_time": 1783278000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731787545",
+          "event_league_id": 2922491,
+          "home_odds": 1.64,
+          "draw_odds": 3.22,
+          "away_odds": 5.6
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10647352,
+          "event_league_id": 1100109,
+          "home_odds": 1.61,
+          "draw_odds": 3.16,
+          "away_odds": 5.5
+        }
+      ]
+    },
+    {
+      "home_team": "Deportivo Madryn",
+      "away_team": "Club Atletico Colon",
       "league": "Argentina Primera B Nacional",
       "start_time": 1783274400,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731827903",
-          "event_league_id": 2922491,
-          "home_odds": 2.14,
-          "draw_odds": 2.75,
-          "away_odds": 3.725
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10647338,
-          "event_league_id": 1100109,
-          "home_odds": 2.1,
-          "draw_odds": 2.7,
-          "away_odds": 3.66
-        }
-      ]
-    },
-    {
-      "home_team": "Club Almirante Brown",
-      "away_team": "CA Los Andes",
-      "league": "Argentina Primera B Nacional",
-      "start_time": 1783189800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731788175",
+          "event_id": "732075706",
           "event_league_id": 2922491,
           "home_odds": 2.44,
-          "draw_odds": 2.7,
-          "away_odds": 3.13
+          "draw_odds": 2.86,
+          "away_odds": 2.94
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10646454,
+          "event_id": 10647334,
           "event_league_id": 1100109,
           "home_odds": 2.4,
-          "draw_odds": 2.65,
-          "away_odds": 3.07
+          "draw_odds": 2.81,
+          "away_odds": 2.89
         }
       ]
     },
     {
-      "home_team": "Defensores de Belgrano",
-      "away_team": "Deportivo Moron",
+      "home_team": "Colegiales",
+      "away_team": "Gimnasia y Tiro",
+      "league": "Argentina Primera B Nacional",
+      "start_time": 1783188000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731791421",
+          "event_league_id": 2922491,
+          "home_odds": 1.87,
+          "draw_odds": 2.9,
+          "away_odds": 4.55
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10646460,
+          "event_league_id": 1100109,
+          "home_odds": 1.84,
+          "draw_odds": 2.85,
+          "away_odds": 4.5
+        }
+      ]
+    },
+    {
+      "home_team": "Nueva Chicago",
+      "away_team": "Club Atletico Guemes",
       "league": "Argentina Primera B Nacional",
       "start_time": 1783189800,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731787536",
+          "event_id": "731787539",
           "event_league_id": 2922491,
-          "home_odds": 2.54,
-          "draw_odds": 2.71,
-          "away_odds": 2.875
+          "home_odds": 1.972,
+          "draw_odds": 3.04,
+          "away_odds": 3.8
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10646457,
+          "event_id": 10646461,
           "event_league_id": 1100109,
-          "home_odds": 2.5,
-          "draw_odds": 2.66,
-          "away_odds": 2.82
+          "home_odds": 1.94,
+          "draw_odds": 2.99,
+          "away_odds": 3.73
+        }
+      ]
+    },
+    {
+      "home_team": "Chaco For Ever",
+      "away_team": "Acassuso",
+      "league": "Argentina Primera B Nacional",
+      "start_time": 1783278000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731793841",
+          "event_league_id": 2922491,
+          "home_odds": 1.85,
+          "draw_odds": 2.95,
+          "away_odds": 4.55
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10647339,
+          "event_league_id": 1100109,
+          "home_odds": 1.82,
+          "draw_odds": 2.9,
+          "away_odds": 4.5
         }
       ]
     },
@@ -5855,26 +5927,74 @@
       ]
     },
     {
-      "home_team": "Turun Nappulaliiga II",
-      "away_team": "Bosna Turku",
+      "home_team": "Potkupallo",
+      "away_team": "TaiKi Taipalsaari",
       "league": "Finland Vitonen",
-      "start_time": 1782925200,
+      "start_time": 1782835200,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732178507",
+          "event_id": "732175036",
           "event_league_id": 3010819,
-          "home_odds": 2.18,
-          "draw_odds": 4.97,
-          "away_odds": 2.16
+          "home_odds": 2.553,
+          "draw_odds": 4.81,
+          "away_odds": 1.96
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10662756,
+          "event_id": 10662745,
           "event_league_id": 1110315,
-          "home_odds": 2.14,
-          "draw_odds": 4.9,
-          "away_odds": 2.12
+          "home_odds": 2.51,
+          "draw_odds": 4.7,
+          "away_odds": 1.93
+        }
+      ]
+    },
+    {
+      "home_team": "HaPo",
+      "away_team": "EuPa II",
+      "league": "Finland Vitonen",
+      "start_time": 1782918000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732178015",
+          "event_league_id": 3010819,
+          "home_odds": 4.77,
+          "draw_odds": 5.84,
+          "away_odds": 1.37
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10662749,
+          "event_league_id": 1110315,
+          "home_odds": 4.7,
+          "draw_odds": 5.7,
+          "away_odds": 1.35
+        }
+      ]
+    },
+    {
+      "home_team": "Jyvaskyla 2024",
+      "away_team": "Jamsankosken Jyry",
+      "league": "Finland Vitonen",
+      "start_time": 1782838800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732176814",
+          "event_league_id": 3010819,
+          "home_odds": 1.71,
+          "draw_odds": 5.07,
+          "away_odds": 3.055
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10662753,
+          "event_league_id": 1110315,
+          "home_odds": 1.68,
+          "draw_odds": 5.0,
+          "away_odds": 3.0
         }
       ]
     },
@@ -5951,26 +6071,26 @@
       ]
     },
     {
-      "home_team": "HaPo",
-      "away_team": "EuPa II",
+      "home_team": "Turun Nappulaliiga II",
+      "away_team": "Bosna Turku",
       "league": "Finland Vitonen",
-      "start_time": 1782918000,
+      "start_time": 1782925200,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732178015",
+          "event_id": "732178507",
           "event_league_id": 3010819,
-          "home_odds": 4.77,
-          "draw_odds": 5.84,
-          "away_odds": 1.37
+          "home_odds": 2.18,
+          "draw_odds": 4.97,
+          "away_odds": 2.16
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10662749,
+          "event_id": 10662756,
           "event_league_id": 1110315,
-          "home_odds": 4.7,
-          "draw_odds": 5.7,
-          "away_odds": 1.35
+          "home_odds": 2.14,
+          "draw_odds": 4.9,
+          "away_odds": 2.12
         }
       ]
     },
@@ -5999,26 +6119,26 @@
       ]
     },
     {
-      "home_team": "Potkupallo",
-      "away_team": "TaiKi Taipalsaari",
+      "home_team": "Huki",
+      "away_team": "PetPet",
       "league": "Finland Vitonen",
-      "start_time": 1782835200,
+      "start_time": 1782752400,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732175036",
+          "event_id": "732173746",
           "event_league_id": 3010819,
-          "home_odds": 2.553,
-          "draw_odds": 4.81,
-          "away_odds": 1.96
+          "home_odds": 1.17,
+          "draw_odds": 7.6,
+          "away_odds": 8.15
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10662745,
+          "event_id": 10662737,
           "event_league_id": 1110315,
-          "home_odds": 2.51,
-          "draw_odds": 4.7,
-          "away_odds": 1.93
+          "home_odds": 1.15,
+          "draw_odds": 7.5,
+          "away_odds": 8.0
         }
       ]
     },
@@ -6167,30 +6287,6 @@
       ]
     },
     {
-      "home_team": "Jyvaskyla 2024",
-      "away_team": "Jamsankosken Jyry",
-      "league": "Finland Vitonen",
-      "start_time": 1782838800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732176814",
-          "event_league_id": 3010819,
-          "home_odds": 1.71,
-          "draw_odds": 5.07,
-          "away_odds": 3.055
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10662753,
-          "event_league_id": 1110315,
-          "home_odds": 1.68,
-          "draw_odds": 5.0,
-          "away_odds": 3.0
-        }
-      ]
-    },
-    {
       "home_team": "Tarzan Kuopion",
       "away_team": "Nilsian Pallo-Haukat",
       "league": "Finland Vitonen",
@@ -6235,30 +6331,6 @@
           "home_odds": 3.01,
           "draw_odds": 4.9,
           "away_odds": 1.68
-        }
-      ]
-    },
-    {
-      "home_team": "Huki",
-      "away_team": "PetPet",
-      "league": "Finland Vitonen",
-      "start_time": 1782752400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732173746",
-          "event_league_id": 3010819,
-          "home_odds": 1.17,
-          "draw_odds": 7.6,
-          "away_odds": 8.15
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10662737,
-          "event_league_id": 1110315,
-          "home_odds": 1.15,
-          "draw_odds": 7.5,
-          "away_odds": 8.0
         }
       ]
     },
@@ -6455,770 +6527,50 @@
       ]
     },
     {
-      "home_team": "Tampa Bay Rowdies",
-      "away_team": "Lexington",
-      "league": "USA USL",
-      "start_time": 1783202400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732394068",
-          "event_league_id": 57723,
-          "home_odds": 1.54,
-          "draw_odds": 3.94,
-          "away_odds": 5.1
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10669840,
-          "event_league_id": 1066165,
-          "home_odds": 1.51,
-          "draw_odds": 3.87,
-          "away_odds": 5.0
-        }
-      ]
-    },
-    {
-      "home_team": "Las Vegas Lights",
-      "away_team": "El Paso Locomotive",
-      "league": "USA USL",
-      "start_time": 1783218600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732429313",
-          "event_league_id": 57723,
-          "home_odds": 2.54,
-          "draw_odds": 3.45,
-          "away_odds": 2.34
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10671049,
-          "event_league_id": 1066165,
-          "home_odds": 2.5,
-          "draw_odds": 3.39,
-          "away_odds": 2.3
-        }
-      ]
-    },
-    {
-      "home_team": "Tulsa",
-      "away_team": "Sacramento Republic",
-      "league": "USA USL",
-      "start_time": 1783211400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732414030",
-          "event_league_id": 57723,
-          "home_odds": 2.44,
-          "draw_odds": 3.08,
-          "away_odds": 2.66
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10670449,
-          "event_league_id": 1066165,
-          "home_odds": 2.4,
-          "draw_odds": 3.03,
-          "away_odds": 2.61
-        }
-      ]
-    },
-    {
-      "home_team": "Rhode Island",
-      "away_team": "Orange County Blues",
-      "league": "USA USL",
-      "start_time": 1783207800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732403576",
-          "event_league_id": 57723,
-          "home_odds": 1.48,
-          "draw_odds": 4.05,
-          "away_odds": 5.64
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10670155,
-          "event_league_id": 1066165,
-          "home_odds": 1.45,
-          "draw_odds": 3.98,
-          "away_odds": 5.5
-        }
-      ]
-    },
-    {
-      "home_team": "Louisville City",
-      "away_team": "Hartford Athletic",
-      "league": "USA USL",
-      "start_time": 1783209600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732407918",
-          "event_league_id": 57723,
-          "home_odds": 1.54,
-          "draw_odds": 4.0,
-          "away_odds": 5.0
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10670322,
-          "event_league_id": 1066165,
-          "home_odds": 1.51,
-          "draw_odds": 3.93,
-          "away_odds": 4.9
-        }
-      ]
-    },
-    {
-      "home_team": "New Mexico United",
-      "away_team": "Oakland Roots",
-      "league": "USA USL",
-      "start_time": 1783215000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732420691",
-          "event_league_id": 57723,
-          "home_odds": 2.48,
-          "draw_odds": 3.44,
-          "away_odds": 2.4
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10670859,
-          "event_league_id": 1066165,
-          "home_odds": 2.44,
-          "draw_odds": 3.38,
-          "away_odds": 2.36
-        }
-      ]
-    },
-    {
-      "home_team": "Loudoun United",
-      "away_team": "Sporting Jacksonville",
-      "league": "USA USL",
-      "start_time": 1783119600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732136171",
-          "event_league_id": 57723,
-          "home_odds": 1.59,
-          "draw_odds": 4.0,
-          "away_odds": 4.555
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10660930,
-          "event_league_id": 1066165,
-          "home_odds": 1.56,
-          "draw_odds": 3.93,
-          "away_odds": 4.5
-        }
-      ]
-    },
-    {
-      "home_team": "Pittsburgh Riverhounds",
-      "away_team": "Brooklyn FC",
-      "league": "USA USL",
-      "start_time": 1783206000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732400040",
-          "event_league_id": 57723,
-          "home_odds": 1.55,
-          "draw_odds": 3.84,
-          "away_odds": 5.16
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10670111,
-          "event_league_id": 1066165,
-          "home_odds": 1.52,
-          "draw_odds": 3.77,
-          "away_odds": 5.1
-        }
-      ]
-    },
-    {
-      "home_team": "Colorado Springs Switchbacks",
-      "away_team": "Phoenix Rising",
-      "league": "USA USL",
-      "start_time": 1783213200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732416191",
-          "event_league_id": 57723,
-          "home_odds": 1.67,
-          "draw_odds": 3.8,
-          "away_odds": 4.21
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10670616,
-          "event_league_id": 1066165,
-          "home_odds": 1.64,
-          "draw_odds": 3.73,
-          "away_odds": 4.1
-        }
-      ]
-    },
-    {
-      "home_team": "San Antonio Texas",
-      "away_team": "Monterey Bay",
-      "league": "USA USL",
-      "start_time": 1783213200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732415494",
-          "event_league_id": 57723,
-          "home_odds": 1.77,
-          "draw_odds": 3.58,
-          "away_odds": 3.915
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10670615,
-          "event_league_id": 1066165,
-          "home_odds": 1.74,
-          "draw_odds": 3.52,
-          "away_odds": 3.85
-        }
-      ]
-    },
-    {
-      "home_team": "Indy Eleven",
-      "away_team": "Charleston Battery",
-      "league": "USA USL",
-      "start_time": 1783195200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732370019",
-          "event_league_id": 57723,
-          "home_odds": 2.6,
-          "draw_odds": 3.5,
-          "away_odds": 2.27
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10669216,
-          "event_league_id": 1066165,
-          "home_odds": 2.55,
-          "draw_odds": 3.44,
-          "away_odds": 2.23
-        }
-      ]
-    },
-    {
-      "home_team": "Birmingham Legion",
-      "away_team": "Detroit City",
-      "league": "USA USL",
-      "start_time": 1783036800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731899706",
-          "event_league_id": 57723,
-          "home_odds": 2.783,
-          "draw_odds": 3.34,
-          "away_odds": 2.27
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10651212,
-          "event_league_id": 1066165,
-          "home_odds": 2.73,
-          "draw_odds": 3.28,
-          "away_odds": 2.23
-        }
-      ]
-    },
-    {
-      "home_team": "Hacken",
-      "away_team": "Djurgardens",
-      "league": "Sweden Allsvenskan",
-      "start_time": 1783357200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "726088274",
-          "event_league_id": 212425,
-          "home_odds": 2.44,
-          "draw_odds": 3.64,
-          "away_odds": 2.58
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10413710,
-          "event_league_id": 1066148,
-          "home_odds": 2.4,
-          "draw_odds": 3.57,
-          "away_odds": 2.53
-        }
-      ]
-    },
-    {
-      "home_team": "Tianjin Tiger",
-      "away_team": "Shenzhen Peng City",
-      "league": "China Super League",
-      "start_time": 1783166400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732276669",
-          "event_league_id": 58043,
-          "home_odds": 2.226,
-          "draw_odds": 3.585,
-          "away_odds": 3.13
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10666457,
-          "event_league_id": 1066723,
-          "home_odds": 2.18,
-          "draw_odds": 3.52,
-          "away_odds": 3.07
-        }
-      ]
-    },
-    {
-      "home_team": "Liaoning Tieren",
-      "away_team": "Chongqing Tongliangloong",
-      "league": "China Super League",
-      "start_time": 1783162800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732276675",
-          "event_league_id": 58043,
-          "home_odds": 2.102,
-          "draw_odds": 3.38,
-          "away_odds": 3.625
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10666454,
-          "event_league_id": 1066723,
-          "home_odds": 2.06,
-          "draw_odds": 3.32,
-          "away_odds": 3.56
-        }
-      ]
-    },
-    {
-      "home_team": "Beijing Guoan",
-      "away_team": "Shandong Taishan",
-      "league": "China Super League",
-      "start_time": 1783164900,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732276672",
-          "event_league_id": 58043,
-          "home_odds": 1.761,
-          "draw_odds": 4.17,
-          "away_odds": 4.17
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10666455,
-          "event_league_id": 1066723,
-          "home_odds": 1.73,
-          "draw_odds": 4.1,
-          "away_odds": 4.1
-        }
-      ]
-    },
-    {
-      "home_team": "Dalian Yingbo",
-      "away_team": "Wuhan Three Towns",
-      "league": "China Super League",
-      "start_time": 1783164900,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732511923",
-          "event_league_id": 58043,
-          "home_odds": 1.742,
-          "draw_odds": 3.915,
-          "away_odds": 4.585
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10674336,
-          "event_league_id": 1066723,
-          "home_odds": 1.71,
-          "draw_odds": 3.84,
-          "away_odds": 4.5
-        }
-      ]
-    },
-    {
-      "home_team": "Qingdao West Coast",
-      "away_team": "Shanghai Port",
-      "league": "China Super League",
-      "start_time": 1783162800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732499943",
-          "event_league_id": 58043,
-          "home_odds": 3.09,
-          "draw_odds": 3.485,
-          "away_odds": 2.289
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10673752,
-          "event_league_id": 1066723,
-          "home_odds": 3.03,
-          "draw_odds": 3.42,
-          "away_odds": 2.25
-        }
-      ]
-    },
-    {
-      "home_team": "Qingdao Hainiu",
-      "away_team": "Chengdu Rongcheng",
-      "league": "China Super League",
-      "start_time": 1783249200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732512317",
-          "event_league_id": 58043,
-          "home_odds": 4.79,
-          "draw_odds": 4.055,
-          "away_odds": 1.689
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10674337,
-          "event_league_id": 1066723,
-          "home_odds": 4.7,
-          "draw_odds": 3.98,
-          "away_odds": 1.66
-        }
-      ]
-    },
-    {
-      "home_team": "Shanghai Shenhua",
-      "away_team": "Zhejiang Professional",
-      "league": "China Super League",
-      "start_time": 1783251300,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732516257",
-          "event_league_id": 58043,
-          "home_odds": 1.701,
-          "draw_odds": 4.33,
-          "away_odds": 4.38
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10674433,
-          "event_league_id": 1066723,
-          "home_odds": 1.67,
-          "draw_odds": 4.2,
-          "away_odds": 4.3
-        }
-      ]
-    },
-    {
-      "home_team": "Yunnan Yukun",
-      "away_team": "Henan",
-      "league": "China Super League",
-      "start_time": 1783080000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732270028",
-          "event_league_id": 58043,
-          "home_odds": 2.505,
-          "draw_odds": 3.655,
-          "away_odds": 2.67
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10665808,
-          "event_league_id": 1066723,
-          "home_odds": 2.46,
-          "draw_odds": 3.59,
-          "away_odds": 2.62
-        }
-      ]
-    },
-    {
-      "home_team": "Universidad de Chile",
-      "away_team": "Union San Felipe",
-      "league": "Chile Cup",
-      "start_time": 1782682200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731761911",
-          "event_league_id": 86379,
-          "home_odds": 1.24,
-          "draw_odds": 5.5,
-          "away_odds": 9.0
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10647248,
-          "event_league_id": 1067524,
-          "home_odds": 1.22,
-          "draw_odds": 5.4,
-          "away_odds": 8.8
-        }
-      ]
-    },
-    {
-      "home_team": "Union Espanola",
-      "away_team": "Colo-Colo",
-      "league": "Chile Cup",
-      "start_time": 1782775800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732581793",
-          "event_league_id": 86379,
-          "home_odds": 3.805,
-          "draw_odds": 3.52,
-          "away_odds": 1.81
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677445,
-          "event_league_id": 1067524,
-          "home_odds": 3.72,
-          "draw_odds": 3.44,
-          "away_odds": 1.79
-        }
-      ]
-    },
-    {
-      "home_team": "CSD Rangers",
-      "away_team": "Nublense",
-      "league": "Chile Cup",
-      "start_time": 1782680400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732008544",
-          "event_league_id": 86379,
-          "home_odds": 2.937,
-          "draw_odds": 2.97,
-          "away_odds": 2.37
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10655723,
-          "event_league_id": 1067524,
-          "home_odds": 2.88,
-          "draw_odds": 2.92,
-          "away_odds": 2.33
-        }
-      ]
-    },
-    {
-      "home_team": "O'Higgins",
-      "away_team": "Deportes Recoleta",
-      "league": "Chile Cup",
-      "start_time": 1782680400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732012896",
-          "event_league_id": 86379,
-          "home_odds": 1.48,
-          "draw_odds": 4.4,
-          "away_odds": 5.1
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10655674,
-          "event_league_id": 1067524,
-          "home_odds": 1.45,
-          "draw_odds": 4.3,
-          "away_odds": 5.0
-        }
-      ]
-    },
-    {
-      "home_team": "Deportes Puerto Montt",
-      "away_team": "Club Deportes Concepcion",
-      "league": "Chile Cup",
-      "start_time": 1782691200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732292222",
-          "event_league_id": 86379,
-          "home_odds": 2.41,
-          "draw_odds": 3.18,
-          "away_odds": 2.625
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10666877,
-          "event_league_id": 1067524,
-          "home_odds": 2.37,
-          "draw_odds": 3.12,
-          "away_odds": 2.58
-        }
-      ]
-    },
-    {
-      "home_team": "Audax Italiano",
-      "away_team": "Palestino",
-      "league": "Chile Cup",
-      "start_time": 1782856800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732585151",
-          "event_league_id": 86379,
-          "home_odds": 2.32,
-          "draw_odds": 3.3,
-          "away_odds": 2.922
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677491,
-          "event_league_id": 1067524,
-          "home_odds": 2.28,
-          "draw_odds": 3.24,
-          "away_odds": 2.87
-        }
-      ]
-    },
-    {
-      "home_team": "Universidad Catolica Santiago",
-      "away_team": "Everton de Vina del Mar",
-      "league": "Chile Cup",
-      "start_time": 1782865800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732585154",
-          "event_league_id": 86379,
-          "home_odds": 1.57,
-          "draw_odds": 4.1,
-          "away_odds": 5.14
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677490,
-          "event_league_id": 1067524,
-          "home_odds": 1.54,
-          "draw_odds": 4.0,
-          "away_odds": 5.0
-        }
-      ]
-    },
-    {
-      "home_team": "Cobresal",
-      "away_team": "Deportes La Serena",
-      "league": "Chile Cup",
-      "start_time": 1782943200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732585157",
-          "event_league_id": 86379,
-          "home_odds": 1.7,
-          "draw_odds": 3.5,
-          "away_odds": 4.975
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677494,
-          "event_league_id": 1067524,
-          "home_odds": 1.67,
-          "draw_odds": 3.44,
-          "away_odds": 4.9
-        }
-      ]
-    },
-    {
-      "home_team": "Deportes Limache",
-      "away_team": "Coquimbo Unido",
-      "league": "Chile Cup",
-      "start_time": 1782943200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732585160",
-          "event_league_id": 86379,
-          "home_odds": 3.61,
-          "draw_odds": 3.3,
-          "away_odds": 2.02
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677492,
-          "event_league_id": 1067524,
-          "home_odds": 3.54,
-          "draw_odds": 3.24,
-          "away_odds": 1.98
-        }
-      ]
-    },
-    {
-      "home_team": "Jerv II",
-      "away_team": "Lyngdal IL",
+      "home_team": "Strommen II",
+      "away_team": "Ullensaker Kisa II",
       "league": "Norway Division 4",
-      "start_time": 1782754200,
+      "start_time": 1782756900,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "730957433",
+          "event_id": "731173834",
           "event_league_id": 208075,
-          "home_odds": 1.11,
-          "draw_odds": 8.45,
-          "away_odds": 9.45
+          "home_odds": 2.17,
+          "draw_odds": 5.0,
+          "away_odds": 2.16
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10617350,
+          "event_id": 10636799,
           "event_league_id": 1096482,
-          "home_odds": 1.091,
-          "draw_odds": 8.3,
-          "away_odds": 9.3
+          "home_odds": 2.13,
+          "draw_odds": 4.9,
+          "away_odds": 2.12
         }
       ]
     },
     {
-      "home_team": "Tollnes Ballklubb",
-      "away_team": "Pors Grenland II",
+      "home_team": "Brevik",
+      "away_team": "Notodden II",
       "league": "Norway Division 4",
       "start_time": 1782756000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731164409",
+          "event_id": "731164685",
           "event_league_id": 208075,
-          "home_odds": 2.25,
-          "draw_odds": 4.98,
-          "away_odds": 2.09
+          "home_odds": 2.921,
+          "draw_odds": 4.92,
+          "away_odds": 1.77
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10627050,
+          "event_id": 10620966,
           "event_league_id": 1096482,
-          "home_odds": 2.21,
-          "draw_odds": 4.9,
-          "away_odds": 2.05
+          "home_odds": 2.87,
+          "draw_odds": 4.8,
+          "away_odds": 1.74
         }
       ]
     },
@@ -7271,50 +6623,74 @@
       ]
     },
     {
-      "home_team": "Strommen II",
-      "away_team": "Ullensaker Kisa II",
+      "home_team": "Raufoss II",
+      "away_team": "Toten",
       "league": "Norway Division 4",
-      "start_time": 1782756900,
+      "start_time": 1782754200,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731173834",
+          "event_id": "730955622",
           "event_league_id": 208075,
-          "home_odds": 2.17,
-          "draw_odds": 5.0,
-          "away_odds": 2.16
+          "home_odds": 3.325,
+          "draw_odds": 5.06,
+          "away_odds": 1.63
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10636799,
+          "event_id": 10617349,
           "event_league_id": 1096482,
-          "home_odds": 2.13,
-          "draw_odds": 4.9,
-          "away_odds": 2.12
+          "home_odds": 3.27,
+          "draw_odds": 5.0,
+          "away_odds": 1.6
         }
       ]
     },
     {
-      "home_team": "Brevik",
-      "away_team": "Notodden II",
+      "home_team": "Jerv II",
+      "away_team": "Lyngdal IL",
+      "league": "Norway Division 4",
+      "start_time": 1782754200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "730957433",
+          "event_league_id": 208075,
+          "home_odds": 1.11,
+          "draw_odds": 8.45,
+          "away_odds": 9.45
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10617350,
+          "event_league_id": 1096482,
+          "home_odds": 1.091,
+          "draw_odds": 8.3,
+          "away_odds": 9.3
+        }
+      ]
+    },
+    {
+      "home_team": "Tollnes Ballklubb",
+      "away_team": "Pors Grenland II",
       "league": "Norway Division 4",
       "start_time": 1782756000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731164685",
+          "event_id": "731164409",
           "event_league_id": 208075,
-          "home_odds": 2.921,
-          "draw_odds": 4.92,
-          "away_odds": 1.77
+          "home_odds": 2.25,
+          "draw_odds": 4.98,
+          "away_odds": 2.09
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10620966,
+          "event_id": 10627050,
           "event_league_id": 1096482,
-          "home_odds": 2.87,
-          "draw_odds": 4.8,
-          "away_odds": 1.74
+          "home_odds": 2.21,
+          "draw_odds": 4.9,
+          "away_odds": 2.05
         }
       ]
     },
@@ -7339,30 +6715,6 @@
           "home_odds": 7.8,
           "draw_odds": 7.2,
           "away_odds": 1.16
-        }
-      ]
-    },
-    {
-      "home_team": "Raufoss II",
-      "away_team": "Toten",
-      "league": "Norway Division 4",
-      "start_time": 1782754200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "730955622",
-          "event_league_id": 208075,
-          "home_odds": 3.325,
-          "draw_odds": 5.06,
-          "away_odds": 1.63
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10617349,
-          "event_league_id": 1096482,
-          "home_odds": 3.27,
-          "draw_odds": 5.0,
-          "away_odds": 1.6
         }
       ]
     },
@@ -7799,6 +7151,510 @@
       ]
     },
     {
+      "home_team": "Louisville City",
+      "away_team": "Hartford Athletic",
+      "league": "USA USL",
+      "start_time": 1783209600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732407918",
+          "event_league_id": 57723,
+          "home_odds": 1.54,
+          "draw_odds": 4.0,
+          "away_odds": 5.0
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10670322,
+          "event_league_id": 1066165,
+          "home_odds": 1.51,
+          "draw_odds": 3.93,
+          "away_odds": 4.9
+        }
+      ]
+    },
+    {
+      "home_team": "Pittsburgh Riverhounds",
+      "away_team": "Brooklyn FC",
+      "league": "USA USL",
+      "start_time": 1783206000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732400040",
+          "event_league_id": 57723,
+          "home_odds": 1.55,
+          "draw_odds": 3.84,
+          "away_odds": 5.16
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10670111,
+          "event_league_id": 1066165,
+          "home_odds": 1.52,
+          "draw_odds": 3.77,
+          "away_odds": 5.1
+        }
+      ]
+    },
+    {
+      "home_team": "New Mexico United",
+      "away_team": "Oakland Roots",
+      "league": "USA USL",
+      "start_time": 1783215000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732420691",
+          "event_league_id": 57723,
+          "home_odds": 2.48,
+          "draw_odds": 3.44,
+          "away_odds": 2.4
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10670859,
+          "event_league_id": 1066165,
+          "home_odds": 2.44,
+          "draw_odds": 3.38,
+          "away_odds": 2.36
+        }
+      ]
+    },
+    {
+      "home_team": "Tampa Bay Rowdies",
+      "away_team": "Lexington",
+      "league": "USA USL",
+      "start_time": 1783202400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732394068",
+          "event_league_id": 57723,
+          "home_odds": 1.54,
+          "draw_odds": 3.94,
+          "away_odds": 5.1
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10669840,
+          "event_league_id": 1066165,
+          "home_odds": 1.51,
+          "draw_odds": 3.87,
+          "away_odds": 5.0
+        }
+      ]
+    },
+    {
+      "home_team": "Tulsa",
+      "away_team": "Sacramento Republic",
+      "league": "USA USL",
+      "start_time": 1783211400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732414030",
+          "event_league_id": 57723,
+          "home_odds": 2.44,
+          "draw_odds": 3.08,
+          "away_odds": 2.66
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10670449,
+          "event_league_id": 1066165,
+          "home_odds": 2.4,
+          "draw_odds": 3.03,
+          "away_odds": 2.61
+        }
+      ]
+    },
+    {
+      "home_team": "Las Vegas Lights",
+      "away_team": "El Paso Locomotive",
+      "league": "USA USL",
+      "start_time": 1783218600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732429313",
+          "event_league_id": 57723,
+          "home_odds": 2.54,
+          "draw_odds": 3.45,
+          "away_odds": 2.34
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10671049,
+          "event_league_id": 1066165,
+          "home_odds": 2.5,
+          "draw_odds": 3.39,
+          "away_odds": 2.3
+        }
+      ]
+    },
+    {
+      "home_team": "Indy Eleven",
+      "away_team": "Charleston Battery",
+      "league": "USA USL",
+      "start_time": 1783195200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732370019",
+          "event_league_id": 57723,
+          "home_odds": 2.6,
+          "draw_odds": 3.5,
+          "away_odds": 2.27
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10669216,
+          "event_league_id": 1066165,
+          "home_odds": 2.55,
+          "draw_odds": 3.44,
+          "away_odds": 2.23
+        }
+      ]
+    },
+    {
+      "home_team": "Birmingham Legion",
+      "away_team": "Detroit City",
+      "league": "USA USL",
+      "start_time": 1783036800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731899706",
+          "event_league_id": 57723,
+          "home_odds": 2.783,
+          "draw_odds": 3.34,
+          "away_odds": 2.27
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10651212,
+          "event_league_id": 1066165,
+          "home_odds": 2.73,
+          "draw_odds": 3.28,
+          "away_odds": 2.23
+        }
+      ]
+    },
+    {
+      "home_team": "Loudoun United",
+      "away_team": "Sporting Jacksonville",
+      "league": "USA USL",
+      "start_time": 1783119600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732136171",
+          "event_league_id": 57723,
+          "home_odds": 1.59,
+          "draw_odds": 4.0,
+          "away_odds": 4.555
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10660930,
+          "event_league_id": 1066165,
+          "home_odds": 1.56,
+          "draw_odds": 3.93,
+          "away_odds": 4.5
+        }
+      ]
+    },
+    {
+      "home_team": "San Antonio Texas",
+      "away_team": "Monterey Bay",
+      "league": "USA USL",
+      "start_time": 1783213200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732415494",
+          "event_league_id": 57723,
+          "home_odds": 1.77,
+          "draw_odds": 3.58,
+          "away_odds": 3.915
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10670615,
+          "event_league_id": 1066165,
+          "home_odds": 1.74,
+          "draw_odds": 3.52,
+          "away_odds": 3.85
+        }
+      ]
+    },
+    {
+      "home_team": "Rhode Island",
+      "away_team": "Orange County Blues",
+      "league": "USA USL",
+      "start_time": 1783207800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732403576",
+          "event_league_id": 57723,
+          "home_odds": 1.48,
+          "draw_odds": 4.05,
+          "away_odds": 5.64
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10670155,
+          "event_league_id": 1066165,
+          "home_odds": 1.45,
+          "draw_odds": 3.98,
+          "away_odds": 5.5
+        }
+      ]
+    },
+    {
+      "home_team": "Colorado Springs Switchbacks",
+      "away_team": "Phoenix Rising",
+      "league": "USA USL",
+      "start_time": 1783213200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732416191",
+          "event_league_id": 57723,
+          "home_odds": 1.67,
+          "draw_odds": 3.8,
+          "away_odds": 4.21
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10670616,
+          "event_league_id": 1066165,
+          "home_odds": 1.64,
+          "draw_odds": 3.73,
+          "away_odds": 4.1
+        }
+      ]
+    },
+    {
+      "home_team": "Hacken",
+      "away_team": "Djurgardens",
+      "league": "Sweden Allsvenskan",
+      "start_time": 1783357200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "726088274",
+          "event_league_id": 212425,
+          "home_odds": 2.44,
+          "draw_odds": 3.64,
+          "away_odds": 2.58
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10413710,
+          "event_league_id": 1066148,
+          "home_odds": 2.4,
+          "draw_odds": 3.57,
+          "away_odds": 2.53
+        }
+      ]
+    },
+    {
+      "home_team": "Dalian Yingbo",
+      "away_team": "Wuhan Three Towns",
+      "league": "China Super League",
+      "start_time": 1783164900,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732511923",
+          "event_league_id": 58043,
+          "home_odds": 1.742,
+          "draw_odds": 3.915,
+          "away_odds": 4.585
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10674336,
+          "event_league_id": 1066723,
+          "home_odds": 1.71,
+          "draw_odds": 3.84,
+          "away_odds": 4.5
+        }
+      ]
+    },
+    {
+      "home_team": "Shanghai Shenhua",
+      "away_team": "Zhejiang Professional",
+      "league": "China Super League",
+      "start_time": 1783251300,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732516257",
+          "event_league_id": 58043,
+          "home_odds": 1.701,
+          "draw_odds": 4.33,
+          "away_odds": 4.38
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10674433,
+          "event_league_id": 1066723,
+          "home_odds": 1.67,
+          "draw_odds": 4.2,
+          "away_odds": 4.3
+        }
+      ]
+    },
+    {
+      "home_team": "Qingdao West Coast",
+      "away_team": "Shanghai Port",
+      "league": "China Super League",
+      "start_time": 1783162800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732499943",
+          "event_league_id": 58043,
+          "home_odds": 3.09,
+          "draw_odds": 3.485,
+          "away_odds": 2.289
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10673752,
+          "event_league_id": 1066723,
+          "home_odds": 3.03,
+          "draw_odds": 3.42,
+          "away_odds": 2.25
+        }
+      ]
+    },
+    {
+      "home_team": "Liaoning Tieren",
+      "away_team": "Chongqing Tongliangloong",
+      "league": "China Super League",
+      "start_time": 1783162800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732276675",
+          "event_league_id": 58043,
+          "home_odds": 2.102,
+          "draw_odds": 3.38,
+          "away_odds": 3.625
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10666454,
+          "event_league_id": 1066723,
+          "home_odds": 2.06,
+          "draw_odds": 3.32,
+          "away_odds": 3.56
+        }
+      ]
+    },
+    {
+      "home_team": "Qingdao Hainiu",
+      "away_team": "Chengdu Rongcheng",
+      "league": "China Super League",
+      "start_time": 1783249200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732512317",
+          "event_league_id": 58043,
+          "home_odds": 4.79,
+          "draw_odds": 4.055,
+          "away_odds": 1.689
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10674337,
+          "event_league_id": 1066723,
+          "home_odds": 4.7,
+          "draw_odds": 3.98,
+          "away_odds": 1.66
+        }
+      ]
+    },
+    {
+      "home_team": "Tianjin Tiger",
+      "away_team": "Shenzhen Peng City",
+      "league": "China Super League",
+      "start_time": 1783166400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732276669",
+          "event_league_id": 58043,
+          "home_odds": 2.226,
+          "draw_odds": 3.585,
+          "away_odds": 3.13
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10666457,
+          "event_league_id": 1066723,
+          "home_odds": 2.18,
+          "draw_odds": 3.52,
+          "away_odds": 3.07
+        }
+      ]
+    },
+    {
+      "home_team": "Beijing Guoan",
+      "away_team": "Shandong Taishan",
+      "league": "China Super League",
+      "start_time": 1783164900,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732276672",
+          "event_league_id": 58043,
+          "home_odds": 1.761,
+          "draw_odds": 4.17,
+          "away_odds": 4.17
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10666455,
+          "event_league_id": 1066723,
+          "home_odds": 1.73,
+          "draw_odds": 4.1,
+          "away_odds": 4.1
+        }
+      ]
+    },
+    {
+      "home_team": "Yunnan Yukun",
+      "away_team": "Henan",
+      "league": "China Super League",
+      "start_time": 1783080000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732270028",
+          "event_league_id": 58043,
+          "home_odds": 2.505,
+          "draw_odds": 3.655,
+          "away_odds": 2.67
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10665808,
+          "event_league_id": 1066723,
+          "home_odds": 2.46,
+          "draw_odds": 3.59,
+          "away_odds": 2.62
+        }
+      ]
+    },
+    {
       "home_team": "Sanat Mes Kerman",
       "away_team": "Palayesh Naft Bandar Abbas",
       "league": "Iran Azadegan League",
@@ -8015,6 +7871,54 @@
       ]
     },
     {
+      "home_team": "Odds",
+      "away_team": "Haugesund",
+      "league": "Norway Adeccoligaen",
+      "start_time": 1783271700,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732581796",
+          "event_league_id": 31508,
+          "home_odds": 2.24,
+          "draw_odds": 3.94,
+          "away_odds": 2.735
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677493,
+          "event_league_id": 1066079,
+          "home_odds": 2.2,
+          "draw_odds": 3.87,
+          "away_odds": 2.68
+        }
+      ]
+    },
+    {
+      "home_team": "Egersunds",
+      "away_team": "Moss",
+      "league": "Norway Adeccoligaen",
+      "start_time": 1783166400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732348313",
+          "event_league_id": 31508,
+          "home_odds": 1.99,
+          "draw_odds": 3.98,
+          "away_odds": 3.13
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10668553,
+          "event_league_id": 1066079,
+          "home_odds": 1.95,
+          "draw_odds": 3.91,
+          "away_odds": 3.07
+        }
+      ]
+    },
+    {
       "home_team": "Ranheim",
       "away_team": "Stabaek",
       "league": "Norway Adeccoligaen",
@@ -8035,54 +7939,6 @@
           "home_odds": 2.64,
           "draw_odds": 3.78,
           "away_odds": 2.22
-        }
-      ]
-    },
-    {
-      "home_team": "Lyn Fotball",
-      "away_team": "Asane",
-      "league": "Norway Adeccoligaen",
-      "start_time": 1783008000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732324650",
-          "event_league_id": 31508,
-          "home_odds": 1.78,
-          "draw_odds": 4.05,
-          "away_odds": 3.77
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10667874,
-          "event_league_id": 1066079,
-          "home_odds": 1.75,
-          "draw_odds": 3.98,
-          "away_odds": 3.7
-        }
-      ]
-    },
-    {
-      "home_team": "Odds",
-      "away_team": "Haugesund",
-      "league": "Norway Adeccoligaen",
-      "start_time": 1783271700,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732581796",
-          "event_league_id": 31508,
-          "home_odds": 2.23,
-          "draw_odds": 3.88,
-          "away_odds": 2.723
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677493,
-          "event_league_id": 1066079,
-          "home_odds": 2.19,
-          "draw_odds": 3.81,
-          "away_odds": 2.67
         }
       ]
     },
@@ -8135,26 +7991,26 @@
       ]
     },
     {
-      "home_team": "Egersunds",
-      "away_team": "Moss",
+      "home_team": "Lyn Fotball",
+      "away_team": "Asane",
       "league": "Norway Adeccoligaen",
-      "start_time": 1783166400,
+      "start_time": 1783008000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732348313",
+          "event_id": "732324650",
           "event_league_id": 31508,
-          "home_odds": 1.99,
-          "draw_odds": 3.98,
-          "away_odds": 3.13
+          "home_odds": 1.78,
+          "draw_odds": 4.05,
+          "away_odds": 3.77
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10668553,
+          "event_id": 10667874,
           "event_league_id": 1066079,
-          "home_odds": 1.95,
-          "draw_odds": 3.91,
-          "away_odds": 3.07
+          "home_odds": 1.75,
+          "draw_odds": 3.98,
+          "away_odds": 3.7
         }
       ]
     },
@@ -8207,6 +8063,30 @@
       ]
     },
     {
+      "home_team": "ADT Tarma",
+      "away_team": "Club Universitario de Deportes",
+      "league": "Peru Liga 1",
+      "start_time": 1784398500,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732035276",
+          "event_league_id": 2892390,
+          "home_odds": 3.23,
+          "draw_odds": 3.22,
+          "away_odds": 2.22
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10656114,
+          "event_league_id": 1094800,
+          "home_odds": 3.17,
+          "draw_odds": 3.16,
+          "away_odds": 2.18
+        }
+      ]
+    },
+    {
       "home_team": "Club Cienciano Cusco",
       "away_team": "Melgar",
       "league": "Peru Liga 1",
@@ -8251,30 +8131,6 @@
           "home_odds": 1.55,
           "draw_odds": 3.65,
           "away_odds": 5.7
-        }
-      ]
-    },
-    {
-      "home_team": "ADT Tarma",
-      "away_team": "Club Universitario de Deportes",
-      "league": "Peru Liga 1",
-      "start_time": 1784398500,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732035276",
-          "event_league_id": 2892390,
-          "home_odds": 3.23,
-          "draw_odds": 3.22,
-          "away_odds": 2.22
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10656114,
-          "event_league_id": 1094800,
-          "home_odds": 3.17,
-          "draw_odds": 3.16,
-          "away_odds": 2.18
         }
       ]
     },
@@ -8423,30 +8279,6 @@
       ]
     },
     {
-      "home_team": "Lokomotiv Moscow",
-      "away_team": "CSKA Moscow",
-      "league": "Russian Cup",
-      "start_time": 1785855600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731680813",
-          "event_league_id": 176125,
-          "home_odds": 2.64,
-          "draw_odds": 3.55,
-          "away_odds": 2.64
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10636528,
-          "event_league_id": 1066176,
-          "home_odds": 2.59,
-          "draw_odds": 3.48,
-          "away_odds": 2.59
-        }
-      ]
-    },
-    {
       "home_team": "Rodina Moscow",
       "away_team": "Rubin Kazan",
       "league": "Russian Cup",
@@ -8467,102 +8299,6 @@
           "home_odds": 3.59,
           "draw_odds": 3.78,
           "away_odds": 1.95
-        }
-      ]
-    },
-    {
-      "home_team": "Spartak Moscow",
-      "away_team": "Orenburg",
-      "league": "Russian Cup",
-      "start_time": 1785855600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731680810",
-          "event_league_id": 176125,
-          "home_odds": 1.34,
-          "draw_odds": 5.5,
-          "away_odds": 9.2
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10636532,
-          "event_league_id": 1066176,
-          "home_odds": 1.31,
-          "draw_odds": 5.4,
-          "away_odds": 9.0
-        }
-      ]
-    },
-    {
-      "home_team": "Dynamo Makhachkala",
-      "away_team": "Krylia Sovetov",
-      "league": "Russian Cup",
-      "start_time": 1785855600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731680454",
-          "event_league_id": 176125,
-          "home_odds": 1.97,
-          "draw_odds": 3.22,
-          "away_odds": 4.6
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10636530,
-          "event_league_id": 1066176,
-          "home_odds": 1.93,
-          "draw_odds": 3.16,
-          "away_odds": 4.5
-        }
-      ]
-    },
-    {
-      "home_team": "Akron Tolyatti",
-      "away_team": "Rostov",
-      "league": "Russian Cup",
-      "start_time": 1785855600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731680457",
-          "event_league_id": 176125,
-          "home_odds": 2.66,
-          "draw_odds": 3.48,
-          "away_odds": 2.66
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10636526,
-          "event_league_id": 1066176,
-          "home_odds": 2.61,
-          "draw_odds": 3.41,
-          "away_odds": 2.61
-        }
-      ]
-    },
-    {
-      "home_team": "Krasnodar",
-      "away_team": "Akhmat",
-      "league": "Russian Cup",
-      "start_time": 1785855600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731680807",
-          "event_league_id": 176125,
-          "home_odds": 1.7,
-          "draw_odds": 3.98,
-          "away_odds": 5.1
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10636529,
-          "event_league_id": 1066176,
-          "home_odds": 1.67,
-          "draw_odds": 3.9,
-          "away_odds": 5.0
         }
       ]
     },
@@ -8591,6 +8327,78 @@
       ]
     },
     {
+      "home_team": "Spartak Moscow",
+      "away_team": "Orenburg",
+      "league": "Russian Cup",
+      "start_time": 1785855600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731680810",
+          "event_league_id": 176125,
+          "home_odds": 1.34,
+          "draw_odds": 5.5,
+          "away_odds": 9.2
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10636532,
+          "event_league_id": 1066176,
+          "home_odds": 1.31,
+          "draw_odds": 5.4,
+          "away_odds": 9.0
+        }
+      ]
+    },
+    {
+      "home_team": "Krasnodar",
+      "away_team": "Akhmat",
+      "league": "Russian Cup",
+      "start_time": 1785855600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731680807",
+          "event_league_id": 176125,
+          "home_odds": 1.7,
+          "draw_odds": 3.98,
+          "away_odds": 5.1
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10636529,
+          "event_league_id": 1066176,
+          "home_odds": 1.67,
+          "draw_odds": 3.9,
+          "away_odds": 5.0
+        }
+      ]
+    },
+    {
+      "home_team": "Dynamo Makhachkala",
+      "away_team": "Krylia Sovetov",
+      "league": "Russian Cup",
+      "start_time": 1785855600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731680454",
+          "event_league_id": 176125,
+          "home_odds": 1.97,
+          "draw_odds": 3.22,
+          "away_odds": 4.6
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10636530,
+          "event_league_id": 1066176,
+          "home_odds": 1.93,
+          "draw_odds": 3.16,
+          "away_odds": 4.5
+        }
+      ]
+    },
+    {
       "home_team": "Zenit Saint Petersburg",
       "away_team": "Baltika Kaliningrad",
       "league": "Russian Cup",
@@ -8615,338 +8423,50 @@
       ]
     },
     {
-      "home_team": "Atletico Camioneros",
-      "away_team": "UAI Urquiza",
-      "league": "Argentina Primera B Metropolitana",
-      "start_time": 1783188000,
+      "home_team": "Akron Tolyatti",
+      "away_team": "Rostov",
+      "league": "Russian Cup",
+      "start_time": 1785855600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732602113",
-          "event_league_id": 955407,
-          "home_odds": 1.87,
-          "draw_odds": 3.0,
-          "away_odds": 4.81
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10678128,
-          "event_league_id": 1066099,
-          "home_odds": 1.84,
-          "draw_odds": 2.95,
-          "away_odds": 4.7
-        }
-      ]
-    },
-    {
-      "home_team": "San Martin de Burzaco",
-      "away_team": "Deportivo Liniers",
-      "league": "Argentina Primera B Metropolitana",
-      "start_time": 1783274400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732602129",
-          "event_league_id": 955407,
-          "home_odds": 2.52,
-          "draw_odds": 2.8,
-          "away_odds": 3.125
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10678132,
-          "event_league_id": 1066099,
-          "home_odds": 2.47,
-          "draw_odds": 2.75,
-          "away_odds": 3.07
-        }
-      ]
-    },
-    {
-      "home_team": "Dock Sud",
-      "away_team": "Excursionistas",
-      "league": "Argentina Primera B Metropolitana",
-      "start_time": 1783188000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732602116",
-          "event_league_id": 955407,
-          "home_odds": 4.02,
-          "draw_odds": 3.0,
-          "away_odds": 2.02
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10678127,
-          "event_league_id": 1066099,
-          "home_odds": 3.95,
-          "draw_odds": 2.95,
-          "away_odds": 1.98
-        }
-      ]
-    },
-    {
-      "home_team": "Sportivo Italiano",
-      "away_team": "Real Pilar",
-      "league": "Argentina Primera B Metropolitana",
-      "start_time": 1783267200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732602126",
-          "event_league_id": 955407,
-          "home_odds": 2.75,
-          "draw_odds": 2.85,
-          "away_odds": 2.75
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10678131,
-          "event_league_id": 1066099,
-          "home_odds": 2.7,
-          "draw_odds": 2.8,
-          "away_odds": 2.7
-        }
-      ]
-    },
-    {
-      "home_team": "Club Comunicaciones",
-      "away_team": "Arsenal de Sarandi",
-      "league": "Argentina Primera B Metropolitana",
-      "start_time": 1783188000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732607200",
-          "event_league_id": 955407,
-          "home_odds": 3.72,
-          "draw_odds": 2.9,
-          "away_odds": 2.06
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10678124,
-          "event_league_id": 1066099,
-          "home_odds": 3.65,
-          "draw_odds": 2.85,
-          "away_odds": 2.02
-        }
-      ]
-    },
-    {
-      "home_team": "Argentino de Quilmes",
-      "away_team": "Club Atletico Talleres Remedios de Escalada",
-      "league": "Argentina Primera B Metropolitana",
-      "start_time": 1783267200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732607203",
-          "event_league_id": 955407,
-          "home_odds": 2.86,
-          "draw_odds": 2.76,
-          "away_odds": 2.51
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10678126,
-          "event_league_id": 1066099,
-          "home_odds": 2.81,
-          "draw_odds": 2.71,
-          "away_odds": 2.47
-        }
-      ]
-    },
-    {
-      "home_team": "CSyD Flandria",
-      "away_team": "Deportivo Laferrere",
-      "league": "Argentina Primera B Metropolitana",
-      "start_time": 1783188000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732607206",
-          "event_league_id": 955407,
-          "home_odds": 2.68,
-          "draw_odds": 2.77,
+          "event_id": "731680457",
+          "event_league_id": 176125,
+          "home_odds": 2.66,
+          "draw_odds": 3.48,
           "away_odds": 2.66
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10678125,
-          "event_league_id": 1066099,
-          "home_odds": 2.63,
-          "draw_odds": 2.72,
+          "event_id": 10636526,
+          "event_league_id": 1066176,
+          "home_odds": 2.61,
+          "draw_odds": 3.41,
           "away_odds": 2.61
         }
       ]
     },
     {
-      "home_team": "Defensores Unidos",
-      "away_team": "Argentino de Merlo",
-      "league": "Argentina Primera B Metropolitana",
-      "start_time": 1783274400,
+      "home_team": "Lokomotiv Moscow",
+      "away_team": "CSKA Moscow",
+      "league": "Russian Cup",
+      "start_time": 1785855600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732602125",
-          "event_league_id": 955407,
-          "home_odds": 3.525,
-          "draw_odds": 2.9,
-          "away_odds": 2.24
+          "event_id": "731680813",
+          "event_league_id": 176125,
+          "home_odds": 2.64,
+          "draw_odds": 3.55,
+          "away_odds": 2.64
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10678129,
-          "event_league_id": 1066099,
-          "home_odds": 3.46,
-          "draw_odds": 2.85,
-          "away_odds": 2.2
-        }
-      ]
-    },
-    {
-      "home_team": "Chapecoense",
-      "away_team": "Cruzeiro Esporte Clube",
-      "league": "Brazil Copa do Brasil",
-      "start_time": 1785618000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "725303412",
-          "event_league_id": 120013,
-          "home_odds": 3.645,
-          "draw_odds": 3.28,
-          "away_odds": 2.086
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10353316,
-          "event_league_id": 1068264,
-          "home_odds": 3.58,
-          "draw_odds": 3.22,
-          "away_odds": 2.05
-        }
-      ]
-    },
-    {
-      "home_team": "Mirassol",
-      "away_team": "Gremio Porto Alegrense",
-      "league": "Brazil Copa do Brasil",
-      "start_time": 1785618000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "725303982",
-          "event_league_id": 120013,
-          "home_odds": 2.29,
-          "draw_odds": 3.18,
-          "away_odds": 3.16
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10353314,
-          "event_league_id": 1068264,
-          "home_odds": 2.25,
-          "draw_odds": 3.12,
-          "away_odds": 3.1
-        }
-      ]
-    },
-    {
-      "home_team": "Clube Atletico Paranaense",
-      "away_team": "EC Vitoria Salvador",
-      "league": "Brazil Copa do Brasil",
-      "start_time": 1785618000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "725300412",
-          "event_league_id": 120013,
-          "home_odds": 1.901,
-          "draw_odds": 3.335,
-          "away_odds": 4.295
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10353311,
-          "event_league_id": 1068264,
-          "home_odds": 1.87,
-          "draw_odds": 3.27,
-          "away_odds": 4.2
-        }
-      ]
-    },
-    {
-      "home_team": "Sport Club Internacional",
-      "away_team": "Corinthians Paulista",
-      "league": "Brazil Copa do Brasil",
-      "start_time": 1785618000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "725301526",
-          "event_league_id": 120013,
-          "home_odds": 2.17,
-          "draw_odds": 3.2,
-          "away_odds": 3.405
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10353315,
-          "event_league_id": 1068264,
-          "home_odds": 2.13,
-          "draw_odds": 3.14,
-          "away_odds": 3.34
-        }
-      ]
-    },
-    {
-      "home_team": "Sociedade Esportiva Palmeiras",
-      "away_team": "Fortaleza EC",
-      "league": "Brazil Copa do Brasil",
-      "start_time": 1785610800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "725302269",
-          "event_league_id": 120013,
-          "home_odds": 1.295,
-          "draw_odds": 4.85,
-          "away_odds": 11.5
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10353317,
-          "event_league_id": 1068264,
-          "home_odds": 1.27,
-          "draw_odds": 4.8,
-          "away_odds": 11.3
-        }
-      ]
-    },
-    {
-      "home_team": "Clube Atletico Mineiro",
-      "away_team": "Esporte Clube Juventude",
-      "league": "Brazil Copa do Brasil",
-      "start_time": 1785623400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "725300409",
-          "event_league_id": 120013,
-          "home_odds": 1.409,
-          "draw_odds": 4.305,
-          "away_odds": 8.6
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10353310,
-          "event_league_id": 1068264,
-          "home_odds": 1.38,
-          "draw_odds": 4.2,
-          "away_odds": 8.4
+          "event_id": 10636528,
+          "event_league_id": 1066176,
+          "home_odds": 2.59,
+          "draw_odds": 3.48,
+          "away_odds": 2.59
         }
       ]
     },
@@ -9023,74 +8543,338 @@
       ]
     },
     {
-      "home_team": "Chungbuk Cheongju",
-      "away_team": "Daegu",
-      "league": "South Korea K League 2",
-      "start_time": 1783161000,
+      "home_team": "Dock Sud",
+      "away_team": "Excursionistas",
+      "league": "Argentina Primera B Metropolitana",
+      "start_time": 1783188000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732262589",
-          "event_league_id": 33137,
-          "home_odds": 4.22,
-          "draw_odds": 3.6,
-          "away_odds": 1.71
+          "event_id": "732602116",
+          "event_league_id": 955407,
+          "home_odds": 4.02,
+          "draw_odds": 3.0,
+          "away_odds": 2.02
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10665563,
-          "event_league_id": 1066141,
-          "home_odds": 4.1,
-          "draw_odds": 3.54,
-          "away_odds": 1.68
+          "event_id": 10678127,
+          "event_league_id": 1066099,
+          "home_odds": 3.95,
+          "draw_odds": 2.95,
+          "away_odds": 1.98
         }
       ]
     },
     {
-      "home_team": "Gimhae City",
-      "away_team": "Seoul E-Land",
-      "league": "South Korea K League 2",
-      "start_time": 1783247400,
+      "home_team": "Defensores Unidos",
+      "away_team": "Argentino de Merlo",
+      "league": "Argentina Primera B Metropolitana",
+      "start_time": 1783274400,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732516246",
-          "event_league_id": 33137,
-          "home_odds": 5.16,
-          "draw_odds": 3.9,
-          "away_odds": 1.54
+          "event_id": "732614021",
+          "event_league_id": 955407,
+          "home_odds": 3.5,
+          "draw_odds": 2.85,
+          "away_odds": 2.16
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10674301,
-          "event_league_id": 1066141,
-          "home_odds": 5.1,
-          "draw_odds": 3.83,
-          "away_odds": 1.51
+          "event_id": 10678129,
+          "event_league_id": 1066099,
+          "home_odds": 3.44,
+          "draw_odds": 2.78,
+          "away_odds": 2.13
         }
       ]
     },
     {
-      "home_team": "Jeonnam Dragons",
-      "away_team": "Busan IPark",
-      "league": "South Korea K League 2",
-      "start_time": 1783247400,
+      "home_team": "Atletico Camioneros",
+      "away_team": "UAI Urquiza",
+      "league": "Argentina Primera B Metropolitana",
+      "start_time": 1783188000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732516254",
-          "event_league_id": 33137,
-          "home_odds": 3.345,
-          "draw_odds": 3.35,
-          "away_odds": 1.99
+          "event_id": "732611897",
+          "event_league_id": 955407,
+          "home_odds": 1.747,
+          "draw_odds": 2.94,
+          "away_odds": 5.36
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10674299,
-          "event_league_id": 1066141,
-          "home_odds": 3.29,
-          "draw_odds": 3.29,
-          "away_odds": 1.95
+          "event_id": 10678128,
+          "event_league_id": 1066099,
+          "home_odds": 1.72,
+          "draw_odds": 2.89,
+          "away_odds": 5.3
+        }
+      ]
+    },
+    {
+      "home_team": "San Martin de Burzaco",
+      "away_team": "Deportivo Liniers",
+      "league": "Argentina Primera B Metropolitana",
+      "start_time": 1783274400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732611900",
+          "event_league_id": 955407,
+          "home_odds": 2.43,
+          "draw_odds": 2.74,
+          "away_odds": 3.09
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10678132,
+          "event_league_id": 1066099,
+          "home_odds": 2.39,
+          "draw_odds": 2.69,
+          "away_odds": 3.03
+        }
+      ]
+    },
+    {
+      "home_team": "Sportivo Italiano",
+      "away_team": "Real Pilar",
+      "league": "Argentina Primera B Metropolitana",
+      "start_time": 1783267200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732611894",
+          "event_league_id": 955407,
+          "home_odds": 2.7,
+          "draw_odds": 2.74,
+          "away_odds": 2.67
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10678131,
+          "event_league_id": 1066099,
+          "home_odds": 2.65,
+          "draw_odds": 2.69,
+          "away_odds": 2.62
+        }
+      ]
+    },
+    {
+      "home_team": "CSyD Flandria",
+      "away_team": "Deportivo Laferrere",
+      "league": "Argentina Primera B Metropolitana",
+      "start_time": 1783188000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732607206",
+          "event_league_id": 955407,
+          "home_odds": 2.71,
+          "draw_odds": 2.77,
+          "away_odds": 2.63
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10678125,
+          "event_league_id": 1066099,
+          "home_odds": 2.66,
+          "draw_odds": 2.72,
+          "away_odds": 2.58
+        }
+      ]
+    },
+    {
+      "home_team": "Argentino de Quilmes",
+      "away_team": "Club Atletico Talleres Remedios de Escalada",
+      "league": "Argentina Primera B Metropolitana",
+      "start_time": 1783267200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732607203",
+          "event_league_id": 955407,
+          "home_odds": 2.86,
+          "draw_odds": 2.76,
+          "away_odds": 2.51
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10678126,
+          "event_league_id": 1066099,
+          "home_odds": 2.81,
+          "draw_odds": 2.71,
+          "away_odds": 2.47
+        }
+      ]
+    },
+    {
+      "home_team": "Club Comunicaciones",
+      "away_team": "Arsenal de Sarandi",
+      "league": "Argentina Primera B Metropolitana",
+      "start_time": 1783188000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732607200",
+          "event_league_id": 955407,
+          "home_odds": 3.72,
+          "draw_odds": 2.9,
+          "away_odds": 2.06
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10678124,
+          "event_league_id": 1066099,
+          "home_odds": 3.65,
+          "draw_odds": 2.85,
+          "away_odds": 2.02
+        }
+      ]
+    },
+    {
+      "home_team": "Mirassol",
+      "away_team": "Gremio Porto Alegrense",
+      "league": "Brazil Copa do Brasil",
+      "start_time": 1785618000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "725303982",
+          "event_league_id": 120013,
+          "home_odds": 2.29,
+          "draw_odds": 3.18,
+          "away_odds": 3.16
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10353314,
+          "event_league_id": 1068264,
+          "home_odds": 2.25,
+          "draw_odds": 3.12,
+          "away_odds": 3.1
+        }
+      ]
+    },
+    {
+      "home_team": "Sport Club Internacional",
+      "away_team": "Corinthians Paulista",
+      "league": "Brazil Copa do Brasil",
+      "start_time": 1785618000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "725301526",
+          "event_league_id": 120013,
+          "home_odds": 2.17,
+          "draw_odds": 3.2,
+          "away_odds": 3.405
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10353315,
+          "event_league_id": 1068264,
+          "home_odds": 2.13,
+          "draw_odds": 3.14,
+          "away_odds": 3.34
+        }
+      ]
+    },
+    {
+      "home_team": "Clube Atletico Paranaense",
+      "away_team": "EC Vitoria Salvador",
+      "league": "Brazil Copa do Brasil",
+      "start_time": 1785618000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "725300412",
+          "event_league_id": 120013,
+          "home_odds": 1.901,
+          "draw_odds": 3.335,
+          "away_odds": 4.295
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10353311,
+          "event_league_id": 1068264,
+          "home_odds": 1.87,
+          "draw_odds": 3.27,
+          "away_odds": 4.2
+        }
+      ]
+    },
+    {
+      "home_team": "Chapecoense",
+      "away_team": "Cruzeiro Esporte Clube",
+      "league": "Brazil Copa do Brasil",
+      "start_time": 1785618000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "725303412",
+          "event_league_id": 120013,
+          "home_odds": 3.645,
+          "draw_odds": 3.28,
+          "away_odds": 2.086
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10353316,
+          "event_league_id": 1068264,
+          "home_odds": 3.58,
+          "draw_odds": 3.22,
+          "away_odds": 2.05
+        }
+      ]
+    },
+    {
+      "home_team": "Clube Atletico Mineiro",
+      "away_team": "Esporte Clube Juventude",
+      "league": "Brazil Copa do Brasil",
+      "start_time": 1785623400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "725300409",
+          "event_league_id": 120013,
+          "home_odds": 1.409,
+          "draw_odds": 4.305,
+          "away_odds": 8.6
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10353310,
+          "event_league_id": 1068264,
+          "home_odds": 1.38,
+          "draw_odds": 4.2,
+          "away_odds": 8.4
+        }
+      ]
+    },
+    {
+      "home_team": "Sociedade Esportiva Palmeiras",
+      "away_team": "Fortaleza EC",
+      "league": "Brazil Copa do Brasil",
+      "start_time": 1785610800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "725302269",
+          "event_league_id": 120013,
+          "home_odds": 1.295,
+          "draw_odds": 4.85,
+          "away_odds": 11.5
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10353317,
+          "event_league_id": 1068264,
+          "home_odds": 1.27,
+          "draw_odds": 4.8,
+          "away_odds": 11.3
         }
       ]
     },
@@ -9143,26 +8927,74 @@
       ]
     },
     {
-      "home_team": "Paju Frontier",
-      "away_team": "Yongin City",
+      "home_team": "Gimhae City",
+      "away_team": "Seoul E-Land",
+      "league": "South Korea K League 2",
+      "start_time": 1783247400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732516246",
+          "event_league_id": 33137,
+          "home_odds": 5.16,
+          "draw_odds": 3.9,
+          "away_odds": 1.54
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10674301,
+          "event_league_id": 1066141,
+          "home_odds": 5.1,
+          "draw_odds": 3.83,
+          "away_odds": 1.51
+        }
+      ]
+    },
+    {
+      "home_team": "Chungbuk Cheongju",
+      "away_team": "Daegu",
       "league": "South Korea K League 2",
       "start_time": 1783161000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732262582",
+          "event_id": "732262589",
           "event_league_id": 33137,
-          "home_odds": 2.67,
-          "draw_odds": 3.15,
-          "away_odds": 2.39
+          "home_odds": 4.22,
+          "draw_odds": 3.6,
+          "away_odds": 1.71
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10665564,
+          "event_id": 10665563,
           "event_league_id": 1066141,
-          "home_odds": 2.62,
-          "draw_odds": 3.09,
-          "away_odds": 2.35
+          "home_odds": 4.1,
+          "draw_odds": 3.54,
+          "away_odds": 1.68
+        }
+      ]
+    },
+    {
+      "home_team": "Suwon Samsung Bluewings",
+      "away_team": "Seongnam",
+      "league": "South Korea K League 2",
+      "start_time": 1783161000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732262586",
+          "event_league_id": 33137,
+          "home_odds": 1.84,
+          "draw_odds": 3.2,
+          "away_odds": 4.125
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10665572,
+          "event_league_id": 1066141,
+          "home_odds": 1.81,
+          "draw_odds": 3.14,
+          "away_odds": 4.1
         }
       ]
     },
@@ -9191,25 +9023,265 @@
       ]
     },
     {
-      "home_team": "Suwon Samsung Bluewings",
-      "away_team": "Seongnam",
+      "home_team": "Paju Frontier",
+      "away_team": "Yongin City",
       "league": "South Korea K League 2",
       "start_time": 1783161000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732262586",
+          "event_id": "732262582",
           "event_league_id": 33137,
-          "home_odds": 1.84,
-          "draw_odds": 3.2,
-          "away_odds": 4.125
+          "home_odds": 2.67,
+          "draw_odds": 3.15,
+          "away_odds": 2.39
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10665572,
+          "event_id": 10665564,
           "event_league_id": 1066141,
-          "home_odds": 1.81,
-          "draw_odds": 3.14,
+          "home_odds": 2.62,
+          "draw_odds": 3.09,
+          "away_odds": 2.35
+        }
+      ]
+    },
+    {
+      "home_team": "Jeonnam Dragons",
+      "away_team": "Busan IPark",
+      "league": "South Korea K League 2",
+      "start_time": 1783247400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732516254",
+          "event_league_id": 33137,
+          "home_odds": 3.345,
+          "draw_odds": 3.35,
+          "away_odds": 1.99
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10674299,
+          "event_league_id": 1066141,
+          "home_odds": 3.29,
+          "draw_odds": 3.29,
+          "away_odds": 1.95
+        }
+      ]
+    },
+    {
+      "home_team": "Oriental II",
+      "away_team": "Nacional Montevideo II",
+      "league": "Uruguay Reserve League",
+      "start_time": 1782756000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732592444",
+          "event_league_id": 29597,
+          "home_odds": 9.15,
+          "draw_odds": 3.98,
+          "away_odds": 1.35
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677751,
+          "event_league_id": 1065966,
+          "home_odds": 9.0,
+          "draw_odds": 3.91,
+          "away_odds": 1.33
+        }
+      ]
+    },
+    {
+      "home_team": "Deportivo Maldonado II",
+      "away_team": "Club Atletico Boston River II",
+      "league": "Uruguay Reserve League",
+      "start_time": 1782741600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732592441",
+          "event_league_id": 29597,
+          "home_odds": 3.02,
+          "draw_odds": 3.38,
+          "away_odds": 2.11
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677747,
+          "event_league_id": 1065966,
+          "home_odds": 2.97,
+          "draw_odds": 3.32,
+          "away_odds": 2.07
+        }
+      ]
+    },
+    {
+      "home_team": "Cerro Largo II",
+      "away_team": "Montevideo Wanderers II",
+      "league": "Uruguay Reserve League",
+      "start_time": 1782756000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732592438",
+          "event_league_id": 29597,
+          "home_odds": 3.22,
+          "draw_odds": 3.56,
+          "away_odds": 1.96
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677750,
+          "event_league_id": 1065966,
+          "home_odds": 3.16,
+          "draw_odds": 3.5,
+          "away_odds": 1.93
+        }
+      ]
+    },
+    {
+      "home_team": "Racing Club de Montevideo II",
+      "away_team": "Progreso II",
+      "league": "Uruguay Reserve League",
+      "start_time": 1782741600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732592447",
+          "event_league_id": 29597,
+          "home_odds": 2.05,
+          "draw_odds": 3.24,
+          "away_odds": 3.285
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677749,
+          "event_league_id": 1065966,
+          "home_odds": 2.01,
+          "draw_odds": 3.18,
+          "away_odds": 3.23
+        }
+      ]
+    },
+    {
+      "home_team": "Albion Montevideo II",
+      "away_team": "Colon II",
+      "league": "Uruguay Reserve League",
+      "start_time": 1782738000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732592450",
+          "event_league_id": 29597,
+          "home_odds": 1.97,
+          "draw_odds": 3.34,
+          "away_odds": 3.39
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677746,
+          "event_league_id": 1065966,
+          "home_odds": 1.93,
+          "draw_odds": 3.28,
+          "away_odds": 3.33
+        }
+      ]
+    },
+    {
+      "home_team": "River Plate Montevideo II",
+      "away_team": "Juventud de Las Piedras II",
+      "league": "Uruguay Reserve League",
+      "start_time": 1782734400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732592019",
+          "event_league_id": 29597,
+          "home_odds": 3.51,
+          "draw_odds": 3.45,
+          "away_odds": 1.9
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677748,
+          "event_league_id": 1065966,
+          "home_odds": 3.45,
+          "draw_odds": 3.39,
+          "away_odds": 1.87
+        }
+      ]
+    },
+    {
+      "home_team": "Central Espanol II",
+      "away_team": "La Luz II",
+      "league": "Uruguay Reserve League",
+      "start_time": 1782838800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732610417",
+          "event_league_id": 29597,
+          "home_odds": 2.852,
+          "draw_odds": 3.125,
+          "away_odds": 2.32
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677753,
+          "event_league_id": 1065966,
+          "home_odds": 2.8,
+          "draw_odds": 3.07,
+          "away_odds": 2.28
+        }
+      ]
+    },
+    {
+      "home_team": "Penarol II",
+      "away_team": "Liverpool Montevideo II",
+      "league": "Uruguay Reserve League",
+      "start_time": 1782824400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732617591",
+          "event_league_id": 29597,
+          "home_odds": 1.79,
+          "draw_odds": 3.58,
+          "away_odds": 3.79
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10678182,
+          "event_league_id": 1065966,
+          "home_odds": 1.76,
+          "draw_odds": 3.52,
+          "away_odds": 3.72
+        }
+      ]
+    },
+    {
+      "home_team": "Seoul",
+      "away_team": "Incheon United",
+      "league": "South Korea K League 1",
+      "start_time": 1783247400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732505321",
+          "event_league_id": 30467,
+          "home_odds": 1.86,
+          "draw_odds": 3.48,
+          "away_odds": 4.13
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10673872,
+          "event_league_id": 1066139,
+          "home_odds": 1.83,
+          "draw_odds": 3.42,
           "away_odds": 4.1
         }
       ]
@@ -9239,26 +9311,26 @@
       ]
     },
     {
-      "home_team": "Anyang",
-      "away_team": "Pohang Steelers",
+      "home_team": "Jeonbuk Hyundai Motors",
+      "away_team": "Gangwon",
       "league": "South Korea K League 1",
       "start_time": 1783161000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732254864",
+          "event_id": "732254867",
           "event_league_id": 30467,
-          "home_odds": 2.875,
-          "draw_odds": 2.99,
-          "away_odds": 2.56
+          "home_odds": 2.28,
+          "draw_odds": 3.02,
+          "away_odds": 3.36
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10665297,
+          "event_id": 10665295,
           "event_league_id": 1066139,
-          "home_odds": 2.82,
-          "draw_odds": 2.94,
-          "away_odds": 2.51
+          "home_odds": 2.24,
+          "draw_odds": 2.96,
+          "away_odds": 3.3
         }
       ]
     },
@@ -9287,50 +9359,26 @@
       ]
     },
     {
-      "home_team": "Jeonbuk Hyundai Motors",
-      "away_team": "Gangwon",
+      "home_team": "Anyang",
+      "away_team": "Pohang Steelers",
       "league": "South Korea K League 1",
       "start_time": 1783161000,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732254867",
+          "event_id": "732254864",
           "event_league_id": 30467,
-          "home_odds": 2.28,
-          "draw_odds": 3.02,
-          "away_odds": 3.36
+          "home_odds": 2.875,
+          "draw_odds": 2.99,
+          "away_odds": 2.56
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10665295,
+          "event_id": 10665297,
           "event_league_id": 1066139,
-          "home_odds": 2.24,
-          "draw_odds": 2.96,
-          "away_odds": 3.3
-        }
-      ]
-    },
-    {
-      "home_team": "Seoul",
-      "away_team": "Incheon United",
-      "league": "South Korea K League 1",
-      "start_time": 1783247400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732505321",
-          "event_league_id": 30467,
-          "home_odds": 1.86,
-          "draw_odds": 3.48,
-          "away_odds": 4.13
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10673872,
-          "event_league_id": 1066139,
-          "home_odds": 1.83,
-          "draw_odds": 3.42,
-          "away_odds": 4.1
+          "home_odds": 2.82,
+          "draw_odds": 2.94,
+          "away_odds": 2.51
         }
       ]
     },
@@ -9355,366 +9403,6 @@
           "home_odds": 6.7,
           "draw_odds": 4.2,
           "away_odds": 1.43
-        }
-      ]
-    },
-    {
-      "home_team": "Penarol II",
-      "away_team": "Liverpool Montevideo II",
-      "league": "Uruguay Reserve League",
-      "start_time": 1782824400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732605125",
-          "event_league_id": 29597,
-          "home_odds": 1.687,
-          "draw_odds": 3.8,
-          "away_odds": 4.35
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10678182,
-          "event_league_id": 1065966,
-          "home_odds": 1.66,
-          "draw_odds": 3.73,
-          "away_odds": 4.3
-        }
-      ]
-    },
-    {
-      "home_team": "Deportivo Maldonado II",
-      "away_team": "Club Atletico Boston River II",
-      "league": "Uruguay Reserve League",
-      "start_time": 1782741600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732592441",
-          "event_league_id": 29597,
-          "home_odds": 2.949,
-          "draw_odds": 3.42,
-          "away_odds": 2.13
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677747,
-          "event_league_id": 1065966,
-          "home_odds": 2.9,
-          "draw_odds": 3.36,
-          "away_odds": 2.09
-        }
-      ]
-    },
-    {
-      "home_team": "River Plate Montevideo II",
-      "away_team": "Juventud de Las Piedras II",
-      "league": "Uruguay Reserve League",
-      "start_time": 1782734400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732592019",
-          "event_league_id": 29597,
-          "home_odds": 3.51,
-          "draw_odds": 3.45,
-          "away_odds": 1.9
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677748,
-          "event_league_id": 1065966,
-          "home_odds": 3.45,
-          "draw_odds": 3.39,
-          "away_odds": 1.87
-        }
-      ]
-    },
-    {
-      "home_team": "Racing Club de Montevideo II",
-      "away_team": "Progreso II",
-      "league": "Uruguay Reserve League",
-      "start_time": 1782741600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732592447",
-          "event_league_id": 29597,
-          "home_odds": 2.05,
-          "draw_odds": 3.22,
-          "away_odds": 3.305
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677749,
-          "event_league_id": 1065966,
-          "home_odds": 2.01,
-          "draw_odds": 3.16,
-          "away_odds": 3.25
-        }
-      ]
-    },
-    {
-      "home_team": "Albion Montevideo II",
-      "away_team": "Colon II",
-      "league": "Uruguay Reserve League",
-      "start_time": 1782738000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732592450",
-          "event_league_id": 29597,
-          "home_odds": 1.94,
-          "draw_odds": 3.38,
-          "away_odds": 3.45
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677746,
-          "event_league_id": 1065966,
-          "home_odds": 1.91,
-          "draw_odds": 3.32,
-          "away_odds": 3.39
-        }
-      ]
-    },
-    {
-      "home_team": "Cerro Largo II",
-      "away_team": "Montevideo Wanderers II",
-      "league": "Uruguay Reserve League",
-      "start_time": 1782756000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732592438",
-          "event_league_id": 29597,
-          "home_odds": 3.185,
-          "draw_odds": 3.54,
-          "away_odds": 1.98
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677750,
-          "event_league_id": 1065966,
-          "home_odds": 3.13,
-          "draw_odds": 3.48,
-          "away_odds": 1.94
-        }
-      ]
-    },
-    {
-      "home_team": "Central Espanol II",
-      "away_team": "La Luz II",
-      "league": "Uruguay Reserve League",
-      "start_time": 1782838800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732590757",
-          "event_league_id": 29597,
-          "home_odds": 2.75,
-          "draw_odds": 3.2,
-          "away_odds": 2.37
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677753,
-          "event_league_id": 1065966,
-          "home_odds": 2.7,
-          "draw_odds": 3.14,
-          "away_odds": 2.33
-        }
-      ]
-    },
-    {
-      "home_team": "Oriental II",
-      "away_team": "Nacional Montevideo II",
-      "league": "Uruguay Reserve League",
-      "start_time": 1782756000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732592444",
-          "event_league_id": 29597,
-          "home_odds": 8.95,
-          "draw_odds": 3.92,
-          "away_odds": 1.36
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677751,
-          "event_league_id": 1065966,
-          "home_odds": 8.8,
-          "draw_odds": 3.85,
-          "away_odds": 1.34
-        }
-      ]
-    },
-    {
-      "home_team": "Dikaki",
-      "away_team": "Lambarene Athletic",
-      "league": "Gabon Championnat D1",
-      "start_time": 1782824400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732461676",
-          "event_league_id": 597869,
-          "home_odds": 5.88,
-          "draw_odds": 4.56,
-          "away_odds": 1.39
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10672559,
-          "event_league_id": 1087181,
-          "home_odds": 5.8,
-          "draw_odds": 4.5,
-          "away_odds": 1.37
-        }
-      ]
-    },
-    {
-      "home_team": "Cercle Mberi Sportif",
-      "away_team": "Ogooue",
-      "league": "Gabon Championnat D1",
-      "start_time": 1782829800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732461980",
-          "event_league_id": 597869,
-          "home_odds": 3.485,
-          "draw_odds": 3.2,
-          "away_odds": 1.96
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10672564,
-          "event_league_id": 1087181,
-          "home_odds": 3.42,
-          "draw_odds": 3.14,
-          "away_odds": 1.93
-        }
-      ]
-    },
-    {
-      "home_team": "Oyem",
-      "away_team": "Lozo",
-      "league": "Gabon Championnat D1",
-      "start_time": 1782824400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732461677",
-          "event_league_id": 597869,
-          "home_odds": 1.53,
-          "draw_odds": 3.72,
-          "away_odds": 5.27
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10672558,
-          "event_league_id": 1087181,
-          "home_odds": 1.5,
-          "draw_odds": 3.65,
-          "away_odds": 5.2
-        }
-      ]
-    },
-    {
-      "home_team": "Bitam",
-      "away_team": "Bouenguidi",
-      "league": "Gabon Championnat D1",
-      "start_time": 1782829800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732461678",
-          "event_league_id": 597869,
-          "home_odds": 3.535,
-          "draw_odds": 3.55,
-          "away_odds": 1.83
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10672563,
-          "event_league_id": 1087181,
-          "home_odds": 3.47,
-          "draw_odds": 3.49,
-          "away_odds": 1.8
-        }
-      ]
-    },
-    {
-      "home_team": "AS Mangasport",
-      "away_team": "Vantour Mangoungou",
-      "league": "Gabon Championnat D1",
-      "start_time": 1782831600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732461981",
-          "event_league_id": 597869,
-          "home_odds": 1.36,
-          "draw_odds": 4.18,
-          "away_odds": 7.41
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10672561,
-          "event_league_id": 1087181,
-          "home_odds": 1.34,
-          "draw_odds": 4.1,
-          "away_odds": 7.3
-        }
-      ]
-    },
-    {
-      "home_team": "Stade Migoveen",
-      "away_team": "AS Stade Mandji",
-      "league": "Gabon Championnat D1",
-      "start_time": 1782831600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732461982",
-          "event_league_id": 597869,
-          "home_odds": 8.95,
-          "draw_odds": 5.33,
-          "away_odds": 1.23
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10672562,
-          "event_league_id": 1087181,
-          "home_odds": 8.8,
-          "draw_odds": 5.2,
-          "away_odds": 1.21
-        }
-      ]
-    },
-    {
-      "home_team": "Canon 105 de Libreville",
-      "away_team": "US Oyem",
-      "league": "Gabon Championnat D1",
-      "start_time": 1782829800,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732461979",
-          "event_league_id": 597869,
-          "home_odds": 2.26,
-          "draw_odds": 3.41,
-          "away_odds": 2.58
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10672560,
-          "event_league_id": 1087181,
-          "home_odds": 2.22,
-          "draw_odds": 3.35,
-          "away_odds": 2.53
         }
       ]
     },
@@ -9863,6 +9551,174 @@
       ]
     },
     {
+      "home_team": "Stade Migoveen",
+      "away_team": "AS Stade Mandji",
+      "league": "Gabon Championnat D1",
+      "start_time": 1782831600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732461982",
+          "event_league_id": 597869,
+          "home_odds": 8.95,
+          "draw_odds": 5.33,
+          "away_odds": 1.23
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10672562,
+          "event_league_id": 1087181,
+          "home_odds": 8.8,
+          "draw_odds": 5.2,
+          "away_odds": 1.21
+        }
+      ]
+    },
+    {
+      "home_team": "Cercle Mberi Sportif",
+      "away_team": "Ogooue",
+      "league": "Gabon Championnat D1",
+      "start_time": 1782829800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732461980",
+          "event_league_id": 597869,
+          "home_odds": 3.485,
+          "draw_odds": 3.2,
+          "away_odds": 1.96
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10672564,
+          "event_league_id": 1087181,
+          "home_odds": 3.42,
+          "draw_odds": 3.14,
+          "away_odds": 1.93
+        }
+      ]
+    },
+    {
+      "home_team": "AS Mangasport",
+      "away_team": "Vantour Mangoungou",
+      "league": "Gabon Championnat D1",
+      "start_time": 1782831600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732461981",
+          "event_league_id": 597869,
+          "home_odds": 1.36,
+          "draw_odds": 4.18,
+          "away_odds": 7.41
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10672561,
+          "event_league_id": 1087181,
+          "home_odds": 1.34,
+          "draw_odds": 4.1,
+          "away_odds": 7.3
+        }
+      ]
+    },
+    {
+      "home_team": "Bitam",
+      "away_team": "Bouenguidi",
+      "league": "Gabon Championnat D1",
+      "start_time": 1782829800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732461678",
+          "event_league_id": 597869,
+          "home_odds": 3.535,
+          "draw_odds": 3.55,
+          "away_odds": 1.83
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10672563,
+          "event_league_id": 1087181,
+          "home_odds": 3.47,
+          "draw_odds": 3.49,
+          "away_odds": 1.8
+        }
+      ]
+    },
+    {
+      "home_team": "Dikaki",
+      "away_team": "Lambarene Athletic",
+      "league": "Gabon Championnat D1",
+      "start_time": 1782824400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732461676",
+          "event_league_id": 597869,
+          "home_odds": 5.88,
+          "draw_odds": 4.56,
+          "away_odds": 1.39
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10672559,
+          "event_league_id": 1087181,
+          "home_odds": 5.8,
+          "draw_odds": 4.5,
+          "away_odds": 1.37
+        }
+      ]
+    },
+    {
+      "home_team": "Oyem",
+      "away_team": "Lozo",
+      "league": "Gabon Championnat D1",
+      "start_time": 1782824400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732461677",
+          "event_league_id": 597869,
+          "home_odds": 1.53,
+          "draw_odds": 3.72,
+          "away_odds": 5.27
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10672558,
+          "event_league_id": 1087181,
+          "home_odds": 1.5,
+          "draw_odds": 3.65,
+          "away_odds": 5.2
+        }
+      ]
+    },
+    {
+      "home_team": "Canon 105 de Libreville",
+      "away_team": "US Oyem",
+      "league": "Gabon Championnat D1",
+      "start_time": 1782829800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732461979",
+          "event_league_id": 597869,
+          "home_odds": 2.26,
+          "draw_odds": 3.41,
+          "away_odds": 2.58
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10672560,
+          "event_league_id": 1087181,
+          "home_odds": 2.22,
+          "draw_odds": 3.35,
+          "away_odds": 2.53
+        }
+      ]
+    },
+    {
       "home_team": "Auda",
       "away_team": "Riga FC",
       "league": "Latvia Virsliga",
@@ -9872,17 +9728,17 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "731800110",
           "event_league_id": 120501,
-          "home_odds": 6.23,
-          "draw_odds": 4.5,
-          "away_odds": 1.39
+          "home_odds": 6.86,
+          "draw_odds": 4.65,
+          "away_odds": 1.35
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10636145,
           "event_league_id": 1066152,
-          "home_odds": 6.1,
-          "draw_odds": 4.4,
-          "away_odds": 1.37
+          "home_odds": 6.7,
+          "draw_odds": 4.6,
+          "away_odds": 1.33
         }
       ]
     },
@@ -9944,17 +9800,17 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "731590548",
           "event_league_id": 1793101,
-          "home_odds": 1.57,
-          "draw_odds": 3.54,
-          "away_odds": 5.49
+          "home_odds": 1.56,
+          "draw_odds": 3.55,
+          "away_odds": 5.59
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10637397,
           "event_league_id": 1065984,
-          "home_odds": 1.54,
-          "draw_odds": 3.48,
-          "away_odds": 5.4
+          "home_odds": 1.53,
+          "draw_odds": 3.49,
+          "away_odds": 5.5
         }
       ]
     },
@@ -9968,65 +9824,17 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "731585071",
           "event_league_id": 1793101,
-          "home_odds": 1.9,
+          "home_odds": 1.91,
           "draw_odds": 3.1,
-          "away_odds": 3.95
+          "away_odds": 3.91
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10637353,
           "event_league_id": 1065984,
-          "home_odds": 1.87,
+          "home_odds": 1.88,
           "draw_odds": 3.04,
-          "away_odds": 3.88
-        }
-      ]
-    },
-    {
-      "home_team": "Volta Redonda",
-      "away_team": "Amazonas",
-      "league": "Brazil Campeonato Brasileiro S\u00e9rie C",
-      "start_time": 1782862200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731620152",
-          "event_league_id": 1793101,
-          "home_odds": 1.72,
-          "draw_odds": 3.2,
-          "away_odds": 4.805
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10637401,
-          "event_league_id": 1065984,
-          "home_odds": 1.68,
-          "draw_odds": 3.16,
-          "away_odds": 4.8
-        }
-      ]
-    },
-    {
-      "home_team": "S.E.R. Caxias do Sul",
-      "away_team": "An\u00e1polis",
-      "league": "Brazil Campeonato Brasileiro S\u00e9rie C",
-      "start_time": 1782858600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731599767",
-          "event_league_id": 1793101,
-          "home_odds": 1.51,
-          "draw_odds": 3.64,
-          "away_odds": 6.09
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10637400,
-          "event_league_id": 1065984,
-          "home_odds": 1.48,
-          "draw_odds": 3.58,
-          "away_odds": 6.0
+          "away_odds": 3.84
         }
       ]
     },
@@ -10055,50 +9863,314 @@
       ]
     },
     {
-      "home_team": "Longford Town",
-      "away_team": "University College Dublin",
-      "league": "Ireland Division 1",
-      "start_time": 1783189800,
+      "home_team": "S.E.R. Caxias do Sul",
+      "away_team": "An\u00e1polis",
+      "league": "Brazil Campeonato Brasileiro S\u00e9rie C",
+      "start_time": 1782858600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732354094",
-          "event_league_id": 29975,
-          "home_odds": 3.31,
-          "draw_odds": 3.42,
-          "away_odds": 1.98
+          "event_id": "731599767",
+          "event_league_id": 1793101,
+          "home_odds": 1.51,
+          "draw_odds": 3.64,
+          "away_odds": 6.09
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10668703,
-          "event_league_id": 1066095,
-          "home_odds": 3.25,
-          "draw_odds": 3.36,
-          "away_odds": 1.94
+          "event_id": 10637400,
+          "event_league_id": 1065984,
+          "home_odds": 1.48,
+          "draw_odds": 3.58,
+          "away_odds": 6.0
         }
       ]
     },
     {
-      "home_team": "Cobh Ramblers",
-      "away_team": "Cork City",
-      "league": "Ireland Division 1",
-      "start_time": 1783104300,
+      "home_team": "Volta Redonda",
+      "away_team": "Amazonas",
+      "league": "Brazil Campeonato Brasileiro S\u00e9rie C",
+      "start_time": 1782862200,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732097608",
-          "event_league_id": 29975,
-          "home_odds": 4.52,
-          "draw_odds": 3.62,
-          "away_odds": 1.66
+          "event_id": "731620152",
+          "event_league_id": 1793101,
+          "home_odds": 1.72,
+          "draw_odds": 3.2,
+          "away_odds": 4.805
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10659649,
-          "event_league_id": 1066095,
-          "home_odds": 4.4,
-          "draw_odds": 3.56,
-          "away_odds": 1.63
+          "event_id": 10637401,
+          "event_league_id": 1065984,
+          "home_odds": 1.69,
+          "draw_odds": 3.14,
+          "away_odds": 4.7
+        }
+      ]
+    },
+    {
+      "home_team": "Deportes Puerto Montt",
+      "away_team": "Club Deportes Concepcion",
+      "league": "Chile Cup",
+      "start_time": 1782691200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732292222",
+          "event_league_id": 86379,
+          "home_odds": 2.35,
+          "draw_odds": 3.18,
+          "away_odds": 2.7
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10666877,
+          "event_league_id": 1067524,
+          "home_odds": 2.31,
+          "draw_odds": 3.12,
+          "away_odds": 2.65
+        }
+      ]
+    },
+    {
+      "home_team": "Union Espanola",
+      "away_team": "Colo-Colo",
+      "league": "Chile Cup",
+      "start_time": 1782775800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732581793",
+          "event_league_id": 86379,
+          "home_odds": 3.845,
+          "draw_odds": 3.52,
+          "away_odds": 1.8
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677445,
+          "event_league_id": 1067524,
+          "home_odds": 3.78,
+          "draw_odds": 3.46,
+          "away_odds": 1.77
+        }
+      ]
+    },
+    {
+      "home_team": "Audax Italiano",
+      "away_team": "Palestino",
+      "league": "Chile Cup",
+      "start_time": 1782856800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732585151",
+          "event_league_id": 86379,
+          "home_odds": 2.32,
+          "draw_odds": 3.3,
+          "away_odds": 2.922
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677491,
+          "event_league_id": 1067524,
+          "home_odds": 2.28,
+          "draw_odds": 3.24,
+          "away_odds": 2.87
+        }
+      ]
+    },
+    {
+      "home_team": "Cobresal",
+      "away_team": "Deportes La Serena",
+      "league": "Chile Cup",
+      "start_time": 1782943200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732585157",
+          "event_league_id": 86379,
+          "home_odds": 1.7,
+          "draw_odds": 3.5,
+          "away_odds": 4.975
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677494,
+          "event_league_id": 1067524,
+          "home_odds": 1.67,
+          "draw_odds": 3.44,
+          "away_odds": 4.9
+        }
+      ]
+    },
+    {
+      "home_team": "Deportes Limache",
+      "away_team": "Coquimbo Unido",
+      "league": "Chile Cup",
+      "start_time": 1782943200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732585160",
+          "event_league_id": 86379,
+          "home_odds": 3.61,
+          "draw_odds": 3.3,
+          "away_odds": 2.02
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677492,
+          "event_league_id": 1067524,
+          "home_odds": 3.54,
+          "draw_odds": 3.24,
+          "away_odds": 1.98
+        }
+      ]
+    },
+    {
+      "home_team": "Universidad Catolica Santiago",
+      "away_team": "Everton de Vina del Mar",
+      "league": "Chile Cup",
+      "start_time": 1782865800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732585154",
+          "event_league_id": 86379,
+          "home_odds": 1.57,
+          "draw_odds": 4.1,
+          "away_odds": 5.14
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677490,
+          "event_league_id": 1067524,
+          "home_odds": 1.54,
+          "draw_odds": 4.0,
+          "away_odds": 5.0
+        }
+      ]
+    },
+    {
+      "home_team": "Hafnarfjordur",
+      "away_team": "Stjarnan",
+      "league": "Iceland Urvalsdeild",
+      "start_time": 1783106100,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732578369",
+          "event_league_id": 31504,
+          "home_odds": 2.31,
+          "draw_odds": 3.95,
+          "away_odds": 2.54
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677410,
+          "event_league_id": 1065977,
+          "home_odds": 2.52,
+          "draw_odds": 3.77,
+          "away_odds": 2.29
+        }
+      ]
+    },
+    {
+      "home_team": "\u00cd\u00ferottabandalag Vestmannaeyja",
+      "away_team": "Valur",
+      "league": "Iceland Urvalsdeild",
+      "start_time": 1783180800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732578375",
+          "event_league_id": 31504,
+          "home_odds": 2.04,
+          "draw_odds": 3.88,
+          "away_odds": 3.07
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677411,
+          "event_league_id": 1065977,
+          "home_odds": 2.08,
+          "draw_odds": 3.83,
+          "away_odds": 2.84
+        }
+      ]
+    },
+    {
+      "home_team": "Vikingur Reykjavik",
+      "away_team": "Knattspyrnufelag Akureyrar",
+      "league": "Iceland Urvalsdeild",
+      "start_time": 1783019700,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732578372",
+          "event_league_id": 31504,
+          "home_odds": 1.129,
+          "draw_odds": 8.1,
+          "away_odds": 14.2
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677409,
+          "event_league_id": 1065977,
+          "home_odds": 1.11,
+          "draw_odds": 8.0,
+          "away_odds": 13.9
+        }
+      ]
+    },
+    {
+      "home_team": "Tor Akureyri",
+      "away_team": "Knattspyrnufelag Reykjav\u00edkur",
+      "league": "Iceland Urvalsdeild",
+      "start_time": 1783011600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732587593",
+          "event_league_id": 31504,
+          "home_odds": 6.99,
+          "draw_odds": 6.2,
+          "away_odds": 1.3
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10668209,
+          "event_league_id": 1065977,
+          "home_odds": 6.9,
+          "draw_odds": 6.1,
+          "away_odds": 1.28
+        }
+      ]
+    },
+    {
+      "home_team": "IA Akranes",
+      "away_team": "Knattspyrnufelagid Fram",
+      "league": "Iceland Urvalsdeild",
+      "start_time": 1782760500,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731119662",
+          "event_league_id": 31504,
+          "home_odds": 2.742,
+          "draw_odds": 3.88,
+          "away_odds": 2.22
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10618699,
+          "event_league_id": 1065977,
+          "home_odds": 2.69,
+          "draw_odds": 3.81,
+          "away_odds": 2.18
         }
       ]
     },
@@ -10151,146 +10223,50 @@
       ]
     },
     {
-      "home_team": "\u00cd\u00ferottabandalag Vestmannaeyja",
-      "away_team": "Valur",
-      "league": "Iceland Urvalsdeild",
-      "start_time": 1783180800,
+      "home_team": "Cobh Ramblers",
+      "away_team": "Cork City",
+      "league": "Ireland Division 1",
+      "start_time": 1783104300,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732578375",
-          "event_league_id": 31504,
-          "home_odds": 2.12,
-          "draw_odds": 3.9,
-          "away_odds": 2.892
+          "event_id": "732097608",
+          "event_league_id": 29975,
+          "home_odds": 4.52,
+          "draw_odds": 3.62,
+          "away_odds": 1.66
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10677411,
-          "event_league_id": 1065977,
-          "home_odds": 2.08,
-          "draw_odds": 3.83,
-          "away_odds": 2.84
+          "event_id": 10659649,
+          "event_league_id": 1066095,
+          "home_odds": 4.4,
+          "draw_odds": 3.56,
+          "away_odds": 1.63
         }
       ]
     },
     {
-      "home_team": "Tor Akureyri",
-      "away_team": "Knattspyrnufelag Reykjav\u00edkur",
-      "league": "Iceland Urvalsdeild",
-      "start_time": 1783011600,
+      "home_team": "Longford Town",
+      "away_team": "University College Dublin",
+      "league": "Ireland Division 1",
+      "start_time": 1783189800,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732587593",
-          "event_league_id": 31504,
-          "home_odds": 6.99,
-          "draw_odds": 6.2,
-          "away_odds": 1.3
+          "event_id": "732354094",
+          "event_league_id": 29975,
+          "home_odds": 3.31,
+          "draw_odds": 3.42,
+          "away_odds": 1.98
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10668209,
-          "event_league_id": 1065977,
-          "home_odds": 6.9,
-          "draw_odds": 6.1,
-          "away_odds": 1.28
-        }
-      ]
-    },
-    {
-      "home_team": "Hafnarfjordur",
-      "away_team": "Stjarnan",
-      "league": "Iceland Urvalsdeild",
-      "start_time": 1783106100,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732578369",
-          "event_league_id": 31504,
-          "home_odds": 2.57,
-          "draw_odds": 3.84,
-          "away_odds": 2.33
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677410,
-          "event_league_id": 1065977,
-          "home_odds": 2.52,
-          "draw_odds": 3.77,
-          "away_odds": 2.29
-        }
-      ]
-    },
-    {
-      "home_team": "IA Akranes",
-      "away_team": "Knattspyrnufelagid Fram",
-      "league": "Iceland Urvalsdeild",
-      "start_time": 1782760500,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731119662",
-          "event_league_id": 31504,
-          "home_odds": 2.742,
-          "draw_odds": 3.88,
-          "away_odds": 2.22
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10618699,
-          "event_league_id": 1065977,
-          "home_odds": 2.69,
-          "draw_odds": 3.81,
-          "away_odds": 2.18
-        }
-      ]
-    },
-    {
-      "home_team": "Vikingur Reykjavik",
-      "away_team": "Knattspyrnufelag Akureyrar",
-      "league": "Iceland Urvalsdeild",
-      "start_time": 1783019700,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732578372",
-          "event_league_id": 31504,
-          "home_odds": 1.136,
-          "draw_odds": 7.9,
-          "away_odds": 13.7
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677409,
-          "event_league_id": 1065977,
-          "home_odds": 1.12,
-          "draw_odds": 7.8,
-          "away_odds": 13.5
-        }
-      ]
-    },
-    {
-      "home_team": "Celtics Haut-Richelieu",
-      "away_team": "AS Montis",
-      "league": "Canada Quebec Cup",
-      "start_time": 1782954000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732016544",
-          "event_league_id": 3018834,
-          "home_odds": 1.69,
-          "draw_odds": 4.31,
-          "away_odds": 3.48
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10657380,
-          "event_league_id": 1111124,
-          "home_odds": 1.66,
-          "draw_odds": 4.2,
-          "away_odds": 3.42
+          "event_id": 10668703,
+          "event_league_id": 1066095,
+          "home_odds": 3.25,
+          "draw_odds": 3.36,
+          "away_odds": 1.94
         }
       ]
     },
@@ -10315,6 +10291,30 @@
           "home_odds": 1.73,
           "draw_odds": 4.2,
           "away_odds": 3.17
+        }
+      ]
+    },
+    {
+      "home_team": "Celtics Haut-Richelieu",
+      "away_team": "AS Montis",
+      "league": "Canada Quebec Cup",
+      "start_time": 1782954000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732016544",
+          "event_league_id": 3018834,
+          "home_odds": 1.69,
+          "draw_odds": 4.31,
+          "away_odds": 3.48
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10657380,
+          "event_league_id": 1111124,
+          "home_odds": 1.66,
+          "draw_odds": 4.2,
+          "away_odds": 3.42
         }
       ]
     },
@@ -10415,6 +10415,30 @@
       ]
     },
     {
+      "home_team": "Independiente Rivadavia",
+      "away_team": "Club Atletico Tigre",
+      "league": "Copa Argentina",
+      "start_time": 1783883700,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "731969377",
+          "event_league_id": 119577,
+          "home_odds": 2.582,
+          "draw_odds": 3.25,
+          "away_odds": 2.75
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10647755,
+          "event_league_id": 1065982,
+          "home_odds": 2.53,
+          "draw_odds": 3.19,
+          "away_odds": 2.7
+        }
+      ]
+    },
+    {
       "home_team": "San Lorenzo de Almagro",
       "away_team": "Deportivo Riestra",
       "league": "Copa Argentina",
@@ -10463,146 +10487,26 @@
       ]
     },
     {
-      "home_team": "Independiente Rivadavia",
-      "away_team": "Club Atletico Tigre",
-      "league": "Copa Argentina",
-      "start_time": 1783883700,
+      "home_team": "Ungmennafelagid Afturelding",
+      "away_team": "KF Aegir Thorlakshofn",
+      "league": "Iceland 1 Deild",
+      "start_time": 1782760500,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731969377",
-          "event_league_id": 119577,
-          "home_odds": 2.582,
-          "draw_odds": 3.25,
-          "away_odds": 2.75
+          "event_id": "732443457",
+          "event_league_id": 166251,
+          "home_odds": 1.232,
+          "draw_odds": 5.8,
+          "away_odds": 8.5
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10647755,
-          "event_league_id": 1065982,
-          "home_odds": 2.53,
-          "draw_odds": 3.19,
-          "away_odds": 2.7
-        }
-      ]
-    },
-    {
-      "home_team": "Novorizontino",
-      "away_team": "Atletico Clube Goianiense",
-      "league": "Brazil Campeonato Brasileiro Serie B",
-      "start_time": 1783191600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732600768",
-          "event_league_id": 57265,
-          "home_odds": 1.88,
-          "draw_odds": 3.42,
-          "away_odds": 4.045
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10677914,
-          "event_league_id": 1066101,
-          "home_odds": 1.85,
-          "draw_odds": 3.36,
-          "away_odds": 3.97
-        }
-      ]
-    },
-    {
-      "home_team": "Clube Nautico Capibaribe",
-      "away_team": "Goias Esporte Clube",
-      "league": "Brazil Campeonato Brasileiro Serie B",
-      "start_time": 1782682200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "730925139",
-          "event_league_id": 57265,
-          "home_odds": 1.88,
-          "draw_odds": 3.38,
-          "away_odds": 4.095
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10609754,
-          "event_league_id": 1066101,
-          "home_odds": 1.85,
-          "draw_odds": 3.32,
-          "away_odds": 4.0
-        }
-      ]
-    },
-    {
-      "home_team": "Fortaleza EC",
-      "away_team": "Sport Club do Recife",
-      "league": "Brazil Campeonato Brasileiro Serie B",
-      "start_time": 1782682200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "730925136",
-          "event_league_id": 57265,
-          "home_odds": 1.8,
-          "draw_odds": 3.34,
-          "away_odds": 4.585
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10609757,
-          "event_league_id": 1066101,
-          "home_odds": 1.77,
-          "draw_odds": 3.28,
-          "away_odds": 4.5
-        }
-      ]
-    },
-    {
-      "home_team": "Botafogo Ribeirao Preto",
-      "away_team": "CRB Maceio",
-      "league": "Brazil Campeonato Brasileiro Serie B",
-      "start_time": 1782860400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731164799",
-          "event_league_id": 57265,
-          "home_odds": 2.36,
-          "draw_odds": 2.72,
-          "away_odds": 3.545
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10618911,
-          "event_league_id": 1066101,
-          "home_odds": 2.31,
-          "draw_odds": 2.68,
-          "away_odds": 3.48
-        }
-      ]
-    },
-    {
-      "home_team": "Cuiaba",
-      "away_team": "America Minas Gerais",
-      "league": "Brazil Campeonato Brasileiro Serie B",
-      "start_time": 1783033200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732325674",
-          "event_league_id": 57265,
-          "home_odds": 1.86,
-          "draw_odds": 3.15,
-          "away_odds": 4.595
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10667870,
-          "event_league_id": 1066101,
-          "home_odds": 1.83,
-          "draw_odds": 3.09,
-          "away_odds": 4.5
+          "event_id": 10620258,
+          "event_league_id": 1066088,
+          "home_odds": 1.21,
+          "draw_odds": 5.7,
+          "away_odds": 8.3
         }
       ]
     },
@@ -10651,30 +10555,6 @@
           "home_odds": 2.46,
           "draw_odds": 3.58,
           "away_odds": 2.35
-        }
-      ]
-    },
-    {
-      "home_team": "Ungmennafelagid Afturelding",
-      "away_team": "KF Aegir Thorlakshofn",
-      "league": "Iceland 1 Deild",
-      "start_time": 1782760500,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732443457",
-          "event_league_id": 166251,
-          "home_odds": 1.232,
-          "draw_odds": 5.8,
-          "away_odds": 8.5
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10620258,
-          "event_league_id": 1066088,
-          "home_odds": 1.21,
-          "draw_odds": 5.7,
-          "away_odds": 8.3
         }
       ]
     },
@@ -10847,6 +10727,30 @@
       ]
     },
     {
+      "home_team": "CA Fenix Pilar",
+      "away_team": "Club Atletico General Lamadrid",
+      "league": "Argentina Primera C Metropolitana",
+      "start_time": 1782756000,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732238452",
+          "event_league_id": 329719,
+          "home_odds": 10.6,
+          "draw_odds": 4.0,
+          "away_odds": 1.32
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10664801,
+          "event_league_id": 1066159,
+          "home_odds": 10.4,
+          "draw_odds": 3.93,
+          "away_odds": 1.3
+        }
+      ]
+    },
+    {
       "home_team": "CA Claypole",
       "away_team": "Canuelas",
       "league": "Argentina Primera C Metropolitana",
@@ -10864,33 +10768,9 @@
           "bookmaker": "22Bet Ghana",
           "event_id": 10677447,
           "event_league_id": 1066159,
-          "home_odds": 2.53,
-          "draw_odds": 2.7,
+          "home_odds": 2.54,
+          "draw_odds": 2.69,
           "away_odds": 2.71
-        }
-      ]
-    },
-    {
-      "home_team": "CA Fenix Pilar",
-      "away_team": "Club Atletico General Lamadrid",
-      "league": "Argentina Primera C Metropolitana",
-      "start_time": 1782756000,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732238452",
-          "event_league_id": 329719,
-          "home_odds": 9.6,
-          "draw_odds": 3.74,
-          "away_odds": 1.37
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10664801,
-          "event_league_id": 1066159,
-          "home_odds": 9.4,
-          "draw_odds": 3.67,
-          "away_odds": 1.35
         }
       ]
     },
@@ -10904,16 +10784,16 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "732255935",
           "event_league_id": 329719,
-          "home_odds": 3.215,
-          "draw_odds": 2.77,
+          "home_odds": 3.225,
+          "draw_odds": 2.76,
           "away_odds": 2.33
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10649761,
           "event_league_id": 1066159,
-          "home_odds": 3.16,
-          "draw_odds": 2.72,
+          "home_odds": 3.17,
+          "draw_odds": 2.71,
           "away_odds": 2.29
         }
       ]
@@ -11087,98 +10967,74 @@
       ]
     },
     {
-      "home_team": "CS Trois Rivieres",
-      "away_team": "CS Boucherville",
-      "league": "Canada League 3 Quebec",
-      "start_time": 1782680400,
+      "home_team": "Cuiaba",
+      "away_team": "America Minas Gerais",
+      "league": "Brazil Campeonato Brasileiro Serie B",
+      "start_time": 1783033200,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731050603",
-          "event_league_id": 2880694,
-          "home_odds": 2.569,
-          "draw_odds": 4.15,
-          "away_odds": 2.08
+          "event_id": "732325674",
+          "event_league_id": 57265,
+          "home_odds": 1.86,
+          "draw_odds": 3.15,
+          "away_odds": 4.595
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10615927,
-          "event_league_id": 1092888,
-          "home_odds": 2.52,
-          "draw_odds": 4.1,
-          "away_odds": 2.04
+          "event_id": 10667870,
+          "event_league_id": 1066101,
+          "home_odds": 1.83,
+          "draw_odds": 3.09,
+          "away_odds": 4.5
         }
       ]
     },
     {
-      "home_team": "Pointe-Claire",
-      "away_team": "West Ottawa",
-      "league": "Canada League 3 Quebec",
-      "start_time": 1782682200,
+      "home_team": "Botafogo Ribeirao Preto",
+      "away_team": "CRB Maceio",
+      "league": "Brazil Campeonato Brasileiro Serie B",
+      "start_time": 1782860400,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731050911",
-          "event_league_id": 2880694,
-          "home_odds": 3.015,
-          "draw_odds": 4.3,
-          "away_odds": 1.83
+          "event_id": "731164799",
+          "event_league_id": 57265,
+          "home_odds": 2.36,
+          "draw_odds": 2.73,
+          "away_odds": 3.525
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10616133,
-          "event_league_id": 1092888,
-          "home_odds": 2.96,
-          "draw_odds": 4.2,
-          "away_odds": 1.8
+          "event_id": 10618911,
+          "event_league_id": 1066101,
+          "home_odds": 2.32,
+          "draw_odds": 2.68,
+          "away_odds": 3.46
         }
       ]
     },
     {
-      "home_team": "Cosmos De Granby",
-      "away_team": "CS Levis Est",
-      "league": "Canada League 3 Quebec",
-      "start_time": 1782687600,
+      "home_team": "Novorizontino",
+      "away_team": "Atletico Clube Goianiense",
+      "league": "Brazil Campeonato Brasileiro Serie B",
+      "start_time": 1783191600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731050913",
-          "event_league_id": 2880694,
-          "home_odds": 2.14,
-          "draw_odds": 4.3,
-          "away_odds": 2.35
+          "event_id": "732600768",
+          "event_league_id": 57265,
+          "home_odds": 1.88,
+          "draw_odds": 3.42,
+          "away_odds": 4.045
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10615930,
-          "event_league_id": 1092888,
-          "home_odds": 2.1,
-          "draw_odds": 4.2,
-          "away_odds": 2.31
-        }
-      ]
-    },
-    {
-      "home_team": "Bzyb",
-      "away_team": "Sadz",
-      "league": "Abkhazia Championship",
-      "start_time": 1782741600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732248674",
-          "event_league_id": 2292651,
-          "home_odds": 2.08,
-          "draw_odds": 4.26,
-          "away_odds": 2.544
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10665253,
-          "event_league_id": 1076283,
-          "home_odds": 2.04,
-          "draw_odds": 4.2,
-          "away_odds": 2.5
+          "event_id": 10677914,
+          "event_league_id": 1066101,
+          "home_odds": 1.85,
+          "draw_odds": 3.36,
+          "away_odds": 3.97
         }
       ]
     },
@@ -11231,98 +11087,26 @@
       ]
     },
     {
-      "home_team": "EC Democrata",
-      "away_team": "Ivinhema",
-      "league": "Brazil Campeonato Brasileiro S\u00e9rie D",
-      "start_time": 1782770400,
+      "home_team": "Bzyb",
+      "away_team": "Sadz",
+      "league": "Abkhazia Championship",
+      "start_time": 1782741600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732209877",
-          "event_league_id": 842973,
-          "home_odds": 1.55,
-          "draw_odds": 3.64,
-          "away_odds": 5.49
+          "event_id": "732248674",
+          "event_league_id": 2292651,
+          "home_odds": 2.08,
+          "draw_odds": 4.26,
+          "away_odds": 2.544
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10652866,
-          "event_league_id": 1066102,
-          "home_odds": 1.52,
-          "draw_odds": 3.58,
-          "away_odds": 5.4
-        }
-      ]
-    },
-    {
-      "home_team": "Luverdense",
-      "away_team": "Ceilandia",
-      "league": "Brazil Campeonato Brasileiro S\u00e9rie D",
-      "start_time": 1782680400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732209868",
-          "event_league_id": 842973,
-          "home_odds": 1.65,
-          "draw_odds": 3.32,
-          "away_odds": 5.15
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10652865,
-          "event_league_id": 1066102,
-          "home_odds": 1.62,
-          "draw_odds": 3.26,
-          "away_odds": 5.1
-        }
-      ]
-    },
-    {
-      "home_team": "Guapore de Rondonia",
-      "away_team": "Monte Roraima",
-      "league": "Brazil Campeonato Brasileiro S\u00e9rie D",
-      "start_time": 1782680400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732209871",
-          "event_league_id": 842973,
-          "home_odds": 1.83,
-          "draw_odds": 3.42,
-          "away_odds": 3.815
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10652868,
-          "event_league_id": 1066102,
-          "home_odds": 1.8,
-          "draw_odds": 3.36,
-          "away_odds": 3.75
-        }
-      ]
-    },
-    {
-      "home_team": "Vikingur Gota",
-      "away_team": "NSI Runavik",
-      "league": "Faroe Islands Effodeildin",
-      "start_time": 1782754200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732136956",
-          "event_league_id": 846723,
-          "home_odds": 2.55,
-          "draw_odds": 3.3,
-          "away_odds": 2.41
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10637483,
-          "event_league_id": 1066248,
-          "home_odds": 2.5,
-          "draw_odds": 3.24,
-          "away_odds": 2.37
+          "event_id": 10665253,
+          "event_league_id": 1076283,
+          "home_odds": 2.04,
+          "draw_odds": 4.2,
+          "away_odds": 2.5
         }
       ]
     },
@@ -11351,6 +11135,30 @@
       ]
     },
     {
+      "home_team": "Vikingur Gota",
+      "away_team": "NSI Runavik",
+      "league": "Faroe Islands Effodeildin",
+      "start_time": 1782754200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732136956",
+          "event_league_id": 846723,
+          "home_odds": 2.55,
+          "draw_odds": 3.3,
+          "away_odds": 2.41
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10637483,
+          "event_league_id": 1066248,
+          "home_odds": 2.5,
+          "draw_odds": 3.24,
+          "away_odds": 2.37
+        }
+      ]
+    },
+    {
       "home_team": "Brooklyn City (Women)",
       "away_team": "Force New York (Women)",
       "league": "USA WPSL Women",
@@ -11360,17 +11168,17 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "732209261",
           "event_league_id": 1011427,
-          "home_odds": 1.28,
-          "draw_odds": 5.7,
-          "away_odds": 6.89
+          "home_odds": 1.3,
+          "draw_odds": 5.5,
+          "away_odds": 6.63
         },
         {
           "bookmaker": "22Bet Ghana",
           "event_id": 10662694,
           "event_league_id": 1065999,
-          "home_odds": 1.26,
-          "draw_odds": 5.6,
-          "away_odds": 6.8
+          "home_odds": 1.28,
+          "draw_odds": 5.4,
+          "away_odds": 6.5
         }
       ]
     },
@@ -11395,30 +11203,6 @@
           "home_odds": 4.7,
           "draw_odds": 4.6,
           "away_odds": 1.45
-        }
-      ]
-    },
-    {
-      "home_team": "Masters FA",
-      "away_team": "North Mississauga",
-      "league": "Canada Ontario Premier League 2",
-      "start_time": 1782687600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731019147",
-          "event_league_id": 3001498,
-          "home_odds": 1.65,
-          "draw_odds": 4.32,
-          "away_odds": 3.65
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10614181,
-          "event_league_id": 1109167,
-          "home_odds": 1.62,
-          "draw_odds": 4.2,
-          "away_odds": 3.59
         }
       ]
     },
@@ -11471,50 +11255,26 @@
       ]
     },
     {
-      "home_team": "San Luis FC (Women)",
-      "away_team": "Boca Juniors (Women)",
-      "league": "Argentina Championship Women",
-      "start_time": 1782680400,
+      "home_team": "Masters FA",
+      "away_team": "North Mississauga",
+      "league": "Canada Ontario Premier League 2",
+      "start_time": 1782687600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732129798",
-          "event_league_id": 220557,
-          "home_odds": 5.2,
-          "draw_odds": 3.42,
-          "away_odds": 1.62
+          "event_id": "731019147",
+          "event_league_id": 3001498,
+          "home_odds": 1.65,
+          "draw_odds": 4.32,
+          "away_odds": 3.65
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10658737,
-          "event_league_id": 1066624,
-          "home_odds": 5.1,
-          "draw_odds": 3.36,
-          "away_odds": 1.59
-        }
-      ]
-    },
-    {
-      "home_team": "CA Huracan (Women)",
-      "away_team": "San Lorenzo de Almagro (Women)",
-      "league": "Argentina Championship Women",
-      "start_time": 1782763200,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732367574",
-          "event_league_id": 220557,
-          "home_odds": 8.15,
-          "draw_odds": 3.85,
-          "away_odds": 1.39
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10669273,
-          "event_league_id": 1066624,
-          "home_odds": 8.0,
-          "draw_odds": 3.78,
-          "away_odds": 1.37
+          "event_id": 10614181,
+          "event_league_id": 1109167,
+          "home_odds": 1.62,
+          "draw_odds": 4.2,
+          "away_odds": 3.59
         }
       ]
     },
@@ -11663,26 +11423,26 @@
       ]
     },
     {
-      "home_team": "Salmon Bay (Women)",
-      "away_team": "Snohomish United (Women)",
-      "league": "USA W-League",
-      "start_time": 1782680400,
+      "home_team": "Cosmos De Granby",
+      "away_team": "CS Levis Est",
+      "league": "Canada League 3 Quebec",
+      "start_time": 1782687600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732174054",
-          "event_league_id": 629437,
-          "home_odds": 2.28,
-          "draw_odds": 3.84,
-          "away_odds": 2.42
+          "event_id": "731050913",
+          "event_league_id": 2880694,
+          "home_odds": 2.14,
+          "draw_odds": 4.3,
+          "away_odds": 2.35
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10662357,
-          "event_league_id": 1066246,
-          "home_odds": 2.24,
-          "draw_odds": 3.77,
-          "away_odds": 2.38
+          "event_id": 10615930,
+          "event_league_id": 1092888,
+          "home_odds": 2.1,
+          "draw_odds": 4.2,
+          "away_odds": 2.31
         }
       ]
     },
@@ -11711,26 +11471,26 @@
       ]
     },
     {
-      "home_team": "Velez Sarsfield (Women)",
-      "away_team": "CA Platense (Women)",
-      "league": "Argentina Primera B Women",
+      "home_team": "CA Huracan (Women)",
+      "away_team": "San Lorenzo de Almagro (Women)",
+      "league": "Argentina Championship Women",
       "start_time": 1782763200,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "732586613",
-          "event_league_id": 2164939,
-          "home_odds": 3.645,
-          "draw_odds": 3.2,
-          "away_odds": 1.99
+          "event_id": "732367574",
+          "event_league_id": 220557,
+          "home_odds": 8.15,
+          "draw_odds": 3.85,
+          "away_odds": 1.39
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10677613,
-          "event_league_id": 1067799,
-          "home_odds": 3.58,
-          "draw_odds": 3.14,
-          "away_odds": 1.95
+          "event_id": 10669273,
+          "event_league_id": 1066624,
+          "home_odds": 8.0,
+          "draw_odds": 3.78,
+          "away_odds": 1.37
         }
       ]
     },
@@ -11755,6 +11515,54 @@
           "home_odds": 6.8,
           "draw_odds": 3.83,
           "away_odds": 1.42
+        }
+      ]
+    },
+    {
+      "home_team": "Velez Sarsfield (Women)",
+      "away_team": "CA Platense (Women)",
+      "league": "Argentina Primera B Women",
+      "start_time": 1782763200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732616878",
+          "event_league_id": 2164939,
+          "home_odds": 3.495,
+          "draw_odds": 3.14,
+          "away_odds": 2.01
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10677613,
+          "event_league_id": 1067799,
+          "home_odds": 3.43,
+          "draw_odds": 3.12,
+          "away_odds": 1.96
+        }
+      ]
+    },
+    {
+      "home_team": "EC Democrata",
+      "away_team": "Ivinhema",
+      "league": "Brazil Campeonato Brasileiro S\u00e9rie D",
+      "start_time": 1782770400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732209877",
+          "event_league_id": 842973,
+          "home_odds": 1.55,
+          "draw_odds": 3.64,
+          "away_odds": 5.49
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10652866,
+          "event_league_id": 1066102,
+          "home_odds": 1.52,
+          "draw_odds": 3.58,
+          "away_odds": 5.4
         }
       ]
     },
@@ -11879,30 +11687,6 @@
       ]
     },
     {
-      "home_team": "Sol de America",
-      "away_team": "12 De Junio Villa Hayes",
-      "league": "Paraguay Divisi\u00f3n Intermedia",
-      "start_time": 1782680400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "731631315",
-          "event_league_id": 58309,
-          "home_odds": 2.66,
-          "draw_odds": 2.85,
-          "away_odds": 2.59
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10639479,
-          "event_league_id": 1066327,
-          "home_odds": 2.61,
-          "draw_odds": 2.8,
-          "away_odds": 2.54
-        }
-      ]
-    },
-    {
       "home_team": "Club Rubio Nu (Women)",
       "away_team": "Cerro Porteno (Women)",
       "league": "Paraguay Championship Women",
@@ -11947,6 +11731,30 @@
           "home_odds": 2.78,
           "draw_odds": 3.44,
           "away_odds": 2.18
+        }
+      ]
+    },
+    {
+      "home_team": "Guairena",
+      "away_team": "Deportivo Santan\u00ed",
+      "league": "Paraguay Divisi\u00f3n Intermedia",
+      "start_time": 1782910800,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732610858",
+          "event_league_id": 58309,
+          "home_odds": 2.42,
+          "draw_odds": 2.8,
+          "away_odds": 2.979
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10678289,
+          "event_league_id": 1066327,
+          "home_odds": 2.38,
+          "draw_odds": 2.75,
+          "away_odds": 2.93
         }
       ]
     },
@@ -12047,30 +11855,6 @@
       ]
     },
     {
-      "home_team": "Michigan Jaguars (Women)",
-      "away_team": "AC Grand Rapids (Women)",
-      "league": "USA UWS Women",
-      "start_time": 1782687600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732491901",
-          "event_league_id": 1502591,
-          "home_odds": 1.2,
-          "draw_odds": 6.2,
-          "away_odds": 10.6
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10673513,
-          "event_league_id": 1066407,
-          "home_odds": 1.18,
-          "draw_odds": 6.1,
-          "away_odds": 10.4
-        }
-      ]
-    },
-    {
       "home_team": "Joy St Louis Park",
       "away_team": "Minnesota Blizzard",
       "league": "USA NPSL",
@@ -12095,50 +11879,26 @@
       ]
     },
     {
-      "home_team": "Club Oriental",
-      "away_team": "Colon Montevideo",
-      "league": "Uruguay Segunda Division",
-      "start_time": 1782680400,
+      "home_team": "Michigan Jaguars (Women)",
+      "away_team": "AC Grand Rapids (Women)",
+      "league": "USA UWS Women",
+      "start_time": 1782687600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "731617597",
-          "event_league_id": 28585,
-          "home_odds": 2.18,
-          "draw_odds": 3.02,
-          "away_odds": 3.21
+          "event_id": "732491901",
+          "event_league_id": 1502591,
+          "home_odds": 1.2,
+          "draw_odds": 6.2,
+          "away_odds": 10.6
         },
         {
           "bookmaker": "22Bet Ghana",
-          "event_id": 10637699,
-          "event_league_id": 1066207,
-          "home_odds": 2.14,
-          "draw_odds": 2.97,
-          "away_odds": 3.15
-        }
-      ]
-    },
-    {
-      "home_team": "Ha Noi (Women)",
-      "away_team": "Ho Chi Minh City (Women)",
-      "league": "Vietnam Championship Women",
-      "start_time": 1782723600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "732461987",
-          "event_league_id": 164275,
-          "home_odds": 2.63,
-          "draw_odds": 2.83,
-          "away_odds": 2.64
-        },
-        {
-          "bookmaker": "22Bet Ghana",
-          "event_id": 10672389,
-          "event_league_id": 1066012,
-          "home_odds": 2.58,
-          "draw_odds": 2.78,
-          "away_odds": 2.59
+          "event_id": 10673513,
+          "event_league_id": 1066407,
+          "home_odds": 1.18,
+          "draw_odds": 6.1,
+          "away_odds": 10.4
         }
       ]
     },
@@ -12163,6 +11923,30 @@
           "home_odds": 5.2,
           "draw_odds": 4.6,
           "away_odds": 1.39
+        }
+      ]
+    },
+    {
+      "home_team": "Ha Noi (Women)",
+      "away_team": "Ho Chi Minh City (Women)",
+      "league": "Vietnam Championship Women",
+      "start_time": 1782723600,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "732461987",
+          "event_league_id": 164275,
+          "home_odds": 2.63,
+          "draw_odds": 2.83,
+          "away_odds": 2.64
+        },
+        {
+          "bookmaker": "22Bet Ghana",
+          "event_id": 10672389,
+          "event_league_id": 1066012,
+          "home_odds": 2.58,
+          "draw_odds": 2.78,
+          "away_odds": 2.59
         }
       ]
     },
