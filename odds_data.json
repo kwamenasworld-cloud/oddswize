@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-08-26T15:53:50.064109",
+  "last_updated": "2026-08-26T15:57:48.642442",
   "stats": {
-    "total_scraped": 5807,
+    "total_scraped": 5865,
     "matched_events": 311,
     "bookmakers": [
       "SoccaBet Ghana",
@@ -9,7 +9,7 @@
       "1xBet Ghana",
       "Pinnacle"
     ],
-    "scrape_time_seconds": 32.306880474090576
+    "scrape_time_seconds": 30.879576206207275
   },
   "matches": [
     {
@@ -382,7 +382,7 @@
           "bookmaker": "Betway Ghana",
           "event_id": "72221218",
           "event_league_id": null,
-          "home_odds": 1.85,
+          "home_odds": 1.84,
           "draw_odds": 3.5,
           "away_odds": 4
         },
@@ -1942,15 +1942,15 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3516961",
           "event_league_id": "27817",
-          "home_odds": 1.23,
-          "draw_odds": 6.8,
+          "home_odds": 1.24,
+          "draw_odds": 6.6,
           "away_odds": 11.0
         },
         {
           "bookmaker": "Betway Ghana",
           "event_id": "72478460",
           "event_league_id": null,
-          "home_odds": 1.19,
+          "home_odds": 1.2,
           "draw_odds": 7.2,
           "away_odds": 12
         },
@@ -3710,8 +3710,8 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "745183376",
           "event_league_id": 119237,
-          "home_odds": 1.192,
-          "draw_odds": 7.7,
+          "home_odds": 1.193,
+          "draw_odds": 7.6,
           "away_odds": 15.0
         }
       ]
@@ -3774,9 +3774,9 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3629245",
           "event_league_id": "27631",
-          "home_odds": 6.4,
-          "draw_odds": 4.6,
-          "away_odds": 1.48
+          "home_odds": 6.2,
+          "draw_odds": 4.5,
+          "away_odds": 1.5
         },
         {
           "bookmaker": "1xBet Ghana",
@@ -4262,9 +4262,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "746861787",
           "event_league_id": 16819,
-          "home_odds": 2.775,
+          "home_odds": 2.92,
           "draw_odds": 3.7,
-          "away_odds": 2.5
+          "away_odds": 2.392
         }
       ]
     },
@@ -6285,6 +6285,54 @@
       ]
     },
     {
+      "home_team": "IF Elfsborg",
+      "away_team": "Degerfors IF",
+      "league": "Sweden Allsvenskan",
+      "start_time": 1788008400,
+      "odds": [
+        {
+          "bookmaker": "SoccaBet Ghana",
+          "event_id": "3594742",
+          "event_league_id": "30361",
+          "home_odds": 1.56,
+          "draw_odds": 4.0,
+          "away_odds": 5.6
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "746664935",
+          "event_league_id": 212425,
+          "home_odds": 1.58,
+          "draw_odds": 3.94,
+          "away_odds": 5.54
+        }
+      ]
+    },
+    {
+      "home_team": "Halmstads BK",
+      "away_team": "Kalmar FF",
+      "league": "Sweden Allsvenskan",
+      "start_time": 1788017400,
+      "odds": [
+        {
+          "bookmaker": "SoccaBet Ghana",
+          "event_id": "3594743",
+          "event_league_id": "30361",
+          "home_odds": 3.45,
+          "draw_odds": 3.45,
+          "away_odds": 2.05
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "746627362",
+          "event_league_id": 212425,
+          "home_odds": 3.42,
+          "draw_odds": 3.45,
+          "away_odds": 2.06
+        }
+      ]
+    },
+    {
       "home_team": "AIK",
       "away_team": "Hammarby IF",
       "league": "Sweden Allsvenskan",
@@ -6401,54 +6449,6 @@
           "home_odds": 1.79,
           "draw_odds": 3.98,
           "away_odds": 3.875
-        }
-      ]
-    },
-    {
-      "home_team": "IF Elfsborg",
-      "away_team": "Degerfors IF",
-      "league": "Sweden Allsvenskan",
-      "start_time": 1788008400,
-      "odds": [
-        {
-          "bookmaker": "SoccaBet Ghana",
-          "event_id": "3594742",
-          "event_league_id": "30361",
-          "home_odds": 1.56,
-          "draw_odds": 4.0,
-          "away_odds": 5.6
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "746664935",
-          "event_league_id": 212425,
-          "home_odds": 1.58,
-          "draw_odds": 3.94,
-          "away_odds": 5.54
-        }
-      ]
-    },
-    {
-      "home_team": "Halmstads BK",
-      "away_team": "Kalmar FF",
-      "league": "Sweden Allsvenskan",
-      "start_time": 1788017400,
-      "odds": [
-        {
-          "bookmaker": "SoccaBet Ghana",
-          "event_id": "3594743",
-          "event_league_id": "30361",
-          "home_odds": 3.45,
-          "draw_odds": 3.45,
-          "away_odds": 2.05
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "746627362",
-          "event_league_id": 212425,
-          "home_odds": 3.42,
-          "draw_odds": 3.45,
-          "away_odds": 2.06
         }
       ]
     },
@@ -7278,7 +7278,7 @@
           "bookmaker": "Betway Ghana",
           "event_id": "73646664",
           "event_league_id": null,
-          "home_odds": 3.2,
+          "home_odds": 3.25,
           "draw_odds": 3.3,
           "away_odds": 2.09
         },
@@ -7310,9 +7310,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "747214866",
           "event_league_id": 119503,
-          "home_odds": 2.03,
-          "draw_odds": 3.72,
-          "away_odds": 2.936
+          "home_odds": 2.09,
+          "draw_odds": 3.7,
+          "away_odds": 2.834
         }
       ]
     },
@@ -7398,8 +7398,8 @@
           "bookmaker": "Betway Ghana",
           "event_id": "73644766",
           "event_league_id": null,
-          "home_odds": 2.29,
-          "draw_odds": 3.05,
+          "home_odds": 2.3,
+          "draw_odds": 3,
           "away_odds": 3.1
         },
         {
@@ -8160,11 +8160,11 @@
       "home_team": "Australia",
       "away_team": "Brazil",
       "league": "Friendlies National Teams",
-      "start_time": 1790676000,
+      "start_time": 1790330400,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "734524360",
+          "event_id": "734523974",
           "event_league_id": 125983,
           "home_odds": 5.46,
           "draw_odds": 4.19,
@@ -8172,7 +8172,7 @@
         },
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "734523974",
+          "event_id": "734524360",
           "event_league_id": 125983,
           "home_odds": 5.46,
           "draw_odds": 4.19,
@@ -8205,6 +8205,30 @@
       ]
     },
     {
+      "home_team": "Oyonesa",
+      "away_team": "San ignacio",
+      "league": "Club Friendlies",
+      "start_time": 1787765400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "747247952",
+          "event_league_id": 67559,
+          "home_odds": 2.504,
+          "draw_odds": 3.455,
+          "away_odds": 2.587
+        },
+        {
+          "bookmaker": "Pinnacle",
+          "event_id": "pinnacle_1634753880",
+          "event_league_id": null,
+          "home_odds": 2.44,
+          "draw_odds": 3.34,
+          "away_odds": 2.49
+        }
+      ]
+    },
+    {
       "home_team": "Numancia",
       "away_team": "Utebo",
       "league": "Club Friendlies",
@@ -8225,30 +8249,6 @@
           "home_odds": 1.9901,
           "draw_odds": 3.16,
           "away_odds": 3.35
-        }
-      ]
-    },
-    {
-      "home_team": "Oyonesa",
-      "away_team": "San ignacio",
-      "league": "Club Friendlies",
-      "start_time": 1787765400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "747247952",
-          "event_league_id": 67559,
-          "home_odds": 2.514,
-          "draw_odds": 3.455,
-          "away_odds": 2.576
-        },
-        {
-          "bookmaker": "Pinnacle",
-          "event_id": "pinnacle_1634753880",
-          "event_league_id": null,
-          "home_odds": 2.44,
-          "draw_odds": 3.34,
-          "away_odds": 2.49
         }
       ]
     },
@@ -8325,30 +8325,6 @@
       ]
     },
     {
-      "home_team": "Londrina",
-      "away_team": "Juventude",
-      "league": "Brazil - Serie B",
-      "start_time": 1788015600,
-      "odds": [
-        {
-          "bookmaker": "Pinnacle",
-          "event_id": "pinnacle_1634799814",
-          "event_league_id": null,
-          "home_odds": 3.1,
-          "draw_odds": 2.87,
-          "away_odds": 2.61
-        },
-        {
-          "bookmaker": "Pinnacle",
-          "event_id": "pinnacle_1634585082",
-          "event_league_id": null,
-          "home_odds": 3.3,
-          "draw_odds": 2.83,
-          "away_odds": 2.51
-        }
-      ]
-    },
-    {
       "home_team": "Hajduk Split",
       "away_team": "Lokomotiva Zagreb",
       "league": "Croatia - HNL",
@@ -8393,6 +8369,30 @@
           "home_odds": 6.09,
           "draw_odds": 3.75,
           "away_odds": 1.5556
+        }
+      ]
+    },
+    {
+      "home_team": "Londrina",
+      "away_team": "Juventude",
+      "league": "Brazil - Serie B",
+      "start_time": 1788015600,
+      "odds": [
+        {
+          "bookmaker": "Pinnacle",
+          "event_id": "pinnacle_1634799814",
+          "event_league_id": null,
+          "home_odds": 3.1,
+          "draw_odds": 2.87,
+          "away_odds": 2.61
+        },
+        {
+          "bookmaker": "Pinnacle",
+          "event_id": "pinnacle_1634585082",
+          "event_league_id": null,
+          "home_odds": 3.3,
+          "draw_odds": 2.83,
+          "away_odds": 2.51
         }
       ]
     }
