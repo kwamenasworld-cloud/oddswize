@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-09-03T22:38:39.077242",
+  "last_updated": "2026-09-03T22:42:37.595759",
   "stats": {
-    "total_scraped": 6607,
+    "total_scraped": 6603,
     "matched_events": 367,
     "bookmakers": [
       "SoccaBet Ghana",
@@ -9,7 +9,7 @@
       "1xBet Ghana",
       "Pinnacle"
     ],
-    "scrape_time_seconds": 28.078133583068848
+    "scrape_time_seconds": 27.50589370727539
   },
   "matches": [
     {
@@ -479,7 +479,7 @@
           "event_id": "72221246",
           "event_league_id": null,
           "home_odds": 1.16,
-          "draw_odds": 7.4,
+          "draw_odds": 7.6,
           "away_odds": 13
         },
         {
@@ -1126,9 +1126,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "748375344",
           "event_league_id": 105759,
-          "home_odds": 2.952,
-          "draw_odds": 3.14,
-          "away_odds": 2.44
+          "home_odds": 2.944,
+          "draw_odds": 3.125,
+          "away_odds": 2.45
         }
       ]
     },
@@ -3014,9 +3014,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "746688910",
           "event_league_id": 96463,
-          "home_odds": 2.967,
-          "draw_odds": 3.96,
-          "away_odds": 2.348
+          "home_odds": 2.959,
+          "draw_odds": 3.945,
+          "away_odds": 2.359
         }
       ]
     },
@@ -3670,9 +3670,9 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3668559",
           "event_league_id": "27782",
-          "home_odds": 1.39,
+          "home_odds": 1.38,
           "draw_odds": 5.4,
-          "away_odds": 6.8
+          "away_odds": 7.0
         },
         {
           "bookmaker": "Betway Ghana",
@@ -3686,9 +3686,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "748557528",
           "event_league_id": 12821,
-          "home_odds": 1.402,
-          "draw_odds": 5.58,
-          "away_odds": 8.1
+          "home_odds": 1.412,
+          "draw_odds": 5.53,
+          "away_odds": 7.9
         }
       ]
     },
@@ -5894,9 +5894,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "748674221",
           "event_league_id": 828065,
-          "home_odds": 1.294,
-          "draw_odds": 6.47,
-          "away_odds": 9.6
+          "home_odds": 1.296,
+          "draw_odds": 6.46,
+          "away_odds": 9.5
         }
       ]
     },
@@ -7326,17 +7326,17 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3612224",
           "event_league_id": "30362",
-          "home_odds": 8.0,
-          "draw_odds": 5.6,
-          "away_odds": 1.3
+          "home_odds": 8.2,
+          "draw_odds": 5.8,
+          "away_odds": 1.29
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "748764775",
           "event_league_id": 1793471,
-          "home_odds": 8.75,
-          "draw_odds": 5.93,
-          "away_odds": 1.308
+          "home_odds": 9.3,
+          "draw_odds": 6.16,
+          "away_odds": 1.286
         }
       ]
     },
@@ -9861,43 +9861,11 @@
       ]
     },
     {
-      "home_team": "West Ham United",
-      "away_team": "Derby County",
-      "league": "England - Championship",
-      "start_time": 1788616800,
-      "odds": [
-        {
-          "bookmaker": "Pinnacle",
-          "event_id": "pinnacle_1635003006",
-          "event_league_id": null,
-          "home_odds": 1.365,
-          "draw_odds": 5.11,
-          "away_odds": 7.76
-        },
-        {
-          "bookmaker": "Pinnacle",
-          "event_id": "pinnacle_1635350769",
-          "event_league_id": null,
-          "home_odds": 4.61,
-          "draw_odds": 4.03,
-          "away_odds": 1.5848
-        }
-      ]
-    },
-    {
-      "home_team": "Preston North End (Bookings)",
-      "away_team": "Blackburn Rovers (Bookings)",
+      "home_team": "Preston North End",
+      "away_team": "Blackburn Rovers",
       "league": "England - Championship",
       "start_time": 1788607800,
       "odds": [
-        {
-          "bookmaker": "Pinnacle",
-          "event_id": "pinnacle_1635350432",
-          "event_league_id": null,
-          "home_odds": 2.44,
-          "draw_odds": 3.76,
-          "away_odds": 2.44
-        },
         {
           "bookmaker": "Pinnacle",
           "event_id": "pinnacle_1635033127",
@@ -9905,6 +9873,38 @@
           "home_odds": 2.38,
           "draw_odds": 3.41,
           "away_odds": 2.98
+        },
+        {
+          "bookmaker": "Pinnacle",
+          "event_id": "pinnacle_1635350432",
+          "event_league_id": null,
+          "home_odds": 2.44,
+          "draw_odds": 3.76,
+          "away_odds": 2.44
+        }
+      ]
+    },
+    {
+      "home_team": "West Ham United (Bookings)",
+      "away_team": "Derby County (Bookings)",
+      "league": "England - Championship",
+      "start_time": 1788616800,
+      "odds": [
+        {
+          "bookmaker": "Pinnacle",
+          "event_id": "pinnacle_1635350769",
+          "event_league_id": null,
+          "home_odds": 4.61,
+          "draw_odds": 4.03,
+          "away_odds": 1.5848
+        },
+        {
+          "bookmaker": "Pinnacle",
+          "event_id": "pinnacle_1635003006",
+          "event_league_id": null,
+          "home_odds": 1.365,
+          "draw_odds": 5.11,
+          "away_odds": 7.76
         }
       ]
     }
