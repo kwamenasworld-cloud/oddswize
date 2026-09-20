@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-09-20T23:21:43.693150",
+  "last_updated": "2026-09-20T23:25:42.409018",
   "stats": {
-    "total_scraped": 2817,
+    "total_scraped": 2830,
     "matched_events": 222,
     "bookmakers": [
       "SoccaBet Ghana",
@@ -9,9 +9,41 @@
       "1xBet Ghana",
       "Pinnacle"
     ],
-    "scrape_time_seconds": 23.90962815284729
+    "scrape_time_seconds": 22.689764499664307
   },
   "matches": [
+    {
+      "home_team": "Newcastle Utd.",
+      "away_team": "Aston Villa",
+      "league": "Premier League",
+      "start_time": 1792254600,
+      "odds": [
+        {
+          "bookmaker": "SoccaBet Ghana",
+          "event_id": "3734241",
+          "event_league_id": "27632",
+          "home_odds": 1.93,
+          "draw_odds": 3.85,
+          "away_odds": 3.65
+        },
+        {
+          "bookmaker": "Betway Ghana",
+          "event_id": "72221326",
+          "event_league_id": null,
+          "home_odds": 1.87,
+          "draw_odds": 3.7,
+          "away_odds": 3.5
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "754342332",
+          "event_league_id": 88637,
+          "home_odds": 2.025,
+          "draw_odds": 3.955,
+          "away_odds": 3.72
+        }
+      ]
+    },
     {
       "home_team": "Nott.Forest",
       "away_team": "Arsenal",
@@ -553,38 +585,6 @@
           "home_odds": 1.231,
           "draw_odds": 7.7,
           "away_odds": 13.6
-        }
-      ]
-    },
-    {
-      "home_team": "Newcastle Utd.",
-      "away_team": "Aston Villa",
-      "league": "Premier League",
-      "start_time": 1792254600,
-      "odds": [
-        {
-          "bookmaker": "SoccaBet Ghana",
-          "event_id": "3734241",
-          "event_league_id": "27632",
-          "home_odds": 1.93,
-          "draw_odds": 3.85,
-          "away_odds": 3.65
-        },
-        {
-          "bookmaker": "Betway Ghana",
-          "event_id": "72221326",
-          "event_league_id": null,
-          "home_odds": 1.87,
-          "draw_odds": 3.7,
-          "away_odds": 3.5
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "754342332",
-          "event_league_id": 88637,
-          "home_odds": 2.025,
-          "draw_odds": 3.955,
-          "away_odds": 3.72
         }
       ]
     },
@@ -1351,8 +1351,8 @@
           "event_id": "754329244",
           "event_league_id": 24637,
           "home_odds": 2.22,
-          "draw_odds": 3.5,
-          "away_odds": 2.913
+          "draw_odds": 3.48,
+          "away_odds": 2.924
         }
       ]
     },
@@ -3734,9 +3734,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "753623404",
           "event_league_id": 828065,
-          "home_odds": 2.796,
-          "draw_odds": 3.92,
-          "away_odds": 2.39
+          "home_odds": 2.817,
+          "draw_odds": 3.91,
+          "away_odds": 2.379
         }
       ]
     },
@@ -4382,9 +4382,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "743554886",
           "event_league_id": 1706694,
-          "home_odds": 2.18,
-          "draw_odds": 3.6,
-          "away_odds": 3.28
+          "home_odds": 2.17,
+          "draw_odds": 3.62,
+          "away_odds": 3.3
         }
       ]
     },
@@ -5616,11 +5616,11 @@
       "home_team": "DR Congo",
       "away_team": "Uganda",
       "league": "Friendlies National Teams",
-      "start_time": 1790949600,
+      "start_time": 1791208800,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "753442857",
+          "event_id": "753443197",
           "event_league_id": 125983,
           "home_odds": 1.63,
           "draw_odds": 3.39,
@@ -5628,7 +5628,7 @@
         },
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "753443197",
+          "event_id": "753442857",
           "event_league_id": 125983,
           "home_odds": 1.63,
           "draw_odds": 3.39,
