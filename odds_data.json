@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-09-28T00:39:57.026989",
+  "last_updated": "2026-09-28T00:43:53.773059",
   "stats": {
-    "total_scraped": 3788,
+    "total_scraped": 3781,
     "matched_events": 297,
     "bookmakers": [
       "Betway Ghana",
@@ -9,7 +9,7 @@
       "1xBet Ghana",
       "Pinnacle"
     ],
-    "scrape_time_seconds": 25.01989245414734
+    "scrape_time_seconds": 22.43732500076294
   },
   "matches": [
     {
@@ -4784,7 +4784,7 @@
           "event_league_id": null,
           "home_odds": 1.26,
           "draw_odds": 5.2,
-          "away_odds": 9.8
+          "away_odds": 9.6
         },
         {
           "bookmaker": "1xBet Ghana",
@@ -7653,19 +7653,11 @@
       ]
     },
     {
-      "home_team": "Liverpool (Groma)",
-      "away_team": "Bayern Munich (Mapiston)",
+      "home_team": "Bayern Munich (Mapiston)",
+      "away_team": "Liverpool (Groma)",
       "league": "Esoccer Battle Volta",
-      "start_time": 1790602980,
+      "start_time": 1790600280,
       "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "756716779",
-          "event_league_id": 2764505,
-          "home_odds": 1.94,
-          "draw_odds": 5.25,
-          "away_odds": 2.621
-        },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "756716777",
@@ -7673,30 +7665,14 @@
           "home_odds": 2.621,
           "draw_odds": 5.25,
           "away_odds": 1.94
-        }
-      ]
-    },
-    {
-      "home_team": "Liverpool (Groma)",
-      "away_team": "Real Madrid (L1genda)",
-      "league": "Esoccer Battle Volta",
-      "start_time": 1790601900,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "756716215",
-          "event_league_id": 2764505,
-          "home_odds": 1.67,
-          "draw_odds": 4.4,
-          "away_odds": 3.775
         },
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "756716213",
+          "event_id": "756716779",
           "event_league_id": 2764505,
-          "home_odds": 3.775,
-          "draw_odds": 4.4,
-          "away_odds": 1.67
+          "home_odds": 1.94,
+          "draw_odds": 5.25,
+          "away_odds": 2.621
         }
       ]
     },
@@ -7721,6 +7697,30 @@
           "home_odds": 2.25,
           "draw_odds": 4.3,
           "away_odds": 2.37
+        }
+      ]
+    },
+    {
+      "home_team": "Real Madrid (L1genda)",
+      "away_team": "Liverpool (Groma)",
+      "league": "Esoccer Battle Volta",
+      "start_time": 1790599200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "756716213",
+          "event_league_id": 2764505,
+          "home_odds": 3.775,
+          "draw_odds": 4.4,
+          "away_odds": 1.67
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "756716215",
+          "event_league_id": 2764505,
+          "home_odds": 1.67,
+          "draw_odds": 4.4,
+          "away_odds": 3.775
         }
       ]
     },
@@ -8109,19 +8109,35 @@
       ]
     },
     {
-      "home_team": "Spain (virtual_14)",
-      "away_team": "Portugal (virtual_15)",
+      "home_team": "Portugal (virtual_15)",
+      "away_team": "France (virtual_12)",
       "league": "Virtual eComp International",
-      "start_time": 1790580840,
+      "start_time": 1790582280,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "756605291",
+          "event_id": "756605287",
           "event_league_id": 2834158,
-          "home_odds": 1.89,
-          "draw_odds": 3.75,
-          "away_odds": 3.385
+          "home_odds": 2.07,
+          "draw_odds": 4.2,
+          "away_odds": 2.727
         },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "756606617",
+          "event_league_id": 2834158,
+          "home_odds": 2.07,
+          "draw_odds": 4.2,
+          "away_odds": 2.727
+        }
+      ]
+    },
+    {
+      "home_team": "Spain (virtual_14)",
+      "away_team": "Portugal (virtual_15)",
+      "league": "Virtual eComp International",
+      "start_time": 1790607840,
+      "odds": [
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "756606609",
@@ -8129,6 +8145,38 @@
           "home_odds": 1.89,
           "draw_odds": 3.75,
           "away_odds": 3.385
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "756605291",
+          "event_league_id": 2834158,
+          "home_odds": 1.89,
+          "draw_odds": 3.75,
+          "away_odds": 3.385
+        }
+      ]
+    },
+    {
+      "home_team": "France (virtual_12)",
+      "away_team": "Germany (virtual_13)",
+      "league": "Virtual eComp International",
+      "start_time": 1790580120,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "756605289",
+          "event_league_id": 2834158,
+          "home_odds": 1.43,
+          "draw_odds": 6.5,
+          "away_odds": 4.26
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "756606615",
+          "event_league_id": 2834158,
+          "home_odds": 1.43,
+          "draw_odds": 6.5,
+          "away_odds": 4.26
         }
       ]
     },
@@ -8177,54 +8225,6 @@
           "home_odds": 3.43,
           "draw_odds": 3.8,
           "away_odds": 1.87
-        }
-      ]
-    },
-    {
-      "home_team": "France (virtual_12)",
-      "away_team": "Germany (virtual_13)",
-      "league": "Virtual eComp International",
-      "start_time": 1790607120,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "756606615",
-          "event_league_id": 2834158,
-          "home_odds": 1.43,
-          "draw_odds": 6.5,
-          "away_odds": 4.26
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "756605289",
-          "event_league_id": 2834158,
-          "home_odds": 1.43,
-          "draw_odds": 6.5,
-          "away_odds": 4.26
-        }
-      ]
-    },
-    {
-      "home_team": "Portugal (virtual_15)",
-      "away_team": "France (virtual_12)",
-      "league": "Virtual eComp International",
-      "start_time": 1790609280,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "756606617",
-          "event_league_id": 2834158,
-          "home_odds": 2.07,
-          "draw_odds": 4.2,
-          "away_odds": 2.727
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "756605287",
-          "event_league_id": 2834158,
-          "home_odds": 2.07,
-          "draw_odds": 4.2,
-          "away_odds": 2.727
         }
       ]
     }
