@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-09-29T22:27:57.009670",
+  "last_updated": "2026-09-29T22:32:00.667991",
   "stats": {
-    "total_scraped": 4593,
+    "total_scraped": 4616,
     "matched_events": 321,
     "bookmakers": [
       "SoccaBet Ghana",
@@ -9,7 +9,7 @@
       "1xBet Ghana",
       "Pinnacle"
     ],
-    "scrape_time_seconds": 18.85443115234375
+    "scrape_time_seconds": 22.486083269119263
   },
   "matches": [
     {
@@ -5933,30 +5933,6 @@
       ]
     },
     {
-      "home_team": "Thisted FC",
-      "away_team": "FC Roskilde",
-      "league": "Denmark 2nd Division",
-      "start_time": 1791115200,
-      "odds": [
-        {
-          "bookmaker": "SoccaBet Ghana",
-          "event_id": "3769496",
-          "event_league_id": "30216",
-          "home_odds": 3.7,
-          "draw_odds": 3.55,
-          "away_odds": 1.82
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "757097780",
-          "event_league_id": 52591,
-          "home_odds": 3.745,
-          "draw_odds": 3.55,
-          "away_odds": 1.84
-        }
-      ]
-    },
-    {
       "home_team": "Naestved BK",
       "away_team": "Nykoebing FC",
       "league": "Denmark 2nd Division",
@@ -6001,6 +5977,30 @@
           "home_odds": 1.68,
           "draw_odds": 3.8,
           "away_odds": 4.245
+        }
+      ]
+    },
+    {
+      "home_team": "Thisted FC",
+      "away_team": "FC Roskilde",
+      "league": "Denmark 2nd Division",
+      "start_time": 1791115200,
+      "odds": [
+        {
+          "bookmaker": "SoccaBet Ghana",
+          "event_id": "3769496",
+          "event_league_id": "30216",
+          "home_odds": 3.7,
+          "draw_odds": 3.55,
+          "away_odds": 1.82
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "757097780",
+          "event_league_id": 52591,
+          "home_odds": 3.745,
+          "draw_odds": 3.55,
+          "away_odds": 1.84
         }
       ]
     },
@@ -6413,54 +6413,6 @@
       ]
     },
     {
-      "home_team": "Malmo FF",
-      "away_team": "Kalmar FF",
-      "league": "Sweden Allsvenskan",
-      "start_time": 1791824400,
-      "odds": [
-        {
-          "bookmaker": "SoccaBet Ghana",
-          "event_id": "3719664",
-          "event_league_id": "30361",
-          "home_odds": 1.76,
-          "draw_odds": 3.8,
-          "away_odds": 4.2
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "755074502",
-          "event_league_id": 212425,
-          "home_odds": 1.76,
-          "draw_odds": 3.78,
-          "away_odds": 4.225
-        }
-      ]
-    },
-    {
-      "home_team": "IF Elfsborg",
-      "away_team": "Halmstads BK",
-      "league": "Sweden Allsvenskan",
-      "start_time": 1791824400,
-      "odds": [
-        {
-          "bookmaker": "SoccaBet Ghana",
-          "event_id": "3719665",
-          "event_league_id": "30361",
-          "home_odds": 1.35,
-          "draw_odds": 5.0,
-          "away_odds": 7.6
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "755074508",
-          "event_league_id": 212425,
-          "home_odds": 1.35,
-          "draw_odds": 4.95,
-          "away_odds": 7.85
-        }
-      ]
-    },
-    {
       "home_team": "IFK Goteborg",
       "away_team": "Vasteras SK",
       "league": "Sweden Allsvenskan",
@@ -6577,6 +6529,54 @@
           "home_odds": 1.77,
           "draw_odds": 4.0,
           "away_odds": 3.92
+        }
+      ]
+    },
+    {
+      "home_team": "Malmo FF",
+      "away_team": "Kalmar FF",
+      "league": "Sweden Allsvenskan",
+      "start_time": 1791824400,
+      "odds": [
+        {
+          "bookmaker": "SoccaBet Ghana",
+          "event_id": "3719664",
+          "event_league_id": "30361",
+          "home_odds": 1.76,
+          "draw_odds": 3.8,
+          "away_odds": 4.2
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "755074502",
+          "event_league_id": 212425,
+          "home_odds": 1.76,
+          "draw_odds": 3.78,
+          "away_odds": 4.225
+        }
+      ]
+    },
+    {
+      "home_team": "IF Elfsborg",
+      "away_team": "Halmstads BK",
+      "league": "Sweden Allsvenskan",
+      "start_time": 1791824400,
+      "odds": [
+        {
+          "bookmaker": "SoccaBet Ghana",
+          "event_id": "3719665",
+          "event_league_id": "30361",
+          "home_odds": 1.35,
+          "draw_odds": 5.0,
+          "away_odds": 7.6
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "755074508",
+          "event_league_id": 212425,
+          "home_odds": 1.35,
+          "draw_odds": 4.95,
+          "away_odds": 7.85
         }
       ]
     },
@@ -6838,9 +6838,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "756597520",
           "event_league_id": 1706694,
-          "home_odds": 1.264,
-          "draw_odds": 6.16,
-          "away_odds": 12.8
+          "home_odds": 1.255,
+          "draw_odds": 6.32,
+          "away_odds": 13.1
         }
       ]
     },
@@ -6982,7 +6982,7 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "756065523",
           "event_league_id": 1804188,
-          "home_odds": 12.6,
+          "home_odds": 12.4,
           "draw_odds": 5.95,
           "away_odds": 1.203
         }
@@ -7366,9 +7366,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "757130283",
           "event_league_id": 1706694,
-          "home_odds": 1.265,
-          "draw_odds": 5.97,
-          "away_odds": 13.6
+          "home_odds": 1.285,
+          "draw_odds": 5.71,
+          "away_odds": 12.8
         }
       ]
     },
@@ -7976,11 +7976,11 @@
       "home_team": "DR Congo",
       "away_team": "Uganda",
       "league": "Friendlies National Teams",
-      "start_time": 1791208800,
+      "start_time": 1790949600,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "753443197",
+          "event_id": "753442857",
           "event_league_id": 125983,
           "home_odds": 1.63,
           "draw_odds": 3.39,
@@ -7988,7 +7988,7 @@
         },
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "753442857",
+          "event_id": "753443197",
           "event_league_id": 125983,
           "home_odds": 1.63,
           "draw_odds": 3.39,
@@ -8000,11 +8000,11 @@
       "home_team": "New Zealand",
       "away_team": "India",
       "league": "Friendlies National Teams",
-      "start_time": 1794711600,
+      "start_time": 1794463200,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "747764767",
+          "event_id": "735758305",
           "event_league_id": 125983,
           "home_odds": 1.38,
           "draw_odds": 4.43,
@@ -8012,7 +8012,7 @@
         },
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "735758305",
+          "event_id": "747764767",
           "event_league_id": 125983,
           "home_odds": 1.38,
           "draw_odds": 4.43,
