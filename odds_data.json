@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-10-09T00:37:48.846756",
+  "last_updated": "2026-10-09T00:41:45.603325",
   "stats": {
-    "total_scraped": 7490,
+    "total_scraped": 7487,
     "matched_events": 370,
     "bookmakers": [
       "SoccaBet Ghana",
@@ -9,7 +9,7 @@
       "1xBet Ghana",
       "Pinnacle"
     ],
-    "scrape_time_seconds": 35.510754108428955
+    "scrape_time_seconds": 32.71705389022827
   },
   "matches": [
     {
@@ -5805,30 +5805,6 @@
       ]
     },
     {
-      "home_team": "Arbroath FC",
-      "away_team": "Greenock Morton FC",
-      "league": "Scotland Championship",
-      "start_time": 1791640800,
-      "odds": [
-        {
-          "bookmaker": "SoccaBet Ghana",
-          "event_id": "3713536",
-          "event_league_id": "27786",
-          "home_odds": 1.8,
-          "draw_odds": 3.35,
-          "away_odds": 4.2
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "758297737",
-          "event_league_id": 281713,
-          "home_odds": 1.747,
-          "draw_odds": 3.3,
-          "away_odds": 4.355
-        }
-      ]
-    },
-    {
       "home_team": "Ayr United FC",
       "away_team": "Dunfermline Athletic FC",
       "league": "Scotland Championship",
@@ -5897,6 +5873,30 @@
           "home_odds": 1.48,
           "draw_odds": 3.82,
           "away_odds": 5.92
+        }
+      ]
+    },
+    {
+      "home_team": "Arbroath FC",
+      "away_team": "Greenock Morton FC",
+      "league": "Scotland Championship",
+      "start_time": 1791640800,
+      "odds": [
+        {
+          "bookmaker": "SoccaBet Ghana",
+          "event_id": "3713536",
+          "event_league_id": "27786",
+          "home_odds": 1.8,
+          "draw_odds": 3.35,
+          "away_odds": 4.2
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "758297737",
+          "event_league_id": 281713,
+          "home_odds": 1.747,
+          "draw_odds": 3.3,
+          "away_odds": 4.355
         }
       ]
     },
@@ -6735,8 +6735,8 @@
           "event_id": "759119985",
           "event_league_id": 52591,
           "home_odds": 1.78,
-          "draw_odds": 3.64,
-          "away_odds": 3.705
+          "draw_odds": 3.62,
+          "away_odds": 3.725
         }
       ]
     },
@@ -8198,9 +8198,9 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "759711500",
           "event_league_id": 190749,
-          "home_odds": 1.076,
+          "home_odds": 1.075,
           "draw_odds": 7.5,
-          "away_odds": 16.5
+          "away_odds": 17.0
         }
       ]
     },
@@ -9549,14 +9549,38 @@
       ]
     },
     {
-      "home_team": "Penarol (virtual_17)",
-      "away_team": "River Plate (Virtual_10)",
+      "home_team": "Estudiantes (virtual_13)",
+      "away_team": "Sao Paulo (virtual_14)",
       "league": "Virtual eComp Copa Libertadores",
-      "start_time": 1791572280,
+      "start_time": 1791570840,
       "odds": [
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "759711292",
+          "event_id": "759711286",
+          "event_league_id": 2876177,
+          "home_odds": 2.997,
+          "draw_odds": 3.3,
+          "away_odds": 2.19
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "759711284",
+          "event_league_id": 2876177,
+          "home_odds": 2.997,
+          "draw_odds": 3.3,
+          "away_odds": 2.19
+        }
+      ]
+    },
+    {
+      "home_team": "Penarol (virtual_17)",
+      "away_team": "River Plate (Virtual_10)",
+      "league": "Virtual eComp Copa Libertadores",
+      "start_time": 1791544680,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "759711290",
           "event_league_id": 2876177,
           "home_odds": 1.7,
           "draw_odds": 3.7,
@@ -9564,7 +9588,7 @@
         },
         {
           "bookmaker": "1xBet Ghana",
-          "event_id": "759711290",
+          "event_id": "759711292",
           "event_league_id": 2876177,
           "home_odds": 1.7,
           "draw_odds": 3.7,
@@ -9593,54 +9617,6 @@
           "home_odds": 2.17,
           "draw_odds": 2.75,
           "away_odds": 3.765
-        }
-      ]
-    },
-    {
-      "home_team": "Estudiantes (virtual_13)",
-      "away_team": "Sao Paulo (virtual_14)",
-      "league": "Virtual eComp Copa Libertadores",
-      "start_time": 1791570840,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "759711286",
-          "event_league_id": 2876177,
-          "home_odds": 2.997,
-          "draw_odds": 3.3,
-          "away_odds": 2.19
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "759711284",
-          "event_league_id": 2876177,
-          "home_odds": 2.997,
-          "draw_odds": 3.3,
-          "away_odds": 2.19
-        }
-      ]
-    },
-    {
-      "home_team": "River Plate (Virtual_10)",
-      "away_team": "Estudiantes (virtual_13)",
-      "league": "Virtual eComp Copa Libertadores",
-      "start_time": 1791569400,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "759698975",
-          "event_league_id": 2876177,
-          "home_odds": 2.18,
-          "draw_odds": 3.8,
-          "away_odds": 2.731
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "759698359",
-          "event_league_id": 2876177,
-          "home_odds": 2.18,
-          "draw_odds": 3.8,
-          "away_odds": 2.731
         }
       ]
     },
@@ -9689,30 +9665,6 @@
           "home_odds": 2.45,
           "draw_odds": 4.2,
           "away_odds": 2.2
-        }
-      ]
-    },
-    {
-      "home_team": "Flamengo (virtual_15)",
-      "away_team": "Barcelona Sporting Club (virtual_16)",
-      "league": "Virtual eComp Copa Libertadores",
-      "start_time": 1791564600,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "759698959",
-          "event_league_id": 2876177,
-          "home_odds": 2.73,
-          "draw_odds": 3.9,
-          "away_odds": 2.15
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "759698355",
-          "event_league_id": 2876177,
-          "home_odds": 2.73,
-          "draw_odds": 3.9,
-          "away_odds": 2.15
         }
       ]
     },
@@ -9789,6 +9741,30 @@
       ]
     },
     {
+      "home_team": "Flamengo (virtual_15)",
+      "away_team": "Barcelona Sporting Club (virtual_16)",
+      "league": "Virtual eComp Copa Libertadores",
+      "start_time": 1791538200,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "759698355",
+          "event_league_id": 2876177,
+          "home_odds": 2.73,
+          "draw_odds": 3.9,
+          "away_odds": 2.15
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "759698959",
+          "event_league_id": 2876177,
+          "home_odds": 2.73,
+          "draw_odds": 3.9,
+          "away_odds": 2.15
+        }
+      ]
+    },
+    {
       "home_team": "Colo-Colo (Virtual_11)",
       "away_team": "Estudiantes (virtual_13)",
       "league": "Virtual eComp Copa Libertadores",
@@ -9809,6 +9785,30 @@
           "home_odds": 3.09,
           "draw_odds": 3.4,
           "away_odds": 2.12
+        }
+      ]
+    },
+    {
+      "home_team": "River Plate (Virtual_10)",
+      "away_team": "Estudiantes (virtual_13)",
+      "league": "Virtual eComp Copa Libertadores",
+      "start_time": 1791569400,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "759698975",
+          "event_league_id": 2876177,
+          "home_odds": 2.18,
+          "draw_odds": 3.8,
+          "away_odds": 2.731
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "759698359",
+          "event_league_id": 2876177,
+          "home_odds": 2.18,
+          "draw_odds": 3.8,
+          "away_odds": 2.731
         }
       ]
     },
