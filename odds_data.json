@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-10-16T04:46:55.001233",
+  "last_updated": "2026-10-16T04:50:49.715884",
   "stats": {
-    "total_scraped": 7097,
+    "total_scraped": 7103,
     "matched_events": 379,
     "bookmakers": [
       "SoccaBet Ghana",
@@ -9,7 +9,7 @@
       "1xBet Ghana",
       "Pinnacle"
     ],
-    "scrape_time_seconds": 32.793758392333984
+    "scrape_time_seconds": 28.255688667297363
   },
   "matches": [
     {
@@ -3648,7 +3648,7 @@
           "event_league_id": null,
           "home_odds": 2.85,
           "draw_odds": 3.8,
-          "away_odds": 2.13
+          "away_odds": 2.14
         },
         {
           "bookmaker": "1xBet Ghana",
@@ -7854,17 +7854,17 @@
           "bookmaker": "SoccaBet Ghana",
           "event_id": "3781437",
           "event_league_id": "27728",
-          "home_odds": 2.25,
-          "draw_odds": 3.3,
-          "away_odds": 2.85
+          "home_odds": 2.35,
+          "draw_odds": 3.25,
+          "away_odds": 2.7
         },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "760589141",
           "event_league_id": 11249,
-          "home_odds": 2.19,
-          "draw_odds": 3.28,
-          "away_odds": 2.883
+          "home_odds": 2.28,
+          "draw_odds": 3.24,
+          "away_odds": 2.761
         }
       ]
     },
@@ -8654,8 +8654,8 @@
           "bookmaker": "1xBet Ghana",
           "event_id": "761990884",
           "event_league_id": 34893,
-          "home_odds": 9.15,
-          "draw_odds": 4.7,
+          "home_odds": 9.35,
+          "draw_odds": 4.65,
           "away_odds": 1.27
         }
       ]
@@ -10125,19 +10125,11 @@
       ]
     },
     {
-      "home_team": "Chile",
-      "away_team": "Colombia",
+      "home_team": "Colombia",
+      "away_team": "Chile",
       "league": "Friendlies National Teams",
-      "start_time": 1794956400,
+      "start_time": 1794610800,
       "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "761225307",
-          "event_league_id": 125983,
-          "home_odds": 3.795,
-          "draw_odds": 3.24,
-          "away_odds": 1.86
-        },
         {
           "bookmaker": "1xBet Ghana",
           "event_id": "761224073",
@@ -10145,6 +10137,14 @@
           "home_odds": 1.23,
           "draw_odds": 4.77,
           "away_odds": 11.3
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "761225307",
+          "event_league_id": 125983,
+          "home_odds": 3.795,
+          "draw_odds": 3.24,
+          "away_odds": 1.86
         }
       ]
     },
@@ -10169,30 +10169,6 @@
           "home_odds": 3.38,
           "draw_odds": 3.8,
           "away_odds": 1.89
-        }
-      ]
-    },
-    {
-      "home_team": "Spain (virtual_14)",
-      "away_team": "Portugal (virtual_15)",
-      "league": "Virtual eComp International",
-      "start_time": 1792163040,
-      "odds": [
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "761839655",
-          "event_league_id": 2834158,
-          "home_odds": 2.1,
-          "draw_odds": 3.0,
-          "away_odds": 3.555
-        },
-        {
-          "bookmaker": "1xBet Ghana",
-          "event_id": "761838744",
-          "event_league_id": 2834158,
-          "home_odds": 2.1,
-          "draw_odds": 3.0,
-          "away_odds": 3.555
         }
       ]
     },
@@ -10241,6 +10217,30 @@
           "home_odds": 1.82,
           "draw_odds": 6.0,
           "away_odds": 2.713
+        }
+      ]
+    },
+    {
+      "home_team": "Spain (virtual_14)",
+      "away_team": "Portugal (virtual_15)",
+      "league": "Virtual eComp International",
+      "start_time": 1792163040,
+      "odds": [
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "761839655",
+          "event_league_id": 2834158,
+          "home_odds": 2.1,
+          "draw_odds": 3.0,
+          "away_odds": 3.555
+        },
+        {
+          "bookmaker": "1xBet Ghana",
+          "event_id": "761838744",
+          "event_league_id": 2834158,
+          "home_odds": 2.1,
+          "draw_odds": 3.0,
+          "away_odds": 3.555
         }
       ]
     },
